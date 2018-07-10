@@ -3,7 +3,7 @@
 If you decide to contribute to our repository, please follow our [Code of conduct](./CODE_OF_CONDUCT.md) when contributing. We value all contributions and will review them as soon as we can.
 
 ### Bugs
-When using our software, it is possible that you will come across a bug. If this happens, Be sure to come to our issues page to see if anyone else has ran into this same problem. If no one has reported it, then please submit an issue followig this [Issue template](./ISSUE_TEMPLATE.md).
+When using our software, it is possible that you will come across a bug. If this happens, Be sure to come to our issues page to see if anyone else has run into this same problem. If no one has reported it, then please submit an issue followig this [Issue template](./ISSUE_TEMPLATE.md).
 
 ### Issues
 When you don't run into a bug, but have an issue or a question, then the best option is to message our [Support team](https://www.blackducksoftware.com/support/contact-support). They are available 24 hours a day and work directly with us to resovle any issues you may have.
