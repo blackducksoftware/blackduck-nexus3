@@ -21,16 +21,22 @@
  *     specific language governing permissions and limitations
  *     under the License.
  */
-package com.blackducksoftware.integration.hub_nexus3;
+package com.blackducksoftware.integration.hub.nexus3;
 
 /**
  * Hello world!
  *
  */
-public class App 
-{
-    public static void main( String[] args )
-    {  
-        System.out.println( "Hello World!" );
-    }
+public class App {
+    // public static void main(final String[] args) {
+    // System.out.println("Hello World!");
+
+    // UI: org.sonatype.nexus.formfields.
+    // Database: org.sonatype.nexus.orient
+    // Version Info?: org.sonatype.nexus.common.app.ApplicationVersion
+    // Network Info?: org.sonatype.nexus.common.io.NetworkHelper.findLocalHostAddress()
+    // Download: org.sonatype.nexus.common.wonderland.DownloadService
+    // Task Status: org.sonatype.nexus.scheduling.api.TaskXO
+    // Execute commands: org.sonatype.nexus.commands.CommandSupport().execute(session, arguments)
+    // }
 }
