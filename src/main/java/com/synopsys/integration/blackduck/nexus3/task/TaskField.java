@@ -9,7 +9,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Black Duck Software.
  */
-package com.blackducksoftware.integration.hub.nexus3.task;
+package com.synopsys.integration.blackduck.nexus3.task;
 
 public enum TaskField {
     DISTRIBUTION("blackduck.hub.project.version.distribution"),

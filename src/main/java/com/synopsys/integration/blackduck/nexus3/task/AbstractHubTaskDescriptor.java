@@ -9,7 +9,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Black Duck Software.
  */
-package com.blackducksoftware.integration.hub.nexus3.task;
+package com.synopsys.integration.blackduck.nexus3.task;
 
 import java.util.Arrays;
 import java.util.List;
@@ -20,7 +20,7 @@ import org.sonatype.nexus.formfields.PasswordFormField;
 import org.sonatype.nexus.formfields.StringTextFormField;
 import org.sonatype.nexus.scheduling.TaskDescriptor;
 
-import com.blackducksoftware.integration.hub.nexus3.config.HubServerField;
+import com.synopsys.integration.blackduck.nexus3.config.HubServerField;
 
 public abstract class AbstractHubTaskDescriptor implements TaskDescriptor {
     public static final String DEFAULT_HUB_TIMEOUT = "300";

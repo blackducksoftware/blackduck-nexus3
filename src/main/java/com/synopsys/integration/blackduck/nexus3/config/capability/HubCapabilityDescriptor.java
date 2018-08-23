@@ -9,7 +9,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Black Duck Software.
  */
-package com.blackducksoftware.integration.hub.nexus3.config.capability;
+package com.synopsys.integration.blackduck.nexus3.config.capability;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -27,7 +27,7 @@ import org.sonatype.nexus.capability.CapabilityType;
 import org.sonatype.nexus.formfields.FormField;
 import org.sonatype.nexus.formfields.StringTextFormField;
 
-import com.blackducksoftware.integration.hub.nexus3.config.HubServerConfig;
+import com.synopsys.integration.blackduck.nexus3.config.HubServerConfig;
 
 @Singleton
 @Named(HubCapabilityDescriptor.CAPABILITY_ID)

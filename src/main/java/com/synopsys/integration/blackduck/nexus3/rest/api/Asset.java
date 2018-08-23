@@ -9,8 +9,14 @@
  * accordance with the terms of the license agreement you entered into
  * with Black Duck Software.
  */
-package com.blackducksoftware.integration.hub.nexus3;
+package com.synopsys.integration.blackduck.nexus3.rest.api;
 
-public class HubPlugin {
+public class Asset extends NexusResponse {
+    public String downloadUrl;
+    public String path;
+    public String id;
+    public String repository;
+    public String format;
+    public Object checksum;
 
 }

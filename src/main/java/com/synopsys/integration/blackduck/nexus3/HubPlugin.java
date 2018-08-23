@@ -9,10 +9,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Black Duck Software.
  */
-package com.blackducksoftware.integration.hub.nexus3.rest.api;
+package com.synopsys.integration.blackduck.nexus3;
 
-import com.blackducksoftware.integration.util.Stringable;
-
-public class NexusResponse extends Stringable {
+public class HubPlugin {
 
 }

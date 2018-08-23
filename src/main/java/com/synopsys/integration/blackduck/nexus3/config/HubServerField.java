@@ -9,7 +9,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Black Duck Software.
  */
-package com.blackducksoftware.integration.hub.nexus3.config;
+package com.synopsys.integration.blackduck.nexus3.config;
 
 import java.util.Arrays;
 import java.util.List;

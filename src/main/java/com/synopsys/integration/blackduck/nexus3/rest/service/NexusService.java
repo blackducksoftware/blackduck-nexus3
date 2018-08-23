@@ -9,7 +9,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Black Duck Software.
  */
-package com.blackducksoftware.integration.hub.nexus3.rest.service;
+package com.synopsys.integration.blackduck.nexus3.rest.service;
 
 import java.io.IOException;
 import java.net.URL;
@@ -19,13 +19,13 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import com.blackducksoftware.integration.exception.IntegrationException;
-import com.blackducksoftware.integration.hub.nexus3.rest.api.Asset;
-import com.blackducksoftware.integration.hub.nexus3.rest.api.NexusItemsResponse;
-import com.blackducksoftware.integration.hub.nexus3.rest.api.NexusRequestParameter;
-import com.blackducksoftware.integration.hub.nexus3.rest.api.NexusResponse;
 import com.blackducksoftware.integration.rest.connection.RestConnection;
 import com.blackducksoftware.integration.rest.request.Request;
 import com.blackducksoftware.integration.rest.request.Response;
+import com.synopsys.integration.blackduck.nexus3.rest.api.Asset;
+import com.synopsys.integration.blackduck.nexus3.rest.api.NexusItemsResponse;
+import com.synopsys.integration.blackduck.nexus3.rest.api.NexusRequestParameter;
+import com.synopsys.integration.blackduck.nexus3.rest.api.NexusResponse;
 
 public abstract class NexusService<T extends NexusResponse> {
     private final String servicePath;

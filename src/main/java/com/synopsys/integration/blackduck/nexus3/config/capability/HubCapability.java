@@ -9,7 +9,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Black Duck Software.
  */
-package com.blackducksoftware.integration.hub.nexus3.config.capability;
+package com.synopsys.integration.blackduck.nexus3.config.capability;
 
 import java.util.Map;
 
@@ -18,8 +18,8 @@ import javax.inject.Named;
 
 import org.sonatype.nexus.capability.CapabilitySupport;
 
-import com.blackducksoftware.integration.hub.nexus3.config.HubServerConfig;
-import com.blackducksoftware.integration.hub.nexus3.config.HubServerField;
+import com.synopsys.integration.blackduck.nexus3.config.HubServerConfig;
+import com.synopsys.integration.blackduck.nexus3.config.HubServerField;
 
 @Named(HubCapabilityDescriptor.CAPABILITY_ID)
 public class HubCapability extends CapabilitySupport<HubCapabilityConfiguration> {

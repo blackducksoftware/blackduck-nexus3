@@ -9,12 +9,14 @@
  * accordance with the terms of the license agreement you entered into
  * with Black Duck Software.
  */
-package com.blackducksoftware.integration.hub.nexus3.rest.api;
+package com.synopsys.integration.blackduck.nexus3.rest.api;
 
-public class Repository extends NexusResponse {
-    public String name;
-    public String format;
-    public String type;
-    public String url;
+import java.util.List;
+
+import com.blackducksoftware.integration.util.Stringable;
+
+public class NexusItemsResponse<T extends NexusResponse> extends Stringable {
+    public List<T> items;
+    public String continuationToken;
 
 }
