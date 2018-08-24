@@ -5,22 +5,23 @@
   <parent>
     <groupId>org.sonatype.nexus.plugins</groupId>
     <artifactId>nexus-plugins</artifactId>
-    <version>3.12.1-01</version> 
+    <version>3.13.0-01</version> 
   </parent>
 
   <groupId>com.blackducksoftware.integration</groupId>
   <artifactId>hub-nexus3</artifactId>
-  <!--  If you modify the version update the static PLUGIN_VERSION field in ScanTaskDescriptor -->
   <version>0.0.1-SNAPSHOT</version> 
   <packaging>bundle</packaging>
 
   <name>hub-nexus3</name>
   <description>Nexus 3 plug-in to scan repository artifacts</description>
   <url>https://github.com/blackducksoftware/hub-nexus3</url>
+  
   <organization>
     <name>Black Duck Software, Inc.</name>
     <url>http://www.blackducksoftware.com/</url>
   </organization>
+  
   <licenses>
     <license>
       <name>Apache License 2.0</name>
@@ -39,20 +40,22 @@
   </properties>
 
   <dependencies>
-    <dependency>
+    <!--<dependency>
       <groupId>com.blackducksoftware.integration</groupId>
       <artifactId>hub-common</artifactId>
-      <version>33.1.0</version>
+      <version>37.0.0</version>
+      <scope>compile</scope>
       <exclusions>
-        <!-- Commons logging is a transitive dependency from a dependency in hub-common-reporting
+         Commons logging is a transitive dependency from a dependency in hub-common-reporting
            Logging is done in Nexus with slf4j
-       -->
+       
         <exclusion>
           <groupId>commons-logging</groupId>
           <artifactId>commons-logging</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>
+    </dependency>-->
+    
     <dependency>
       <groupId>org.codehaus.mojo</groupId>
       <artifactId>build-helper-maven-plugin</artifactId>
@@ -65,14 +68,37 @@
       <artifactId>nexus-plugin-api</artifactId>
       <scope>provided</scope>
     </dependency>
+    
     <dependency>
        <groupId>org.sonatype.nexus</groupId>
        <artifactId>nexus-capability</artifactId>
        <scope>provided</scope>
     </dependency>
+    
+    <dependency>
+        <groupId>org.sonatype.nexus</groupId>
+        <artifactId>nexus-scheduling</artifactId>
+        <scope>provided</scope>
+    </dependency>
+    
+    <dependency>
+        <groupId>org.sonatype.nexus</groupId>
+        <artifactId>nexus-repository</artifactId>
+        <scope>provided</scope>
+      </dependency>
   </dependencies>
   
   <build>
+    <!-- <pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.karaf.tooling</groupId>
+                <artifactId>karaf-maven-plugin</artifactId>
+                <version>3.0.1</version>
+                <extensions>true</extensions>
+            </plugin>
+        </plugins>
+    </pluginManagement> -->
 	  <plugins>
 	    <plugin>
 	      <groupId>org.apache.karaf.tooling</groupId>

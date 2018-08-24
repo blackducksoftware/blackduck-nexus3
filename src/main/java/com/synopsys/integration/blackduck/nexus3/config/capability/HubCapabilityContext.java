@@ -11,8 +11,6 @@
  */
 package com.synopsys.integration.blackduck.nexus3.config.capability;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -24,10 +22,6 @@ import org.sonatype.nexus.capability.CapabilityContext;
 import org.sonatype.nexus.capability.CapabilityDescriptor;
 import org.sonatype.nexus.capability.CapabilityIdentity;
 import org.sonatype.nexus.capability.CapabilityType;
-
-import com.blackducksoftware.integration.exception.IntegrationException;
-import com.synopsys.integration.blackduck.nexus3.config.HubServerConfig;
-import com.synopsys.integration.blackduck.nexus3.config.HubServerField;
 
 @Named(HubCapabilityDescriptor.CAPABILITY_ID)
 public class HubCapabilityContext implements CapabilityContext {
@@ -62,15 +56,16 @@ public class HubCapabilityContext implements CapabilityContext {
 
     @Override
     public Map<String, String> properties() {
-        final HubServerConfig config = descriptor.getHubServerConfig();
-        try {
-            return config.getConfigMapAsPlainText();
-        } catch (final IntegrationException e) {
-            logger.error("Cannot retrieve Black Duck Hub Configuration", e);
-        }
-        final Map<String, String> map = new HashMap<>();
-        Arrays.asList(HubServerField.values()).forEach(field -> map.put(field.getKey(), ""));
-        return map;
+        // final HubServerConfig config = descriptor.getHubServerConfig();
+        // try {
+        // return config.getConfigMapAsPlainText();
+        // } catch (final IntegrationException e) {
+        // logger.error("Cannot retrieve Black Duck Hub Configuration", e);
+        // }
+        // final Map<String, String> map = new HashMap<>();
+        // Arrays.asList(HubServerField.values()).forEach(field -> map.put(field.getKey(), ""));
+        // return map;
+        return null;
     }
 
     @Override

@@ -13,9 +13,7 @@ package com.synopsys.integration.blackduck.nexus3.rest.api;
 
 import java.util.List;
 
-import com.blackducksoftware.integration.util.Stringable;
-
-public class NexusItemsResponse<T extends NexusResponse> extends Stringable {
+public class NexusItemsResponse<T extends NexusResponse> /* extends Stringable */ {
     public List<T> items;
     public String continuationToken;
 

@@ -11,32 +11,23 @@
  */
 package com.synopsys.integration.blackduck.nexus3.rest.service;
 
-import java.util.Collections;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.blackducksoftware.integration.exception.IntegrationException;
-import com.blackducksoftware.integration.rest.connection.RestConnection;
 import com.synopsys.integration.blackduck.nexus3.rest.api.Asset;
-import com.synopsys.integration.blackduck.nexus3.rest.api.NexusRequestParameter;
 
 public class AssetService extends NexusService<Asset> {
-    private final Logger logger = LoggerFactory.getLogger(AssetService.class);
-
-    public AssetService(final RestConnection restConnection) {
-        super("/beta/assets", restConnection);
-    }
-
-    public List<Asset> getAll(final String repositoryName) {
-        final NexusRequestParameter parameter = NexusRequestParameter.repository(repositoryName);
-        try {
-            return getMultipleResponse(parameter);
-        } catch (final IntegrationException e) {
-            logger.error("Problem getting assets.", e);
-        }
-        return Collections.emptyList();
-    }
+    // private final Logger logger = LoggerFactory.getLogger(AssetService.class);
+    //
+    // public AssetService(final RestConnection restConnection) {
+    // super("/beta/assets", restConnection);
+    // }
+    //
+    // public List<Asset> getAll(final String repositoryName) {
+    // final NexusRequestParameter parameter = NexusRequestParameter.repository(repositoryName);
+    // try {
+    // return getMultipleResponse(parameter);
+    // } catch (final IntegrationException e) {
+    // logger.error("Problem getting assets.", e);
+    // }
+    // return Collections.emptyList();
+    // }
 
 }

@@ -11,8 +11,6 @@
  */
 package com.synopsys.integration.blackduck.nexus3.rest.api;
 
-import com.blackducksoftware.integration.util.Stringable;
-
-public class NexusResponse extends Stringable {
+public class NexusResponse /* extends Stringable */ {
 
 }
