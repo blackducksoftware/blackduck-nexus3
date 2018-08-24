@@ -8,4 +8,5 @@ pom.xml.bak
 test.properties
 test_data
 blackduck/
-
+.idea/
+hub-nexus3.iml
