@@ -40,21 +40,20 @@
   </properties>
 
   <dependencies>
-    <!--<dependency>
+    <dependency>
       <groupId>com.blackducksoftware.integration</groupId>
       <artifactId>hub-common</artifactId>
       <version>37.0.0</version>
       <scope>compile</scope>
       <exclusions>
-         Commons logging is a transitive dependency from a dependency in hub-common-reporting
-           Logging is done in Nexus with slf4j
-       
+         <!-- Commons logging is a transitive dependency from a dependency in hub-common-reporting
+           Logging is done in Nexus with slf4j -->
         <exclusion>
           <groupId>commons-logging</groupId>
           <artifactId>commons-logging</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>-->
+    </dependency>
     
     <dependency>
       <groupId>org.codehaus.mojo</groupId>
@@ -86,24 +85,23 @@
         <artifactId>nexus-repository</artifactId>
         <scope>provided</scope>
       </dependency>
+      
   </dependencies>
   
   <build>
-    <!-- <pluginManagement>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.karaf.tooling</groupId>
-                <artifactId>karaf-maven-plugin</artifactId>
-                <version>3.0.1</version>
-                <extensions>true</extensions>
-            </plugin>
-        </plugins>
-    </pluginManagement> -->
 	  <plugins>
-	    <plugin>
-	      <groupId>org.apache.karaf.tooling</groupId>
-	      <artifactId>karaf-maven-plugin</artifactId>
-	    </plugin>
+		<plugin>
+		     <groupId>org.apache.felix</groupId>
+		     <artifactId>maven-bundle-plugin</artifactId>
+		     <extensions>true</extensions>
+		     <configuration>
+		         <instructions>
+		             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+		             <Import-Package>!com.synopsys.integration.encryption,!com.synopsys.integration.exception,*</Import-Package>
+		             <Embed-Dependency>encryption, exception</Embed-Dependency>
+		         </instructions>
+		     </configuration>
+		 </plugin>
 	  </plugins>
   </build>
 

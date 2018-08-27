@@ -21,7 +21,8 @@ public enum TaskField {
     OLD_ARTIFACT_CUTOFF("blackduck.hub.nexus.artifact.cutoff"),
     RESCAN_FAILURES("blackduck.hub.nexus.rescan.failures"),
     ALWAYS_SCAN("blackduck.hub.nexus.rescan.always"),
-    PHONE_HOME("blackduck.hub.nexus.phonehome");
+    PHONE_HOME("blackduck.hub.nexus.phonehome"),
+    REPOSITORY("selectedRepository");
 
     private String parameterKey;
 

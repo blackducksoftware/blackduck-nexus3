@@ -13,26 +13,18 @@ package com.synopsys.integration.blackduck.nexus3.config.capability;
 
 import java.util.Map;
 
-import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.sonatype.nexus.capability.CapabilitySupport;
 
-import com.synopsys.integration.blackduck.nexus3.config.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.config.HubServerField;
 
 @Named(HubCapabilityDescriptor.CAPABILITY_ID)
 public class HubCapability extends CapabilitySupport<HubCapabilityConfiguration> {
-    private final HubServerConfig hubServerConfig;
-
-    @Inject
-    public HubCapability(final HubServerConfig hubServerConfig) {
-        this.hubServerConfig = hubServerConfig;
-    }
 
     @Override
     protected HubCapabilityConfiguration createConfig(final Map<String, String> properties) throws Exception {
-        return new HubCapabilityConfiguration(); // new HubCapabilityConfiguration(hubServerConfig);
+        return new HubCapabilityConfiguration();
     }
 
     @Override

@@ -12,18 +12,9 @@
 package com.synopsys.integration.blackduck.nexus3.config.capability;
 
 import org.sonatype.nexus.capability.CapabilityConfigurationSupport;
-import org.sonatype.nexus.formfields.StringTextFormField;
 
 public class HubCapabilityConfiguration extends CapabilityConfigurationSupport {
-    // private final HubServerConfig hubServerConfig;
-    //
-    // public HubCapabilityConfiguration(final HubServerConfig hubServerConfig) {
-    // this.hubServerConfig = hubServerConfig;
-    // }
 
-    public StringTextFormField test;
-
-    public HubCapabilityConfiguration() {
-    }
+    public String test;
 
 }

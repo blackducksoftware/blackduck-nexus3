@@ -7,6 +7,5 @@ pom.xml.bak
 .DS_Store
 test.properties
 test_data
-blackduck/
 .idea/
 hub-nexus3.iml
