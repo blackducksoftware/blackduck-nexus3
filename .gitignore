@@ -1,11 +1,16 @@
+# build tool
+.gradle/
+build/
+target/
+
+# operating system
+.DS_Store
+
+# ide
 .settings/
 .classpath
 .project
-target/
 bin/
-pom.xml.bak
-.DS_Store
-test.properties
-test_data
-.idea/
-hub-nexus3.iml
+.idea
+out/
+*.iml

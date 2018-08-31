@@ -1,0 +1,35 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven { url 'https://plugins.gradle.org/m2/' }
+    }
+
+    dependencies {
+        classpath 'com.blackducksoftware.integration:common-gradle-plugin:0.0.+'
+    }
+}
+
+plugins {
+    id 'osgi'
+}
+
+version = '0.0.1-SNAPSHOT'
+
+apply plugin: 'com.blackducksoftware.integration.solution'
+
+dependencies {
+    compile 'com.blackducksoftware.integration:hub-common:37.0.0'
+
+    compile 'org.sonatype.nexus:nexus-plugin-api:3.13.0-01'
+    compile 'org.sonatype.nexus:nexus-repository:3.13.0-01'
+    compile 'org.sonatype.nexus:nexus-scheduling:3.13.0-01'
+    compile 'org.sonatype.nexus:nexus-capability:3.13.0-01'
+}
+
+jar {
+    manifest {
+        name = 'blackduck-nexus3'
+        instruction 'Import-Package', '!com.synopsys.integration.encryption', '!com.synopsys.integration.exception', '!com.google.gson', '!org.apache.commons.lang3', '*'
+        instruction 'Embed-Dependency', 'encryption', 'exception', 'gson', 'lang3'
+    }
+}
