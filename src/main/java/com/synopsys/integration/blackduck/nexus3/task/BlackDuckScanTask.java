@@ -27,22 +27,24 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.sonatype.nexus.common.collect.NestedAttributesMap;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
-import org.sonatype.nexus.repository.browse.BrowseService;
+import org.sonatype.nexus.repository.storage.Asset;
+
+import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 
 @Named
 public class BlackDuckScanTask extends RepositoryTaskSupport {
     private static final String TEST_KEY = "BD_Test";
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final String BLACKDUCK_CATEGORY = "Black Duck";
+    private final Logger logger = createLogger();
 
-    private BrowseService browseService;
+    private QueryManager queryManager;
 
     @Inject
-
-    public BlackDuckScanTask(BrowseService browseService) {
-        this.browseService = browseService;
+    public BlackDuckScanTask(QueryManager queryManager) {
+        this.queryManager = queryManager;
     }
 
     @Override
@@ -59,19 +61,27 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
     @Override
     protected void execute(final Repository repository) {
         logger.info("Found repository: " + repository.getName());
-        //        StorageTx storageTx = repository.facet(AttributesFacetImpl.class).txSupplier().get();
-        //        QueryOptions queryOptions = new QueryOptions(null, null, null, null, null);
-        //        BrowseResult<Component> foundComponentsResult = browseService.browseComponents(repository, queryOptions);
-        //        List<Component> foundComponents = foundComponentsResult.getResults();
-        //        foundComponents.forEach(component -> {
-        //            boolean switched = true;
-        //            String foundValue = (String) component.attributes().get(TEST_KEY);
-        //            if (StringUtils.isNotBlank(foundValue)) {
-        //                switched = !Boolean.parseBoolean(foundValue);
-        //            }
-        //            component.attributes().set(TEST_KEY, switched);
-        //            storageTx.saveComponent(component);
-        //        });
+        Iterable<Asset> foundAssets = queryManager.findAssetsInRepository(repository);
+        for (Asset asset : foundAssets) {
+            if (asset.componentId() != null) {
+                logger.info("Scanning item: " + asset.name());
+                // Scan item
+                NestedAttributesMap blackDuckNestedAttributes = getBlackDuckNestedAttributes(asset.attributes());
+                Boolean switched = true;
+                Boolean foundValue = (Boolean) blackDuckNestedAttributes.get(TEST_KEY);
+                if (foundValue != null) {
+                    switched = !foundValue;
+                    logger.info(String.format("Switching value from %s to %s", foundValue, switched));
+                }
+                blackDuckNestedAttributes.set(TEST_KEY, switched);
+                logger.info("Saving switched asset");
+                queryManager.updateAsset(repository, asset);
+            }
+        }
+    }
+
+    public NestedAttributesMap getBlackDuckNestedAttributes(NestedAttributesMap nestedAttributesMap) {
+        return nestedAttributesMap.child(BLACKDUCK_CATEGORY);
     }
 
 }

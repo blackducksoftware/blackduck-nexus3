@@ -29,7 +29,7 @@ dependencies {
 jar {
     manifest {
         name = 'blackduck-nexus3'
-        instruction 'Import-Package', '!com.synopsys.integration.encryption', '!com.synopsys.integration.exception', '!com.google.gson', '!org.apache.commons.lang3', '*'
-        instruction 'Embed-Dependency', 'encryption', 'exception', 'gson', 'lang3'
+        instruction 'Import-Package', '!com.synopsys.integration.encryption', '!com.synopsys.integration.exception', '!com.google.gson', '!org.apache.commons.lang3', '!org.apache.commons.commons-lang3', '*'
+        instruction 'Embed-Dependency', 'encryption', 'exception', 'gson', 'lang3', 'commons-lang3'
     }
 }
