@@ -28,21 +28,17 @@ import java.util.Collections;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.sonatype.nexus.common.stateguard.StateGuardLifecycleSupport;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.storage.Asset;
-import org.sonatype.nexus.repository.storage.Component;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.repository.storage.StorageFacet;
 import org.sonatype.nexus.repository.storage.StorageTx;
-import org.sonatype.nexus.repository.transaction.TransactionalStoreMetadata;
-import org.sonatype.nexus.transaction.UnitOfWork;
 
 import com.google.common.base.Supplier;
 
 @Named
 @Singleton
-public class QueryManager extends StateGuardLifecycleSupport {
+public class QueryManager {
 
     public Iterable<Asset> findAssetsInRepository(Repository repository) {
         try (StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
@@ -56,45 +52,15 @@ public class QueryManager extends StateGuardLifecycleSupport {
 
     public void updateAsset(Repository repository, Asset asset) {
         Supplier<StorageTx> supplier = repository.facet(StorageFacet.class).txSupplier();
-        UnitOfWork.begin(supplier);
         try (StorageTx storageTx = supplier.get()) {
             saveAsset(storageTx, asset);
-        } finally {
-            UnitOfWork.end();
         }
     }
 
-    @TransactionalStoreMetadata
-    public void saveAsset(StorageTx storageTx, Asset asset) {
+    private void saveAsset(StorageTx storageTx, Asset asset) {
         storageTx.begin();
         storageTx.saveAsset(asset);
         storageTx.commit();
     }
 
-    public Iterable<Component> findComponentsInRepository(Repository repository) {
-        try (StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
-            storageTx.begin();
-
-            Query.Builder query = Query.builder();
-
-            return storageTx.findComponents(query.build(), Collections.singletonList(repository));
-        }
-    }
-
-    public void updateComponent(Repository repository, Component component) {
-        Supplier<StorageTx> supplier = repository.facet(StorageFacet.class).txSupplier();
-        UnitOfWork.begin(supplier);
-        try (StorageTx storageTx = supplier.get()) {
-            saveComponent(storageTx, component);
-        } finally {
-            UnitOfWork.end();
-        }
-    }
-
-    @TransactionalStoreMetadata
-    public void saveComponent(StorageTx storageTx, Component component) {
-        storageTx.begin();
-        storageTx.saveComponent(component);
-        storageTx.commit();
-    }
 }
