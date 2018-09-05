@@ -21,12 +21,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.rest.api;
+package com.synopsys.integration.blackduck.nexus3.capability.model;
 
+import java.util.Arrays;
 import java.util.List;
 
-public class NexusItemsResponse<T extends NexusResponse> /* extends Stringable */ {
-    public List<T> items;
-    public String continuationToken;
+public enum HubConfigField {
+    HUB_TRUST_CERT("blackduck.hub.trust.cert"),
+    HUB_PASSWORD("blackduck.hub.password"),
+    HUB_PROXY_HOST("blackduck.hub.proxy.host"),
+    HUB_PROXY_PORT("blackduck.hub.proxy.port"),
+    HUB_PROXY_USERNAME("blackduck.hub.proxy.username"),
+    HUB_PROXY_PASSWORD("blackduck.hub.proxy.password"),
+    HUB_SCAN_MEMORY("blackduck.hub.scan.memory"),
+    HUB_TIMEOUT("blackduck.hub.timeout"),
+    HUB_USERNAME("blackduck.hub.username"),
+    HUB_URL("blackduck.hub.url");
+
+    private final String key;
+
+    HubConfigField(final String key) {
+        this.key = key;
+    }
+
+    public static List<HubConfigField> passwordFields() {
+        return Arrays.asList(HUB_PASSWORD, HUB_PROXY_PASSWORD);
+    }
+
+    public String getKey() {
+        return key;
+    }
 
 }

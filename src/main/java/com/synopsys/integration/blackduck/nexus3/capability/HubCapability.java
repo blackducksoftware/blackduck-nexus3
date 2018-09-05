@@ -21,35 +21,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.config;
+package com.synopsys.integration.blackduck.nexus3.capability;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
 
-public enum HubServerField {
-    HUB_TRUST_CERT("blackduck.hub.trust.cert"),
-    HUB_PASSWORD("blackduck.hub.password"),
-    HUB_PROXY_HOST("blackduck.hub.proxy.host"),
-    HUB_PROXY_PORT("blackduck.hub.proxy.port"),
-    HUB_PROXY_USERNAME("blackduck.hub.proxy.username"),
-    HUB_PROXY_PASSWORD("blackduck.hub.proxy.password"),
-    HUB_SCAN_MEMORY("blackduck.hub.scan.memory"),
-    HUB_TIMEOUT("blackduck.hub.timeout"),
-    HUB_USERNAME("blackduck.hub.username"),
-    HUB_URL("blackduck.hub.url");
+import javax.inject.Named;
 
-    private String key;
+import org.sonatype.nexus.capability.CapabilitySupport;
 
-    private HubServerField(final String key) {
-        this.key = key;
-    }
+@Named(HubCapabilityDescriptor.CAPABILITY_ID)
+public class HubCapability extends CapabilitySupport<HubCapabilityConfiguration> {
 
-    public String getKey() {
-        return this.key;
-    }
-
-    public static List<HubServerField> passwordFields() {
-        return Arrays.asList(HUB_PASSWORD, HUB_PROXY_PASSWORD);
+    @Override
+    protected HubCapabilityConfiguration createConfig(final Map<String, String> properties) {
+        return new HubCapabilityConfiguration(properties);
     }
 
 }

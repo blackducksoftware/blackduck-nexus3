@@ -26,10 +26,9 @@ package com.synopsys.integration.blackduck.nexus3.task;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.sonatype.nexus.formfields.RepositoryCombobox;
-import org.sonatype.nexus.formfields.StringTextFormField;
-import org.sonatype.nexus.repository.RepositoryTaskSupport;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
+
+import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskFields;
 
 @Named
 @Singleton
@@ -43,16 +42,9 @@ public class BlackDuckScanTaskDescriptor extends TaskDescriptorSupport {
             BLACK_DUCK_SCAN_TASK_NAME,
             VISIBLE,
             EXPOSED,
-            new RepositoryCombobox(
-                RepositoryTaskSupport.REPOSITORY_NAME_FIELD_ID,
-                "Repository",
-                "Repository for BlackDuck to Scan",
-                true),
-            new StringTextFormField(
-                "componentName",
-                "Component Name",
-                "Name of component to add attributes to",
-                true)
+            ScanTaskFields.FIELD_REPOSITORY,
+            ScanTaskFields.FIELD_FILE_PATTERN,
+            ScanTaskFields.FIELD_WORKING_DIRECTORY
         );
     }
 

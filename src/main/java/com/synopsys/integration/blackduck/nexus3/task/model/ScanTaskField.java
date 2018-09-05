@@ -21,25 +21,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.rest.service;
+package com.synopsys.integration.blackduck.nexus3.task.model;
 
-import com.synopsys.integration.blackduck.nexus3.rest.api.Asset;
+public enum ScanTaskField {
+    DISTRIBUTION("blackduck.hub.project.version.distribution"),
+    FILE_PATTERNS("blackduck.hub.nexus.file.pattern.match.wildcards"),
+    PHASE("blackduck.hub.project.version.phase"),
+    REPOSITORY_FIELD_ID("repositoryId"),
+    REPOSITORY_PATH_FIELD_ID("repositoryPath"),
+    WORKING_DIRECTORY("blackduck.hub.nexus.working.directory"),
+    OLD_ARTIFACT_CUTOFF("blackduck.hub.nexus.artifact.cutoff"),
+    RESCAN_FAILURES("blackduck.hub.nexus.rescan.failures"),
+    ALWAYS_SCAN("blackduck.hub.nexus.rescan.always"),
+    PHONE_HOME("blackduck.hub.nexus.phonehome"),
+    REPOSITORY("selectedRepository");
 
-public class AssetService extends NexusService<Asset> {
-    // private final Logger logger = LoggerFactory.getLogger(AssetService.class);
-    //
-    // public AssetService(final RestConnection restConnection) {
-    // super("/beta/assets", restConnection);
-    // }
-    //
-    // public List<Asset> getAll(final String repositoryName) {
-    // final NexusRequestParameter parameter = NexusRequestParameter.repository(repositoryName);
-    // try {
-    // return getMultipleResponse(parameter);
-    // } catch (final IntegrationException e) {
-    // logger.error("Problem getting assets.", e);
-    // }
-    // return Collections.emptyList();
-    // }
+    private final String parameterKey;
+
+    private ScanTaskField(final String parameterKey) {
+        this.parameterKey = parameterKey;
+    }
+
+    public String getParameterKey() {
+        return parameterKey;
+    }
 
 }

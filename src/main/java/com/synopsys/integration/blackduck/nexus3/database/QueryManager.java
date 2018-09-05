@@ -40,27 +40,23 @@ import com.google.common.base.Supplier;
 @Singleton
 public class QueryManager {
 
-    public Iterable<Asset> findAssetsInRepository(Repository repository) {
-        try (StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
+    public Iterable<Asset> findAssetsInRepository(final Repository repository) {
+        try (final StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
             storageTx.begin();
 
-            Query.Builder query = Query.builder();
+            final Query.Builder query = Query.builder();
 
             return storageTx.findAssets(query.build(), Collections.singletonList(repository));
         }
     }
 
-    public void updateAsset(Repository repository, Asset asset) {
-        Supplier<StorageTx> supplier = repository.facet(StorageFacet.class).txSupplier();
-        try (StorageTx storageTx = supplier.get()) {
-            saveAsset(storageTx, asset);
+    public void updateAsset(final Repository repository, final Asset asset) {
+        final Supplier<StorageTx> supplier = repository.facet(StorageFacet.class).txSupplier();
+        try (final StorageTx storageTx = supplier.get()) {
+            storageTx.begin();
+            storageTx.saveAsset(asset);
+            storageTx.commit();
         }
-    }
-
-    private void saveAsset(StorageTx storageTx, Asset asset) {
-        storageTx.begin();
-        storageTx.saveAsset(asset);
-        storageTx.commit();
     }
 
 }
