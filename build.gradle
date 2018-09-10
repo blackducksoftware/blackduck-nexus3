@@ -17,8 +17,13 @@ version = '0.0.1-SNAPSHOT'
 
 apply plugin: 'com.blackducksoftware.integration.solution'
 
+configurations {
+    fatCompile
+    compile.extendsFrom(fatCompile)
+}
+
 dependencies {
-    compile 'com.blackducksoftware.integration:hub-common:37.0.0'
+    fatCompile 'com.blackducksoftware.integration:hub-common:37.0.0'
 
     compile 'org.sonatype.nexus:nexus-plugin-api:3.13.0-01'
     compile 'org.sonatype.nexus:nexus-repository:3.13.0-01'
@@ -27,10 +32,11 @@ dependencies {
 }
 
 jar {
+    from {
+        configurations.fatCompile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
     manifest {
         name = 'blackduck-nexus3'
-        instruction 'Import-Package', '!com.synopsys.integration.encryption', '!com.synopsys.integration.exception', '!com.google.gson', '!org.apache.commons.lang3', '!org.apache.commons.commons-lang3',
-                '!com.synopsys.integration.blackduck.configuration', '!com.synopsys.integration.rest.credentials', '*'
-        instruction 'Embed-Dependency', 'encryption', 'exception', 'gson', 'lang3', 'commons-lang3', 'configuration', 'credentials'
+        instruction 'Import-Package', '*;resolution:=optional'
     }
 }

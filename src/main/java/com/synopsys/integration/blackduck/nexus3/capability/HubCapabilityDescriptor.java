@@ -24,6 +24,7 @@
 package com.synopsys.integration.blackduck.nexus3.capability;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -37,7 +38,7 @@ import com.synopsys.integration.blackduck.nexus3.capability.model.HubConfigField
 @Singleton
 @Named(HubCapabilityDescriptor.CAPABILITY_ID)
 public class HubCapabilityDescriptor extends CapabilityDescriptorSupport<HubCapabilityConfiguration> {
-    public static final String CAPABILITY_ID = "HubCapability";
+    public static final String CAPABILITY_ID = "blackduck.capability";
     public static final String CAPABILITY_NAME = "Black Duck Hub";
     public static final String CAPABILITY_DESCRIPTION = "Settings required to communicate with the Black Duck Hub.";
 
@@ -61,4 +62,8 @@ public class HubCapabilityDescriptor extends CapabilityDescriptorSupport<HubCapa
         return HubConfigFields.getFields();
     }
 
+    @Override
+    protected HubCapabilityConfiguration createConfig(final Map<String, String> properties) {
+        return new HubCapabilityConfiguration(properties);
+    }
 }

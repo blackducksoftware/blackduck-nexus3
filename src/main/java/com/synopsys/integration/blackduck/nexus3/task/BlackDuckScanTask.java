@@ -23,6 +23,8 @@
  */
 package com.synopsys.integration.blackduck.nexus3.task;
 
+import java.util.Collection;
+
 import javax.inject.Inject;
 import javax.inject.Named;
 
@@ -69,6 +71,7 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
+        logAllCapabilities();
         final HubCapabilityConfiguration hubCapabilityConfiguration = getCapabilityConfiguration();
         if (hubCapabilityConfiguration == null) {
             throw new TaskInterruptedException("Hub server config not set.", true);
@@ -95,6 +98,15 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
         }
     }
 
+    private void logAllCapabilities() {
+        final Collection<? extends CapabilityReference> capabilityReferenceList = capabilityRegistry.getAll();
+        for (final CapabilityReference capabilityReference : capabilityReferenceList) {
+            final String capabilityName = capabilityReference.capability().getClass().getName();
+            logger.info("Found capability: " + capabilityName);
+        }
+        logger.info("All Capabilities listed.");
+    }
+
     // TODO Add filtering here to allow only Artifacts through
     private boolean isAssetScannable(final Asset asset) {
         return asset.componentId() != null;
@@ -103,10 +115,12 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
     private HubCapabilityConfiguration getCapabilityConfiguration() {
         final CapabilityReference capabilityReference = capabilityRegistry.get(CapabilityIdentity.capabilityIdentity(HubCapabilityDescriptor.CAPABILITY_ID));
         if (capabilityReference == null) {
+            logger.warn("Hub capability not created.");
             return null;
         }
 
         final HubCapability capability = capabilityReference.capabilityAs(HubCapability.class);
+        logger.info("Getting HubCapability config");
         return capability.getConfig();
     }
 
