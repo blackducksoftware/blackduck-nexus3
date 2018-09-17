@@ -36,12 +36,14 @@ import org.sonatype.nexus.common.collect.NestedAttributesMap;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
 import org.sonatype.nexus.repository.storage.Asset;
+import org.sonatype.nexus.repository.storage.AssetStore;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.capability.HubCapability;
 import com.synopsys.integration.blackduck.nexus3.capability.HubCapabilityConfiguration;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
+import com.synopsys.integration.blackduck.nexus3.scan.Scanner;
 
 @Named
 public class BlackDuckScanTask extends RepositoryTaskSupport {
@@ -50,11 +52,15 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
 
     private final QueryManager queryManager;
     private final CapabilityRegistry capabilityRegistry;
+    private final Scanner scanner;
+    private final AssetStore assetStore;
 
     @Inject
-    public BlackDuckScanTask(final QueryManager queryManager, final CapabilityRegistry capabilityRegistry) {
+    public BlackDuckScanTask(final QueryManager queryManager, final AssetStore assetStore, final CapabilityRegistry capabilityRegistry, final Scanner scanner) {
         this.queryManager = queryManager;
+        this.assetStore = assetStore;
         this.capabilityRegistry = capabilityRegistry;
+        this.scanner = scanner;
     }
 
     @Override
@@ -77,16 +83,7 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
             if (isAssetScannable(asset)) {
                 logger.info("Scanning item: " + asset.name());
 
-                // Scan item
-                logger.info("HubServerConfig info");
-                logger.info("Url:" + hubServerConfig.getHubUrl());
-                logger.info("Username:" + hubServerConfig.getGlobalCredentials().getUsername());
-                // FIXME Current issue with encryption/decryption (I believe related to the hub-common bug).
-                //                try {
-                //                    logger.info("Password:" + hubServerConfig.getGlobalCredentials().getDecryptedPassword());
-                //                } catch (final EncryptionException e) {
-                //                    e.printStackTrace();
-                //                }
+                // TODO generate local file and scan it
             }
         }
     }

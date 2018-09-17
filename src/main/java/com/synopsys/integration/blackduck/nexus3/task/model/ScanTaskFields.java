@@ -23,27 +23,22 @@
  */
 package com.synopsys.integration.blackduck.nexus3.task.model;
 
-import org.sonatype.nexus.formfields.FormField;
-import org.sonatype.nexus.formfields.RepositoryCombobox;
-import org.sonatype.nexus.formfields.StringTextFormField;
-import org.sonatype.nexus.repository.RepositoryTaskSupport;
+public enum ScanTaskFields {
+    FILE_PATTERNS("blackduck.nexus.file.pattern.match.wildcards"),
+    WORKING_DIRECTORY("blackduck.nexus.working.directory"),
+    OLD_ARTIFACT_CUTOFF("blackduck.nexus.artifact.cutoff"),
+    RESCAN_FAILURES("blackduck.nexus.rescan.failures"),
+    ALWAYS_SCAN("blackduck.nexus.rescan.always"),
+    SCAN_MEMORY("blackduck.scan.memory");
 
-public class ScanTaskFields {
-    public static final String DEFAULT_FILE_PATTERNS_MATCHES = "*.war,*.zip,*.tar.gz,*.hpi";
-    public static final String DEFAULT_WORKING_DIRECTORY = "/sonatype-work";
+    private final String parameterKey;
 
-    public static final String LABEL_REPOSITORY = "Repository";
-    public static final String LABEL_FILE_PATTERN_MATCHES = "File Pattern Matches";
-    public static final String LABEL_WORKING_DIRECTORY = "Working Directory";
+    ScanTaskFields(final String parameterKey) {
+        this.parameterKey = parameterKey;
+    }
 
-    public static final String DESCRIPTION_REPO_NAME = "Type in the repository in which to run the task.";
-    public static final String DESCRIPTION_SCAN_FILE_PATTERN_MATCH = "The file pattern match wildcard to filter the artifacts scanned.";
-    public static final String DESCRIPTION_TASK_WORKING_DIRECTORY = "The parent directory where the blackduck directory will be created to contain temporary data for the scans";
-
-    public static final RepositoryCombobox FIELD_REPOSITORY = new RepositoryCombobox(RepositoryTaskSupport.REPOSITORY_NAME_FIELD_ID, LABEL_REPOSITORY, DESCRIPTION_REPO_NAME, FormField.MANDATORY);
-    public static final StringTextFormField FIELD_FILE_PATTERN = new StringTextFormField(ScanTaskField.FILE_PATTERNS.getParameterKey(), LABEL_FILE_PATTERN_MATCHES, DESCRIPTION_SCAN_FILE_PATTERN_MATCH, FormField.MANDATORY)
-                                                                     .withInitialValue(DEFAULT_FILE_PATTERNS_MATCHES);
-    public static final StringTextFormField FIELD_WORKING_DIRECTORY = new StringTextFormField(ScanTaskField.WORKING_DIRECTORY.getParameterKey(), LABEL_WORKING_DIRECTORY, DESCRIPTION_TASK_WORKING_DIRECTORY, FormField.MANDATORY)
-                                                                          .withInitialValue(DEFAULT_WORKING_DIRECTORY);
+    public String getParameterKey() {
+        return parameterKey;
+    }
 
 }

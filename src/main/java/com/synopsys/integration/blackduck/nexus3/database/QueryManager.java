@@ -28,13 +28,12 @@ import java.util.Collections;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.sonatype.nexus.blobstore.api.Blob;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.storage.Asset;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.repository.storage.StorageFacet;
 import org.sonatype.nexus.repository.storage.StorageTx;
-
-import com.google.common.base.Supplier;
 
 @Named
 @Singleton
@@ -51,11 +50,16 @@ public class QueryManager {
     }
 
     public void updateAsset(final Repository repository, final Asset asset) {
-        final Supplier<StorageTx> supplier = repository.facet(StorageFacet.class).txSupplier();
-        try (final StorageTx storageTx = supplier.get()) {
+        try (final StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
             storageTx.begin();
             storageTx.saveAsset(asset);
             storageTx.commit();
+        }
+    }
+
+    public Blob getBlob(final Repository repository, final Asset asset) {
+        try (final StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
+            return storageTx.getBlob(asset.blobRef());
         }
     }
 

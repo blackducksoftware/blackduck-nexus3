@@ -29,7 +29,7 @@ import org.sonatype.nexus.capability.CapabilityConfigurationSupport;
 
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.configuration.HubServerConfigBuilder;
-import com.synopsys.integration.blackduck.nexus3.capability.model.HubConfigField;
+import com.synopsys.integration.blackduck.nexus3.capability.model.HubConfigFields;
 
 public class HubCapabilityConfiguration extends CapabilityConfigurationSupport {
     private final Map<String, String> capabilitySettings;
@@ -40,11 +40,11 @@ public class HubCapabilityConfiguration extends CapabilityConfigurationSupport {
 
     public HubServerConfig createHubServerConfig() {
         final HubServerConfigBuilder hubServerConfigBuilder = new HubServerConfigBuilder();
-        hubServerConfigBuilder.setUrl(capabilitySettings.get(HubConfigField.HUB_URL.getKey()));
-        hubServerConfigBuilder.setTimeout(capabilitySettings.get(HubConfigField.HUB_TIMEOUT.getKey()));
-        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(HubConfigField.HUB_TRUST_CERT.getKey()));
-        hubServerConfigBuilder.setUsername(capabilitySettings.get(HubConfigField.HUB_USERNAME.getKey()));
-        hubServerConfigBuilder.setPassword(capabilitySettings.get(HubConfigField.HUB_PASSWORD.getKey()));
+        hubServerConfigBuilder.setUrl(capabilitySettings.get(HubConfigFields.HUB_URL.getKey()));
+        hubServerConfigBuilder.setTimeout(capabilitySettings.get(HubConfigFields.HUB_TIMEOUT.getKey()));
+        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(HubConfigFields.HUB_TRUST_CERT.getKey()));
+        hubServerConfigBuilder.setUsername(capabilitySettings.get(HubConfigFields.HUB_USERNAME.getKey()));
+        hubServerConfigBuilder.setPassword(capabilitySettings.get(HubConfigFields.HUB_PASSWORD.getKey()));
         return hubServerConfigBuilder.build();
     }
 

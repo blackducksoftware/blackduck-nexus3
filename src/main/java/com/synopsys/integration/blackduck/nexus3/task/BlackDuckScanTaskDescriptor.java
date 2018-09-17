@@ -28,7 +28,7 @@ import javax.inject.Singleton;
 
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
-import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskFields;
+import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskFieldModels;
 
 @Named
 @Singleton
@@ -42,9 +42,13 @@ public class BlackDuckScanTaskDescriptor extends TaskDescriptorSupport {
             BLACK_DUCK_SCAN_TASK_NAME,
             VISIBLE,
             EXPOSED,
-            ScanTaskFields.FIELD_REPOSITORY,
-            ScanTaskFields.FIELD_FILE_PATTERN,
-            ScanTaskFields.FIELD_WORKING_DIRECTORY
+            ScanTaskFieldModels.FIELD_REPOSITORY,
+            ScanTaskFieldModels.FIELD_FILE_PATTERN,
+            ScanTaskFieldModels.FIELD_WORKING_DIRECTORY,
+            ScanTaskFieldModels.FIELD_SCAN_MEMORY,
+            ScanTaskFieldModels.FIELD_ARTIFACT_CUTOFF,
+            ScanTaskFieldModels.FIELD_RESCAN_FAILURE,
+            ScanTaskFieldModels.FIELD_ALWAYS_SCAN
         );
     }
 
