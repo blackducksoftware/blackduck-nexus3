@@ -23,7 +23,7 @@ configurations {
 }
 
 dependencies {
-    fatCompile 'com.blackducksoftware.integration:hub-common:37.0.0'
+    fatCompile 'com.blackducksoftware.integration:hub-common:38.1.0'
 
     compile 'org.sonatype.nexus:nexus-plugin-api:3.13.0-01'
     compile 'org.sonatype.nexus:nexus-repository:3.13.0-01'

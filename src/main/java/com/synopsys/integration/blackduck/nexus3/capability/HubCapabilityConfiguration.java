@@ -40,11 +40,11 @@ public class HubCapabilityConfiguration extends CapabilityConfigurationSupport {
 
     public HubServerConfig createHubServerConfig() {
         final HubServerConfigBuilder hubServerConfigBuilder = new HubServerConfigBuilder();
-        hubServerConfigBuilder.setUrl(capabilitySettings.get(HubConfigField.HUB_URL));
-        hubServerConfigBuilder.setTimeout(capabilitySettings.get(HubConfigField.HUB_TIMEOUT));
-        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(HubConfigField.HUB_TRUST_CERT));
-        hubServerConfigBuilder.setUsername(capabilitySettings.get(HubConfigField.HUB_USERNAME));
-        hubServerConfigBuilder.setPassword(capabilitySettings.get(HubConfigField.HUB_PASSWORD));
+        hubServerConfigBuilder.setUrl(capabilitySettings.get(HubConfigField.HUB_URL.getKey()));
+        hubServerConfigBuilder.setTimeout(capabilitySettings.get(HubConfigField.HUB_TIMEOUT.getKey()));
+        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(HubConfigField.HUB_TRUST_CERT.getKey()));
+        hubServerConfigBuilder.setUsername(capabilitySettings.get(HubConfigField.HUB_USERNAME.getKey()));
+        hubServerConfigBuilder.setPassword(capabilitySettings.get(HubConfigField.HUB_PASSWORD.getKey()));
         return hubServerConfigBuilder.build();
     }
 
