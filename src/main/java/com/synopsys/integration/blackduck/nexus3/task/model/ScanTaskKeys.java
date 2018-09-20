@@ -21,29 +21,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.task;
+package com.synopsys.integration.blackduck.nexus3.task.model;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+public enum ScanTaskKeys {
+    FILE_PATTERNS("blackduck.nexus.file.pattern.match.wildcards"),
+    WORKING_DIRECTORY("blackduck.nexus.working.directory"),
+    OLD_ARTIFACT_CUTOFF("blackduck.nexus.artifact.cutoff"),
+    RESCAN_FAILURES("blackduck.nexus.rescan.failures"),
+    ALWAYS_SCAN("blackduck.nexus.rescan.always"),
+    SCAN_MEMORY("blackduck.scan.memory");
 
-import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
+    private final String parameterKey;
 
-import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskFields;
+    ScanTaskKeys(final String parameterKey) {
+        this.parameterKey = parameterKey;
+    }
 
-@Named
-@Singleton
-public class BlackDuckScanTaskDescriptor extends TaskDescriptorSupport {
-    public static final String BLACK_DUCK_SCAN_TASK_ID = "blackduck.scan";
-    public static final String BLACK_DUCK_SCAN_TASK_NAME = "BlackDuck - Repository Scan";
-
-    public BlackDuckScanTaskDescriptor() {
-        super(BLACK_DUCK_SCAN_TASK_ID,
-            BlackDuckScanTask.class,
-            BLACK_DUCK_SCAN_TASK_NAME,
-            VISIBLE,
-            EXPOSED,
-            ScanTaskFields.getFields()
-        );
+    public String getParameterKey() {
+        return parameterKey;
     }
 
 }

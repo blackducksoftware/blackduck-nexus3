@@ -23,33 +23,64 @@
  */
 package com.synopsys.integration.blackduck.nexus3.capability.model;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
-public enum HubConfigFields {
-    HUB_TRUST_CERT("blackduck.hub.trust.cert"),
-    HUB_PASSWORD("blackduck.hub.password"),
-    HUB_PROXY_HOST("blackduck.hub.proxy.host"),
-    HUB_PROXY_PORT("blackduck.hub.proxy.port"),
-    HUB_PROXY_USERNAME("blackduck.hub.proxy.username"),
-    HUB_PROXY_PASSWORD("blackduck.hub.proxy.password"),
-    HUB_SCAN_MEMORY("blackduck.hub.scan.memory"),
-    HUB_TIMEOUT("blackduck.hub.timeout"),
-    HUB_USERNAME("blackduck.hub.username"),
-    HUB_URL("blackduck.hub.url");
+import org.sonatype.nexus.formfields.CheckboxFormField;
+import org.sonatype.nexus.formfields.FormField;
+import org.sonatype.nexus.formfields.PasswordFormField;
+import org.sonatype.nexus.formfields.StringTextFormField;
 
-    private final String key;
+public class HubConfigFields {
+    public static final String DEFAULT_HUB_TIMEOUT = "300";
 
-    HubConfigFields(final String key) {
-        this.key = key;
+    public static final String DESCRIPTION_HUB_IMPORT_CERT = "Import the SSL Certificates from the specified HTTPS Hub Server. Note: For this to work, the keystore must be writable by the nexus user";
+    public static final String DESCRIPTION_HUB_PASSWORD = "Provide the password to authenticate with your Hub server";
+    public static final String DESCRIPTION_HUB_TIMEOUT = "The timeout in seconds for a request to the Blackduck Hub server";
+    public static final String DESCRIPTION_HUB_SERVER_URL = "Provide the URL that lets you access your Hub server. For example \"https://hub.example.com/\"";
+    public static final String DESCRIPTION_HUB_API_KEY = "Api key used to access the BlackDuck hub instance.";
+    public static final String DESCRIPTION_HUB_USERNAME = "Provide the username to authenticate with your Hub server.";
+    public static final String DESCRIPTION_PROXY_HOST = "The hostname of the proxy to communicate with your Hub server";
+    public static final String DESCRIPTION_PROXY_PASSWORD = "Password for your authenticated proxy";
+    public static final String DESCRIPTION_PROXY_PORT = "Port to communicate with the proxy";
+    public static final String DESCRIPTION_PROXY_USERNAME = "Username for your authenticated proxy";
+
+    public static final String LABEL_CONNECTION_TIMEOUT = "Connection Timeout";
+    public static final String LABEL_HUB_PASSWORD = "Hub Password";
+    public static final String LABEL_HUB_SERVER_URL = "Hub Server URL";
+    public static final String LABEL_HUB_USERNAME = "Hub Username";
+    public static final String LABEL_IMPORT_HUB_SSL_CERTIFICATE = "Import Hub SSL Certificate";
+    public static final String LABEL_HUB_API_KEY = "Hub Api Key";
+
+    public static final String LABEL_PROXY_HOST = "Proxy Host";
+    public static final String LABEL_PROXY_PASSWORD = "Proxy Password";
+    public static final String LABEL_PROXY_PORT = "Proxy Port";
+    public static final String LABEL_PROXY_USERNAME = "Proxy Username";
+
+    public static final StringTextFormField hubUrlField = new StringTextFormField(HubConfigKeys.HUB_URL.getKey(), LABEL_HUB_SERVER_URL, DESCRIPTION_HUB_SERVER_URL, FormField.MANDATORY);
+    public static final StringTextFormField hubApiKey = new StringTextFormField(HubConfigKeys.HUB_API_KEY.getKey(), LABEL_HUB_API_KEY, DESCRIPTION_HUB_API_KEY, FormField.MANDATORY);
+    public static final StringTextFormField usernameField = new StringTextFormField(HubConfigKeys.HUB_USERNAME.getKey(), LABEL_HUB_USERNAME, DESCRIPTION_HUB_USERNAME, FormField.OPTIONAL);
+    public static final PasswordFormField passwordField = new PasswordFormField(HubConfigKeys.HUB_PASSWORD.getKey(), LABEL_HUB_PASSWORD, DESCRIPTION_HUB_PASSWORD, FormField.OPTIONAL);
+    public static final StringTextFormField timeoutField = new StringTextFormField(HubConfigKeys.HUB_TIMEOUT.getKey(), LABEL_CONNECTION_TIMEOUT, DESCRIPTION_HUB_TIMEOUT, FormField.MANDATORY).withInitialValue(DEFAULT_HUB_TIMEOUT);
+    public static final CheckboxFormField autoImportCert = new CheckboxFormField(HubConfigKeys.HUB_TRUST_CERT.getKey(), LABEL_IMPORT_HUB_SSL_CERTIFICATE, DESCRIPTION_HUB_IMPORT_CERT, FormField.OPTIONAL);
+
+    public static final StringTextFormField proxyHostField = new StringTextFormField(HubConfigKeys.HUB_PROXY_HOST.getKey(), LABEL_PROXY_HOST, DESCRIPTION_PROXY_HOST, FormField.OPTIONAL);
+    public static final StringTextFormField proxyPortField = new StringTextFormField(HubConfigKeys.HUB_PROXY_PORT.getKey(), LABEL_PROXY_PORT, DESCRIPTION_PROXY_PORT, FormField.OPTIONAL);
+    public static final StringTextFormField proxyUsernameField = new StringTextFormField(HubConfigKeys.HUB_PROXY_USERNAME.getKey(), LABEL_PROXY_USERNAME, DESCRIPTION_PROXY_USERNAME, FormField.OPTIONAL);
+    public static final PasswordFormField proxyPasswordField = new PasswordFormField(HubConfigKeys.HUB_PROXY_PASSWORD.getKey(), LABEL_PROXY_PASSWORD, DESCRIPTION_PROXY_PASSWORD, FormField.OPTIONAL);
+
+    public static List<FormField> getFields() {
+        final List<FormField> fields = new ArrayList();
+        fields.add(hubUrlField);
+        fields.add(hubApiKey);
+        fields.add(usernameField);
+        fields.add(passwordField);
+        fields.add(timeoutField);
+        fields.add(autoImportCert);
+        fields.add(proxyHostField);
+        fields.add(proxyPortField);
+        fields.add(proxyUsernameField);
+        fields.add(proxyPasswordField);
+        return fields;
     }
-
-    public static List<HubConfigFields> passwordFields() {
-        return Arrays.asList(HUB_PASSWORD, HUB_PROXY_PASSWORD);
-    }
-
-    public String getKey() {
-        return key;
-    }
-
 }

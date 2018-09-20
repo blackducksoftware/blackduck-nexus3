@@ -29,7 +29,7 @@ import org.sonatype.nexus.capability.CapabilityConfigurationSupport;
 
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.configuration.HubServerConfigBuilder;
-import com.synopsys.integration.blackduck.nexus3.capability.model.HubConfigFields;
+import com.synopsys.integration.blackduck.nexus3.capability.model.HubConfigKeys;
 
 public class HubCapabilityConfiguration extends CapabilityConfigurationSupport {
     private final Map<String, String> capabilitySettings;
@@ -40,11 +40,13 @@ public class HubCapabilityConfiguration extends CapabilityConfigurationSupport {
 
     public HubServerConfig createHubServerConfig() {
         final HubServerConfigBuilder hubServerConfigBuilder = new HubServerConfigBuilder();
-        hubServerConfigBuilder.setUrl(capabilitySettings.get(HubConfigFields.HUB_URL.getKey()));
-        hubServerConfigBuilder.setTimeout(capabilitySettings.get(HubConfigFields.HUB_TIMEOUT.getKey()));
-        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(HubConfigFields.HUB_TRUST_CERT.getKey()));
-        hubServerConfigBuilder.setUsername(capabilitySettings.get(HubConfigFields.HUB_USERNAME.getKey()));
-        hubServerConfigBuilder.setPassword(capabilitySettings.get(HubConfigFields.HUB_PASSWORD.getKey()));
+        hubServerConfigBuilder.setUrl(capabilitySettings.get(HubConfigKeys.HUB_URL.getKey()));
+        hubServerConfigBuilder.setTimeout(capabilitySettings.get(HubConfigKeys.HUB_TIMEOUT.getKey()));
+        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(HubConfigKeys.HUB_TRUST_CERT.getKey()));
+        hubServerConfigBuilder.setApiToken(capabilitySettings.get(HubConfigKeys.HUB_API_KEY.getKey()));
+        // TODO verify if credentials should be supported considering EncryptionUtils breaks things
+        //        hubServerConfigBuilder.setUsername(capabilitySettings.get(HubConfigKeys.HUB_USERNAME.getKey()));
+        //        hubServerConfigBuilder.setPassword(capabilitySettings.get(HubConfigKeys.HUB_PASSWORD.getKey()));
         return hubServerConfigBuilder.build();
     }
 

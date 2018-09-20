@@ -21,29 +21,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.task;
+package com.synopsys.integration.blackduck.nexus3.capability.model;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import java.util.Arrays;
+import java.util.List;
 
-import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
+public enum HubConfigKeys {
+    HUB_TRUST_CERT("blackduck.hub.trust.cert"),
+    HUB_PASSWORD("blackduck.hub.password"),
+    HUB_PROXY_HOST("blackduck.hub.proxy.host"),
+    HUB_PROXY_PORT("blackduck.hub.proxy.port"),
+    HUB_PROXY_USERNAME("blackduck.hub.proxy.username"),
+    HUB_PROXY_PASSWORD("blackduck.hub.proxy.password"),
+    HUB_TIMEOUT("blackduck.hub.timeout"),
+    HUB_USERNAME("blackduck.hub.username"),
+    HUB_API_KEY("blackduck.hub.api.key"),
+    HUB_URL("blackduck.hub.url");
 
-import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskFields;
+    private final String key;
 
-@Named
-@Singleton
-public class BlackDuckScanTaskDescriptor extends TaskDescriptorSupport {
-    public static final String BLACK_DUCK_SCAN_TASK_ID = "blackduck.scan";
-    public static final String BLACK_DUCK_SCAN_TASK_NAME = "BlackDuck - Repository Scan";
+    HubConfigKeys(final String key) {
+        this.key = key;
+    }
 
-    public BlackDuckScanTaskDescriptor() {
-        super(BLACK_DUCK_SCAN_TASK_ID,
-            BlackDuckScanTask.class,
-            BLACK_DUCK_SCAN_TASK_NAME,
-            VISIBLE,
-            EXPOSED,
-            ScanTaskFields.getFields()
-        );
+    public static List<HubConfigKeys> passwordFields() {
+        return Arrays.asList(HUB_PASSWORD, HUB_PROXY_PASSWORD);
+    }
+
+    public String getKey() {
+        return key;
     }
 
 }

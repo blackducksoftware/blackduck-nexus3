@@ -21,29 +21,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.task;
+package com.synopsys.integration.blackduck.nexus3.connection;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import com.synopsys.integration.util.Stringable;
 
-import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
+public class HubResponse extends Stringable {
+    private int code;
+    private String message;
 
-import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskFields;
-
-@Named
-@Singleton
-public class BlackDuckScanTaskDescriptor extends TaskDescriptorSupport {
-    public static final String BLACK_DUCK_SCAN_TASK_ID = "blackduck.scan";
-    public static final String BLACK_DUCK_SCAN_TASK_NAME = "BlackDuck - Repository Scan";
-
-    public BlackDuckScanTaskDescriptor() {
-        super(BLACK_DUCK_SCAN_TASK_ID,
-            BlackDuckScanTask.class,
-            BLACK_DUCK_SCAN_TASK_NAME,
-            VISIBLE,
-            EXPOSED,
-            ScanTaskFields.getFields()
-        );
+    public HubResponse(final int code, final String message) {
+        this.code = code;
+        this.message = message;
     }
 
+    public int getCode() {
+        return code;
+    }
+
+    public void setCode(final int code) {
+        this.code = code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(final String message) {
+        this.message = message;
+    }
 }

@@ -36,14 +36,19 @@ import org.sonatype.nexus.common.collect.NestedAttributesMap;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
 import org.sonatype.nexus.repository.storage.Asset;
-import org.sonatype.nexus.repository.storage.AssetStore;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
+import com.synopsys.integration.blackduck.api.generated.enumeration.ProjectVersionDistributionType;
+import com.synopsys.integration.blackduck.api.generated.enumeration.ProjectVersionPhaseType;
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.capability.HubCapability;
 import com.synopsys.integration.blackduck.nexus3.capability.HubCapabilityConfiguration;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
-import com.synopsys.integration.blackduck.nexus3.scan.Scanner;
+import com.synopsys.integration.blackduck.service.HubServicesFactory;
+import com.synopsys.integration.blackduck.service.ProjectService;
+import com.synopsys.integration.blackduck.service.model.ProjectRequestBuilder;
+import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.log.Slf4jIntLogger;
 
 @Named
 public class BlackDuckScanTask extends RepositoryTaskSupport {
@@ -52,15 +57,11 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
 
     private final QueryManager queryManager;
     private final CapabilityRegistry capabilityRegistry;
-    private final Scanner scanner;
-    private final AssetStore assetStore;
 
     @Inject
-    public BlackDuckScanTask(final QueryManager queryManager, final AssetStore assetStore, final CapabilityRegistry capabilityRegistry, final Scanner scanner) {
+    public BlackDuckScanTask(final QueryManager queryManager, final CapabilityRegistry capabilityRegistry) {
         this.queryManager = queryManager;
-        this.assetStore = assetStore;
         this.capabilityRegistry = capabilityRegistry;
-        this.scanner = scanner;
     }
 
     @Override
@@ -77,21 +78,62 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
     @Override
     protected void execute(final Repository repository) {
         final HubServerConfig hubServerConfig = getHubServerConfig();
+        //        final Scanner blackduckScanner = new Scanner(hubServerConfig, );
         logger.info("Found repository: " + repository.getName());
         final Iterable<Asset> foundAssets = queryManager.findAssetsInRepository(repository);
+        int version = 1;
         for (final Asset asset : foundAssets) {
-            if (isAssetScannable(asset)) {
+            if (shouldScanAsset(asset)) {
                 logger.info("Scanning item: " + asset.name());
 
+                final Slf4jIntLogger intLogger = new Slf4jIntLogger(logger);
+                final HubServicesFactory hubServicesFactory = new HubServicesFactory(HubServicesFactory.createDefaultGson(), HubServicesFactory.createDefaultJsonParser(), hubServerConfig.createApiTokenRestConnection(intLogger), intLogger);
+                final ProjectService projectService = hubServicesFactory.createProjectService();
+                final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
+                projectRequestBuilder.setProjectName("NexusTest");
+                projectRequestBuilder.setVersionName(String.valueOf(version));
+                projectRequestBuilder.setDistribution(ProjectVersionDistributionType.EXTERNAL);
+                projectRequestBuilder.setPhase(ProjectVersionPhaseType.DEVELOPMENT);
+                try {
+                    projectService.createHubProject(projectRequestBuilder.build());
+                    version++;
+                } catch (final IntegrationException e) {
+                    logger.error("Exception thrown while creating project: " + e.getMessage());
+                }
+
                 // TODO generate local file and scan it
+
             }
         }
     }
 
-    // TODO Add filtering here to allow only Artifacts through
-    private boolean isAssetScannable(final Asset asset) {
-        return asset.componentId() != null;
+    // TODO Add filtering to allow only Artifacts through (Perhaps create custom filtering object)
+    private boolean shouldScanAsset(final Asset asset) {
+        return asset.blobRef().getBlobId() != null;
     }
+
+    // This is used to Add items to the BlackDuck tab in the UI
+    private NestedAttributesMap getBlackDuckNestedAttributes(final NestedAttributesMap nestedAttributesMap) {
+        return nestedAttributesMap.child(BLACKDUCK_CATEGORY);
+    }
+
+    //    private ScanConfig getScanConfig() {
+    //        final TaskConfiguration taskConfiguration = getConfiguration();
+    //        final int scanMemory = taskConfiguration.getInteger(ScanTaskKeys.SCAN_MEMORY.getParameterKey(), ScanTaskFields.DEFAULT_SCAN_MEMORY);
+    //        final boolean dryRun = false;
+    //        final String installDirectory = taskConfiguration.getString(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskFields.DEFAULT_WORKING_DIRECTORY);
+    //        final String outputDirectory = "BlackDuck";
+    //
+    //        return new ScanConfig();
+    //    }
+    //
+    //    private String getProjectName() {
+    //        return "";
+    //    }
+    //
+    //    private String getVersionName() {
+    //
+    //    }
 
     private HubServerConfig getHubServerConfig() {
         final HubCapabilityConfiguration hubCapabilityConfiguration = getCapabilityConfiguration();
@@ -124,11 +166,6 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
             }
         }
         return null;
-    }
-
-    // This is used to Add items to the BlackDuck tab in the UI
-    private NestedAttributesMap getBlackDuckNestedAttributes(final NestedAttributesMap nestedAttributesMap) {
-        return nestedAttributesMap.child(BLACKDUCK_CATEGORY);
     }
 
 }

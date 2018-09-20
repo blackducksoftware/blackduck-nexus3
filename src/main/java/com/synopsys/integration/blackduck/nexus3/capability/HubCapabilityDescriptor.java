@@ -33,7 +33,7 @@ import org.sonatype.nexus.capability.CapabilityDescriptorSupport;
 import org.sonatype.nexus.capability.CapabilityType;
 import org.sonatype.nexus.formfields.FormField;
 
-import com.synopsys.integration.blackduck.nexus3.capability.model.HubConfigFieldModels;
+import com.synopsys.integration.blackduck.nexus3.capability.model.HubConfigFields;
 
 @Singleton
 @Named(HubCapabilityDescriptor.CAPABILITY_ID)
@@ -59,7 +59,7 @@ public class HubCapabilityDescriptor extends CapabilityDescriptorSupport<HubCapa
 
     @Override
     public List<FormField> formFields() {
-        return HubConfigFieldModels.getFields();
+        return HubConfigFields.getFields();
     }
 
     @Override
