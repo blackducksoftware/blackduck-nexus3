@@ -25,7 +25,6 @@ package com.synopsys.integration.blackduck.nexus3.scan;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,19 +50,16 @@ public class Scanner {
         this.scanConfig = scanConfig;
     }
 
-    public ScanJob createScanJob(final Set<String> pathsToScan) throws EncryptionException {
+    public ScanJob createScanJob(final String pathToScan, final String projectName, final String projectVersion) throws EncryptionException {
         final ScanJobBuilder scanJobBuilder = new ScanJobBuilder()
                                                   .fromHubServerConfig(hubServerConfig)
                                                   .scanMemoryInMegabytes(scanConfig.getMemoryMB())
                                                   .dryRun(scanConfig.isDryRun())
                                                   .installDirectory(new File(scanConfig.getInstallDirectory()))
                                                   .outputDirectory(new File(scanConfig.getOutputDirectory()))
-                                                  .projectAndVersionNames(scanConfig.getProjectName(), scanConfig.getProjectVersion());
-
-        for (final String path : pathsToScan) {
-            final ScanTarget scanTarget = ScanTarget.createBasicTarget(path);
-            scanJobBuilder.addTarget(scanTarget);
-        }
+                                                  .projectAndVersionNames(projectName, projectVersion);
+        final ScanTarget scanTarget = ScanTarget.createBasicTarget(pathToScan);
+        scanJobBuilder.addTarget(scanTarget);
 
         final ScanJob scanJob = scanJobBuilder.build();
         return scanJob;

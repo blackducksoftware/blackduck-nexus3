@@ -23,45 +23,56 @@
  */
 package com.synopsys.integration.blackduck.nexus3.task;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.slf4j.Logger;
+import org.sonatype.nexus.blobstore.api.Blob;
 import org.sonatype.nexus.capability.CapabilityReference;
 import org.sonatype.nexus.capability.CapabilityRegistry;
 import org.sonatype.nexus.capability.CapabilitySupport;
-import org.sonatype.nexus.common.collect.NestedAttributesMap;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
 import org.sonatype.nexus.repository.storage.Asset;
+import org.sonatype.nexus.repository.storage.Component;
+import org.sonatype.nexus.scheduling.TaskConfiguration;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
-import com.synopsys.integration.blackduck.api.generated.enumeration.ProjectVersionDistributionType;
-import com.synopsys.integration.blackduck.api.generated.enumeration.ProjectVersionPhaseType;
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
+import com.synopsys.integration.blackduck.exception.HubIntegrationException;
 import com.synopsys.integration.blackduck.nexus3.capability.HubCapability;
 import com.synopsys.integration.blackduck.nexus3.capability.HubCapabilityConfiguration;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
-import com.synopsys.integration.blackduck.service.HubServicesFactory;
-import com.synopsys.integration.blackduck.service.ProjectService;
-import com.synopsys.integration.blackduck.service.model.ProjectRequestBuilder;
-import com.synopsys.integration.exception.IntegrationException;
-import com.synopsys.integration.log.Slf4jIntLogger;
+import com.synopsys.integration.blackduck.nexus3.scan.ScanConfig;
+import com.synopsys.integration.blackduck.nexus3.scan.Scanner;
+import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskFields;
+import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskKeys;
+import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.nexus3.ui.ComponentPanel;
+import com.synopsys.integration.blackduck.nexus3.util.BlobFileCreator;
+import com.synopsys.integration.blackduck.signaturescanner.ScanJob;
+import com.synopsys.integration.blackduck.signaturescanner.ScanJobOutput;
+import com.synopsys.integration.blackduck.signaturescanner.command.ScanCommandOutput;
+import com.synopsys.integration.exception.EncryptionException;
 
 @Named
 public class BlackDuckScanTask extends RepositoryTaskSupport {
-    private static final String BLACKDUCK_CATEGORY = "Black Duck";
     private final Logger logger = createLogger();
 
     private final QueryManager queryManager;
     private final CapabilityRegistry capabilityRegistry;
+    private final BlobFileCreator blobFileCreator;
 
     @Inject
-    public BlackDuckScanTask(final QueryManager queryManager, final CapabilityRegistry capabilityRegistry) {
+    public BlackDuckScanTask(final QueryManager queryManager, final CapabilityRegistry capabilityRegistry, final BlobFileCreator blobFileCreator) {
         this.queryManager = queryManager;
         this.capabilityRegistry = capabilityRegistry;
+        this.blobFileCreator = blobFileCreator;
     }
 
     @Override
@@ -69,6 +80,7 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
         return "BlackDuck scanning repository " + getRepositoryField();
     }
 
+    // TODO verify that the group repository will work accordingly here
     @Override
     protected boolean appliesTo(final Repository repository) {
         final String repositoryName = getRepositoryField();
@@ -78,62 +90,61 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
     @Override
     protected void execute(final Repository repository) {
         final HubServerConfig hubServerConfig = getHubServerConfig();
-        //        final Scanner blackduckScanner = new Scanner(hubServerConfig, );
+        final ScanConfig scanConfig = getScanConfig();
+        final Scanner blackDuckScanner = new Scanner(hubServerConfig, scanConfig);
         logger.info("Found repository: " + repository.getName());
         final Iterable<Asset> foundAssets = queryManager.findAssetsInRepository(repository);
-        int version = 1;
         for (final Asset asset : foundAssets) {
-            if (shouldScanAsset(asset)) {
-                logger.info("Scanning item: " + asset.name());
-
-                final Slf4jIntLogger intLogger = new Slf4jIntLogger(logger);
-                final HubServicesFactory hubServicesFactory = new HubServicesFactory(HubServicesFactory.createDefaultGson(), HubServicesFactory.createDefaultJsonParser(), hubServerConfig.createApiTokenRestConnection(intLogger), intLogger);
-                final ProjectService projectService = hubServicesFactory.createProjectService();
-                final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
-                projectRequestBuilder.setProjectName("NexusTest");
-                projectRequestBuilder.setVersionName(String.valueOf(version));
-                projectRequestBuilder.setDistribution(ProjectVersionDistributionType.EXTERNAL);
-                projectRequestBuilder.setPhase(ProjectVersionPhaseType.DEVELOPMENT);
-                try {
-                    projectService.createHubProject(projectRequestBuilder.build());
-                    version++;
-                } catch (final IntegrationException e) {
-                    logger.error("Exception thrown while creating project: " + e.getMessage());
+            if (shouldScan(asset)) {
+                final Component component = queryManager.getComponent(repository, asset.componentId());
+                final Blob binaryBlob = queryManager.getBlob(repository, asset.blobRef());
+                logger.debug("Binary blob header contents: {}", binaryBlob.getHeaders().toString());
+                final File workingDirectory = new File(scanConfig.getInstallDirectory(), "blackduck");
+                if (workingDirectory.exists()) {
+                    workingDirectory.mkdir();
                 }
-
-                // TODO generate local file and scan it
-
+                try {
+                    final File binaryFile = blobFileCreator.convertBlobToFile(binaryBlob, workingDirectory);
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+                if (component != null && asset.blobRef().getBlobId() != null) {
+                    logger.info("Scanning item: {}", component.name());
+                    // TODO generate local file and scan it
+                    final String name = component.name();
+                    logger.debug("Using name {} for project", name);
+                    final String version = component.version();
+                    logger.debug("Using version {} for project", version);
+                    try {
+                        final ScanJob scanJob = blackDuckScanner.createScanJob("", name, version);
+                        final ScanJobOutput scanJobOutput = blackDuckScanner.startScanJob(scanJob);
+                        final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
+                        final ScanCommandOutput scanResult = scanOutputs.get(0);
+                        final ComponentPanel componentPanel = new ComponentPanel(repository, component);
+                        componentPanel.addToBlackDuckPanel(AssetPanelLabel.SCAN_STATUS, scanResult.getResult().name());
+                        componentPanel.savePanel(queryManager);
+                    } catch (final EncryptionException | IOException | HubIntegrationException e) {
+                        logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
+                    }
+                }
             }
+
         }
     }
 
-    // TODO Add filtering to allow only Artifacts through (Perhaps create custom filtering object)
-    private boolean shouldScanAsset(final Asset asset) {
-        return asset.blobRef().getBlobId() != null;
+    // TODO add functionality to verify if a scan should occur
+    private boolean shouldScan(final Asset asset) {
+        return asset.componentId() != null;
     }
 
-    // This is used to Add items to the BlackDuck tab in the UI
-    private NestedAttributesMap getBlackDuckNestedAttributes(final NestedAttributesMap nestedAttributesMap) {
-        return nestedAttributesMap.child(BLACKDUCK_CATEGORY);
-    }
+    private ScanConfig getScanConfig() {
+        final TaskConfiguration taskConfiguration = getConfiguration();
+        final int scanMemory = taskConfiguration.getInteger(ScanTaskKeys.SCAN_MEMORY.getParameterKey(), ScanTaskFields.DEFAULT_SCAN_MEMORY);
+        final String installDirectory = taskConfiguration.getString(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskFields.DEFAULT_WORKING_DIRECTORY);
+        final String outputDirectory = "BlackDuck";
 
-    //    private ScanConfig getScanConfig() {
-    //        final TaskConfiguration taskConfiguration = getConfiguration();
-    //        final int scanMemory = taskConfiguration.getInteger(ScanTaskKeys.SCAN_MEMORY.getParameterKey(), ScanTaskFields.DEFAULT_SCAN_MEMORY);
-    //        final boolean dryRun = false;
-    //        final String installDirectory = taskConfiguration.getString(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskFields.DEFAULT_WORKING_DIRECTORY);
-    //        final String outputDirectory = "BlackDuck";
-    //
-    //        return new ScanConfig();
-    //    }
-    //
-    //    private String getProjectName() {
-    //        return "";
-    //    }
-    //
-    //    private String getVersionName() {
-    //
-    //    }
+        return new ScanConfig(scanMemory, false, installDirectory, outputDirectory);
+    }
 
     private HubServerConfig getHubServerConfig() {
         final HubCapabilityConfiguration hubCapabilityConfiguration = getCapabilityConfiguration();

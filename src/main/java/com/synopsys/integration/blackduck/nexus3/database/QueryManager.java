@@ -29,11 +29,16 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.sonatype.nexus.blobstore.api.Blob;
+import org.sonatype.nexus.blobstore.api.BlobRef;
+import org.sonatype.nexus.common.entity.EntityId;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.storage.Asset;
+import org.sonatype.nexus.repository.storage.Component;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.repository.storage.StorageFacet;
 import org.sonatype.nexus.repository.storage.StorageTx;
+import org.sonatype.nexus.transaction.Transactional;
+import org.sonatype.nexus.transaction.UnitOfWork;
 
 @Named
 @Singleton
@@ -57,10 +62,28 @@ public class QueryManager {
         }
     }
 
-    public Blob getBlob(final Repository repository, final Asset asset) {
+    public Blob getBlob(final Repository repository, final BlobRef blobRef) {
         try (final StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
-            return storageTx.getBlob(asset.blobRef());
+            storageTx.begin();
+            return storageTx.getBlob(blobRef);
         }
+    }
+
+    public void updateComponent(final Repository repository, final Component component) {
+        try (final StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
+            storageTx.begin();
+            storageTx.saveComponent(component);
+            storageTx.commit();
+        }
+    }
+
+    public Component getComponent(final Repository repository, final EntityId id) {
+        final Component foundComponent = Transactional.operation.withDb(repository.facet(StorageFacet.class).txSupplier()).call(() -> {
+            final StorageTx tx = UnitOfWork.currentTx();
+            return tx.findComponent(id);
+        });
+
+        return foundComponent;
     }
 
 }

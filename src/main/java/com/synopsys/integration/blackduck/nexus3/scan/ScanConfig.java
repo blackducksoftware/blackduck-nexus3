@@ -28,16 +28,12 @@ public class ScanConfig {
     private boolean dryRun;
     private String installDirectory;
     private String outputDirectory;
-    private String projectName;
-    private String projectVersion;
 
-    public ScanConfig(final int memoryMB, final boolean dryRun, final String installDirectory, final String outputDirectory, final String projectName, final String projectVersion) {
+    public ScanConfig(final int memoryMB, final boolean dryRun, final String installDirectory, final String outputDirectory) {
         this.memoryMB = memoryMB;
         this.dryRun = dryRun;
         this.installDirectory = installDirectory;
         this.outputDirectory = outputDirectory;
-        this.projectName = projectName;
-        this.projectVersion = projectVersion;
     }
 
     public int getMemoryMB() {
@@ -72,19 +68,4 @@ public class ScanConfig {
         this.outputDirectory = outputDirectory;
     }
 
-    public String getProjectName() {
-        return projectName;
-    }
-
-    public void setProjectName(final String projectName) {
-        this.projectName = projectName;
-    }
-
-    public String getProjectVersion() {
-        return projectVersion;
-    }
-
-    public void setProjectVersion(final String projectVersion) {
-        this.projectVersion = projectVersion;
-    }
 }
