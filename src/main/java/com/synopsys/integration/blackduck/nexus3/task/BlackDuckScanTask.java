@@ -27,12 +27,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
-import org.sonatype.nexus.blobstore.api.Blob;
 import org.sonatype.nexus.capability.CapabilityReference;
 import org.sonatype.nexus.capability.CapabilityRegistry;
 import org.sonatype.nexus.capability.CapabilitySupport;
@@ -95,55 +96,51 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
         logger.info("Found repository: " + repository.getName());
         final Iterable<Asset> foundAssets = queryManager.findAssetsInRepository(repository);
         for (final Asset asset : foundAssets) {
-            if (shouldScan(asset)) {
-                final Component component = queryManager.getComponent(repository, asset.componentId());
-                final Blob binaryBlob = queryManager.getBlob(repository, asset.blobRef());
-                logger.debug("Binary blob header contents: {}", binaryBlob.getHeaders().toString());
-                final File workingDirectory = new File(scanConfig.getInstallDirectory(), "blackduck");
-                if (workingDirectory.exists()) {
-                    workingDirectory.mkdir();
-                }
-                try {
-                    final File binaryFile = blobFileCreator.convertBlobToFile(binaryBlob, workingDirectory);
-                } catch (final IOException e) {
-                    e.printStackTrace();
-                }
-                if (component != null && asset.blobRef().getBlobId() != null) {
-                    logger.info("Scanning item: {}", component.name());
-                    // TODO generate local file and scan it
-                    final String name = component.name();
-                    logger.debug("Using name {} for project", name);
-                    final String version = component.version();
-                    logger.debug("Using version {} for project", version);
-                    try {
-                        final ScanJob scanJob = blackDuckScanner.createScanJob("", name, version);
-                        final ScanJobOutput scanJobOutput = blackDuckScanner.startScanJob(scanJob);
-                        final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
-                        final ScanCommandOutput scanResult = scanOutputs.get(0);
-                        final ComponentPanel componentPanel = new ComponentPanel(repository, component);
-                        componentPanel.addToBlackDuckPanel(AssetPanelLabel.SCAN_STATUS, scanResult.getResult().name());
-                        componentPanel.savePanel(queryManager);
-                    } catch (final EncryptionException | IOException | HubIntegrationException e) {
-                        logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
-                    }
-                }
+            final Optional<File> binaryFile = blobFileCreator.convertAssetToFile(asset, repository, null);
+            if (!binaryFile.isPresent()) {
+                throw new TaskInterruptedException("Error saving blob binary", true);
+            }
+            final Component component = queryManager.getComponent(repository, asset.componentId());
+            logger.info("Scanning item: {}", component.name());
+            final String name = component.name();
+            logger.debug("Using name {} for project", name);
+            final String version = component.version();
+            logger.debug("Using version {} for project", version);
+            try {
+                final ScanJob scanJob = blackDuckScanner.createScanJob(binaryFile.get().getAbsolutePath(), name, version);
+                final ScanJobOutput scanJobOutput = blackDuckScanner.startScanJob(scanJob);
+                final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
+                final ScanCommandOutput scanResult = scanOutputs.get(0);
+                final ComponentPanel componentPanel = new ComponentPanel(repository, component);
+                componentPanel.addToBlackDuckPanel(AssetPanelLabel.SCAN_STATUS, scanResult.getResult().name());
+                componentPanel.savePanel(queryManager);
+            } catch (final EncryptionException | IOException | HubIntegrationException e) {
+                logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
             }
 
         }
     }
 
-    // TODO add functionality to verify if a scan should occur
-    private boolean shouldScan(final Asset asset) {
-        return asset.componentId() != null;
-    }
-
     private ScanConfig getScanConfig() {
         final TaskConfiguration taskConfiguration = getConfiguration();
         final int scanMemory = taskConfiguration.getInteger(ScanTaskKeys.SCAN_MEMORY.getParameterKey(), ScanTaskFields.DEFAULT_SCAN_MEMORY);
-        final String installDirectory = taskConfiguration.getString(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskFields.DEFAULT_WORKING_DIRECTORY);
-        final String outputDirectory = "BlackDuck";
 
-        return new ScanConfig(scanMemory, false, installDirectory, outputDirectory);
+        final String workingDirectory = taskConfiguration.getString(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskFields.DEFAULT_WORKING_DIRECTORY);
+        final String currentDirectory = System.getProperty("user.dir");
+        final File workingBlackDuckDirectory = new File(currentDirectory + System.lineSeparator() + workingDirectory, "blackduck");
+        final File outputDirectory = new File(workingBlackDuckDirectory, "output");
+
+        if (outputDirectory.exists()) {
+            try {
+                FileUtils.deleteDirectory(outputDirectory);
+            } catch (final IOException e) {
+                logger.warn("Could not delete directory {}", outputDirectory.getAbsolutePath());
+            }
+        }
+        logger.debug("Creating directory structure for {}", outputDirectory.getAbsolutePath());
+        outputDirectory.mkdirs();
+
+        return new ScanConfig(scanMemory, false, workingBlackDuckDirectory, outputDirectory);
     }
 
     private HubServerConfig getHubServerConfig() {

@@ -23,13 +23,15 @@
  */
 package com.synopsys.integration.blackduck.nexus3.scan;
 
+import java.io.File;
+
 public class ScanConfig {
     private int memoryMB;
     private boolean dryRun;
-    private String installDirectory;
-    private String outputDirectory;
+    private File installDirectory;
+    private File outputDirectory;
 
-    public ScanConfig(final int memoryMB, final boolean dryRun, final String installDirectory, final String outputDirectory) {
+    public ScanConfig(final int memoryMB, final boolean dryRun, final File installDirectory, final File outputDirectory) {
         this.memoryMB = memoryMB;
         this.dryRun = dryRun;
         this.installDirectory = installDirectory;
@@ -52,19 +54,19 @@ public class ScanConfig {
         this.dryRun = dryRun;
     }
 
-    public String getInstallDirectory() {
+    public File getInstallDirectory() {
         return installDirectory;
     }
 
-    public void setInstallDirectory(final String installDirectory) {
+    public void setInstallDirectory(final File installDirectory) {
         this.installDirectory = installDirectory;
     }
 
-    public String getOutputDirectory() {
+    public File getOutputDirectory() {
         return outputDirectory;
     }
 
-    public void setOutputDirectory(final String outputDirectory) {
+    public void setOutputDirectory(final File outputDirectory) {
         this.outputDirectory = outputDirectory;
     }
 

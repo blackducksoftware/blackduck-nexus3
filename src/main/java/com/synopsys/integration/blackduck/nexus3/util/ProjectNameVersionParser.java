@@ -45,6 +45,6 @@ public class ProjectNameVersionParser {
     public String retrieveBlobName(final Blob blob) {
         final String name = blob.getHeaders().get(BlobStore.BLOB_NAME_HEADER);
         final String[] nameParts = name.split("/");
-        return nameParts[nameParts.length];
+        return nameParts[nameParts.length - 1];
     }
 }

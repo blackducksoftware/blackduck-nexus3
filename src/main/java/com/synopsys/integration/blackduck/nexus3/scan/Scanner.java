@@ -23,7 +23,6 @@
  */
 package com.synopsys.integration.blackduck.nexus3.scan;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.slf4j.Logger;
@@ -55,8 +54,8 @@ public class Scanner {
                                                   .fromHubServerConfig(hubServerConfig)
                                                   .scanMemoryInMegabytes(scanConfig.getMemoryMB())
                                                   .dryRun(scanConfig.isDryRun())
-                                                  .installDirectory(new File(scanConfig.getInstallDirectory()))
-                                                  .outputDirectory(new File(scanConfig.getOutputDirectory()))
+                                                  .installDirectory(scanConfig.getInstallDirectory())
+                                                  .outputDirectory(scanConfig.getOutputDirectory())
                                                   .projectAndVersionNames(projectName, projectVersion);
         final ScanTarget scanTarget = ScanTarget.createBasicTarget(pathToScan);
         scanJobBuilder.addTarget(scanTarget);
