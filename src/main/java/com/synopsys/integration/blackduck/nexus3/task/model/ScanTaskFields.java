@@ -32,7 +32,7 @@ import org.sonatype.nexus.repository.RepositoryTaskSupport;
 
 public class ScanTaskFields {
     public static final String DEFAULT_FILE_PATTERNS_MATCHES = "*.war,*.zip,*.tar.gz,*.hpi";
-    public static final String DEFAULT_WORKING_DIRECTORY = "/sonatype-work";
+    public static final String DEFAULT_WORKING_DIRECTORY = "../sonatype-work";
     public static final int DEFAULT_SCAN_MEMORY = 4096;
     public static final String DEFAULT_ARTIFACT_CUTOFF = "2016-01-01T00:00:00.000";
 

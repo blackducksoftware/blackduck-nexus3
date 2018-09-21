@@ -38,13 +38,13 @@ import com.synopsys.integration.blackduck.signaturescanner.command.ScanTarget;
 import com.synopsys.integration.exception.EncryptionException;
 import com.synopsys.integration.log.Slf4jIntLogger;
 
-public class Scanner {
+public class HubScanner {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final HubServerConfig hubServerConfig;
-    private final ScanConfig scanConfig;
+    private final HubScanConfig scanConfig;
 
-    public Scanner(final HubServerConfig hubServerConfig, final ScanConfig scanConfig) {
+    public HubScanner(final HubServerConfig hubServerConfig, final HubScanConfig scanConfig) {
         this.hubServerConfig = hubServerConfig;
         this.scanConfig = scanConfig;
     }

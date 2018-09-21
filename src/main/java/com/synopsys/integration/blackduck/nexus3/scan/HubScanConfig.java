@@ -25,13 +25,13 @@ package com.synopsys.integration.blackduck.nexus3.scan;
 
 import java.io.File;
 
-public class ScanConfig {
+public class HubScanConfig {
     private int memoryMB;
     private boolean dryRun;
     private File installDirectory;
     private File outputDirectory;
 
-    public ScanConfig(final int memoryMB, final boolean dryRun, final File installDirectory, final File outputDirectory) {
+    public HubScanConfig(final int memoryMB, final boolean dryRun, final File installDirectory, final File outputDirectory) {
         this.memoryMB = memoryMB;
         this.dryRun = dryRun;
         this.installDirectory = installDirectory;

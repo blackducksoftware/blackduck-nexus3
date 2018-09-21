@@ -32,7 +32,7 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import org.apache.commons.io.FileUtils;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.sonatype.nexus.capability.CapabilityReference;
 import org.sonatype.nexus.capability.CapabilityRegistry;
@@ -49,31 +49,34 @@ import com.synopsys.integration.blackduck.exception.HubIntegrationException;
 import com.synopsys.integration.blackduck.nexus3.capability.HubCapability;
 import com.synopsys.integration.blackduck.nexus3.capability.HubCapabilityConfiguration;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
-import com.synopsys.integration.blackduck.nexus3.scan.ScanConfig;
-import com.synopsys.integration.blackduck.nexus3.scan.Scanner;
+import com.synopsys.integration.blackduck.nexus3.scan.HubScanConfig;
+import com.synopsys.integration.blackduck.nexus3.scan.HubScanner;
 import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskFields;
 import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskKeys;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.nexus3.ui.ComponentPanel;
 import com.synopsys.integration.blackduck.nexus3.util.BlobFileCreator;
+import com.synopsys.integration.blackduck.nexus3.util.DateTimeParser;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJob;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJobOutput;
 import com.synopsys.integration.blackduck.signaturescanner.command.ScanCommandOutput;
 import com.synopsys.integration.exception.EncryptionException;
 
 @Named
-public class BlackDuckScanTask extends RepositoryTaskSupport {
+public class ScanTask extends RepositoryTaskSupport {
     private final Logger logger = createLogger();
 
     private final QueryManager queryManager;
     private final CapabilityRegistry capabilityRegistry;
     private final BlobFileCreator blobFileCreator;
+    private final DateTimeParser dateTimeParser;
 
     @Inject
-    public BlackDuckScanTask(final QueryManager queryManager, final CapabilityRegistry capabilityRegistry, final BlobFileCreator blobFileCreator) {
+    public ScanTask(final QueryManager queryManager, final CapabilityRegistry capabilityRegistry, final BlobFileCreator blobFileCreator, final DateTimeParser dateTimeParser) {
         this.queryManager = queryManager;
         this.capabilityRegistry = capabilityRegistry;
         this.blobFileCreator = blobFileCreator;
+        this.dateTimeParser = dateTimeParser;
     }
 
     @Override
@@ -91,8 +94,8 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
     @Override
     protected void execute(final Repository repository) {
         final HubServerConfig hubServerConfig = getHubServerConfig();
-        final ScanConfig scanConfig = getScanConfig();
-        final Scanner blackDuckScanner = new Scanner(hubServerConfig, scanConfig);
+        final HubScanConfig hubScanConfig = getScanConfig();
+        final HubScanner hubScanner = new HubScanner(hubServerConfig, hubScanConfig);
         logger.info("Found repository: " + repository.getName());
         final Iterable<Asset> foundAssets = queryManager.findAssetsInRepository(repository);
         for (final Asset asset : foundAssets) {
@@ -106,9 +109,11 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
             logger.debug("Using name {} for project", name);
             final String version = component.version();
             logger.debug("Using version {} for project", version);
+            final ScanTaskConfig scanTaskConfig = getTaskConfig();
+
             try {
-                final ScanJob scanJob = blackDuckScanner.createScanJob(binaryFile.get().getAbsolutePath(), name, version);
-                final ScanJobOutput scanJobOutput = blackDuckScanner.startScanJob(scanJob);
+                final ScanJob scanJob = hubScanner.createScanJob(binaryFile.get().getAbsolutePath(), name, version);
+                final ScanJobOutput scanJobOutput = hubScanner.startScanJob(scanJob);
                 final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
                 final ScanCommandOutput scanResult = scanOutputs.get(0);
                 final ComponentPanel componentPanel = new ComponentPanel(repository, component);
@@ -121,26 +126,27 @@ public class BlackDuckScanTask extends RepositoryTaskSupport {
         }
     }
 
-    private ScanConfig getScanConfig() {
+    private ScanTaskConfig getTaskConfig() {
+        final String filePatterns = getConfiguration().getString(ScanTaskKeys.FILE_PATTERNS.getParameterKey());
+        final boolean rescanFailures = getConfiguration().getBoolean(ScanTaskKeys.RESCAN_FAILURES.getParameterKey(), false);
+        final boolean alwaysScan = getConfiguration().getBoolean(ScanTaskKeys.ALWAYS_SCAN.getParameterKey(), false);
+
+        final String artifactCutoff = getConfiguration().getString(ScanTaskKeys.OLD_ARTIFACT_CUTOFF.getParameterKey());
+        final DateTime oldArtifactCutoffDate = dateTimeParser.convertFromStringToDate(artifactCutoff);
+        return new ScanTaskConfig(filePatterns, oldArtifactCutoffDate, rescanFailures, alwaysScan);
+    }
+
+    private HubScanConfig getScanConfig() {
         final TaskConfiguration taskConfiguration = getConfiguration();
         final int scanMemory = taskConfiguration.getInteger(ScanTaskKeys.SCAN_MEMORY.getParameterKey(), ScanTaskFields.DEFAULT_SCAN_MEMORY);
 
         final String workingDirectory = taskConfiguration.getString(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskFields.DEFAULT_WORKING_DIRECTORY);
-        final String currentDirectory = System.getProperty("user.dir");
-        final File workingBlackDuckDirectory = new File(currentDirectory + System.lineSeparator() + workingDirectory, "blackduck");
+        final File workingBlackDuckDirectory = new File(workingDirectory, "blackduck");
+        workingBlackDuckDirectory.mkdir();
         final File outputDirectory = new File(workingBlackDuckDirectory, "output");
+        outputDirectory.mkdir();
 
-        if (outputDirectory.exists()) {
-            try {
-                FileUtils.deleteDirectory(outputDirectory);
-            } catch (final IOException e) {
-                logger.warn("Could not delete directory {}", outputDirectory.getAbsolutePath());
-            }
-        }
-        logger.debug("Creating directory structure for {}", outputDirectory.getAbsolutePath());
-        outputDirectory.mkdirs();
-
-        return new ScanConfig(scanMemory, false, workingBlackDuckDirectory, outputDirectory);
+        return new HubScanConfig(scanMemory, false, workingBlackDuckDirectory, outputDirectory);
     }
 
     private HubServerConfig getHubServerConfig() {

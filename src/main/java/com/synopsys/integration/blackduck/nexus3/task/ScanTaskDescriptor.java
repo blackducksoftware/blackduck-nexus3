@@ -32,13 +32,13 @@ import com.synopsys.integration.blackduck.nexus3.task.model.ScanTaskFields;
 
 @Named
 @Singleton
-public class BlackDuckScanTaskDescriptor extends TaskDescriptorSupport {
+public class ScanTaskDescriptor extends TaskDescriptorSupport {
     public static final String BLACK_DUCK_SCAN_TASK_ID = "blackduck.scan";
     public static final String BLACK_DUCK_SCAN_TASK_NAME = "BlackDuck - Repository Scan";
 
-    public BlackDuckScanTaskDescriptor() {
+    public ScanTaskDescriptor() {
         super(BLACK_DUCK_SCAN_TASK_ID,
-            BlackDuckScanTask.class,
+            ScanTask.class,
             BLACK_DUCK_SCAN_TASK_NAME,
             VISIBLE,
             EXPOSED,
