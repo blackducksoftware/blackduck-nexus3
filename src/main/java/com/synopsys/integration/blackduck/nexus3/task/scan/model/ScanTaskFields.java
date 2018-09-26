@@ -21,7 +21,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.task.model;
+package com.synopsys.integration.blackduck.nexus3.task.scan.model;
 
 import org.sonatype.nexus.formfields.CheckboxFormField;
 import org.sonatype.nexus.formfields.FormField;
@@ -37,6 +37,7 @@ public class ScanTaskFields {
     public static final String DEFAULT_ARTIFACT_CUTOFF = "2016-01-01T00:00:00.000";
 
     public static final String LABEL_REPOSITORY = "Repository";
+    public static final String LABEL_REPOSITORY_PATH = "Repository Path";
     public static final String LABEL_FILE_PATTERN_MATCHES = "File Pattern Matches";
     public static final String LABEL_WORKING_DIRECTORY = "Working Directory";
     public static final String LABEL_SCAN_MEMORY = "Scan memory Allocation";
@@ -45,6 +46,7 @@ public class ScanTaskFields {
     public static final String LABEL_ARTIFACT_CUTOFF = "Artifact Cutoff Date";
 
     public static final String DESCRIPTION_REPO_NAME = "Type in the repository in which to run the task.";
+    public static final String DESCRIPTION_REPOSITORY_PATH = "Enter a repository path to run the task in recursively (ie. \"/\" for root or \"/org/apache\"). Blank will not filter based off path";
     public static final String DESCRIPTION_SCAN_FILE_PATTERN_MATCH = "The file pattern match wildcard to filter the artifacts scanned.";
     public static final String DESCRIPTION_TASK_WORKING_DIRECTORY = "The parent directory where the blackduck directory will be created to contain temporary data for the scans";
     public static final String DESCRIPTION_SCAN_MEMORY = "Specify the memory, in megabytes, you would like to allocate for the BlackDuck Scan. Default: 4096";
@@ -52,8 +54,8 @@ public class ScanTaskFields {
     public static final String DESCRIPTION_RESCAN_FAILURE = "Re-scan artifacts if the previous scan result was failed";
     public static final String DESCRIPTION_SCAN_CUTOFF = "If this is set, only artifacts with a modified date later than this will be scanned. To scan only artifacts newer than January 01, 2016 you would use "
                                                              + "the cutoff format of \"2016-01-01T00:00:00.000\"";
-
     public static final RepositoryCombobox FIELD_REPOSITORY = new RepositoryCombobox(RepositoryTaskSupport.REPOSITORY_NAME_FIELD_ID, LABEL_REPOSITORY, DESCRIPTION_REPO_NAME, FormField.MANDATORY);
+    public static final StringTextFormField FIELD_REPOSITORY_PATH = new StringTextFormField(ScanTaskKeys.REPOSITORY_PATH.getParameterKey(), LABEL_REPOSITORY_PATH, DESCRIPTION_REPOSITORY_PATH, FormField.OPTIONAL);
     public static final StringTextFormField FIELD_FILE_PATTERN = new StringTextFormField(ScanTaskKeys.FILE_PATTERNS.getParameterKey(), LABEL_FILE_PATTERN_MATCHES, DESCRIPTION_SCAN_FILE_PATTERN_MATCH, FormField.MANDATORY)
                                                                      .withInitialValue(DEFAULT_FILE_PATTERNS_MATCHES);
     public static final StringTextFormField FIELD_WORKING_DIRECTORY = new StringTextFormField(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), LABEL_WORKING_DIRECTORY, DESCRIPTION_TASK_WORKING_DIRECTORY, FormField.MANDATORY)
@@ -66,7 +68,7 @@ public class ScanTaskFields {
                                                                         .withInitialValue(DEFAULT_ARTIFACT_CUTOFF);
 
     public static FormField[] getFields() {
-        final FormField[] fields = { FIELD_REPOSITORY, FIELD_WORKING_DIRECTORY, FIELD_FILE_PATTERN, FIELD_SCAN_MEMORY, FIELD_ALWAYS_SCAN, FIELD_RESCAN_FAILURE, FIELD_ARTIFACT_CUTOFF };
+        final FormField[] fields = { FIELD_REPOSITORY, FIELD_REPOSITORY_PATH, FIELD_WORKING_DIRECTORY, FIELD_FILE_PATTERN, FIELD_SCAN_MEMORY, FIELD_ALWAYS_SCAN, FIELD_RESCAN_FAILURE, FIELD_ARTIFACT_CUTOFF };
         return fields;
     }
 }

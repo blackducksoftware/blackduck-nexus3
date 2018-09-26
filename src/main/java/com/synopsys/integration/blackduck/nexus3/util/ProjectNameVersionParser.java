@@ -5,8 +5,6 @@ import javax.inject.Singleton;
 
 import org.sonatype.nexus.blobstore.api.Blob;
 import org.sonatype.nexus.blobstore.api.BlobStore;
-import org.sonatype.nexus.repository.storage.Asset;
-import org.sonatype.nexus.repository.storage.Component;
 
 import com.synopsys.integration.util.NameVersion;
 
@@ -14,19 +12,18 @@ import com.synopsys.integration.util.NameVersion;
 @Singleton
 public class ProjectNameVersionParser {
 
-    public String getProjectName(final Asset asset) {
-        final NameVersion nameVersion = retrieveNameVersion(asset);
+    public String getProjectName(final String assetName) {
+        final NameVersion nameVersion = retrieveNameVersion(assetName);
         return nameVersion.getName();
     }
 
-    public String getProjectVersion(final Asset asset) {
-        final NameVersion nameVersion = retrieveNameVersion(asset);
+    public String getProjectVersion(final String assetName) {
+        final NameVersion nameVersion = retrieveNameVersion(assetName);
         return nameVersion.getVersion();
     }
 
-    public NameVersion retrieveNameVersion(final Asset asset) {
-        final String name = asset.name();
-        final String[] nameParts = name.split("/");
+    public NameVersion retrieveNameVersion(final String assetName) {
+        final String[] nameParts = assetName.split("/");
         String projectName = "Unknown";
         String projectVersion = "Unknown";
         if (nameParts.length >= 3) {
@@ -34,12 +31,6 @@ public class ProjectNameVersionParser {
             projectVersion = nameParts[nameParts.length - 2];
         }
         return new NameVersion(projectName, projectVersion);
-    }
-
-    public NameVersion retrieveNameVersion(final Component component) {
-        final String name = component.name();
-        final String version = component.version();
-        return new NameVersion(name, version);
     }
 
     public String retrieveBlobName(final Blob blob) {

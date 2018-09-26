@@ -29,6 +29,8 @@ import javax.inject.Named;
 
 import org.sonatype.nexus.capability.CapabilitySupport;
 
+import com.synopsys.integration.blackduck.nexus3.capability.model.HubConfigKeys;
+
 @Named(HubCapabilityDescriptor.CAPABILITY_ID)
 public class HubCapability extends CapabilitySupport<HubCapabilityConfiguration> {
 
@@ -37,4 +39,8 @@ public class HubCapability extends CapabilitySupport<HubCapabilityConfiguration>
         return new HubCapabilityConfiguration(properties);
     }
 
+    @Override
+    public boolean isPasswordProperty(final String propertyName) {
+        return HubConfigKeys.passwordFields().stream().anyMatch(field -> field.getKey().equals(propertyName));
+    }
 }

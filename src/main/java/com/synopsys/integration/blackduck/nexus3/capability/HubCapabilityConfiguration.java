@@ -44,9 +44,6 @@ public class HubCapabilityConfiguration extends CapabilityConfigurationSupport {
         hubServerConfigBuilder.setTimeout(capabilitySettings.get(HubConfigKeys.HUB_TIMEOUT.getKey()));
         hubServerConfigBuilder.setTrustCert(capabilitySettings.get(HubConfigKeys.HUB_TRUST_CERT.getKey()));
         hubServerConfigBuilder.setApiToken(capabilitySettings.get(HubConfigKeys.HUB_API_KEY.getKey()));
-        // TODO verify if credentials should be supported considering EncryptionUtils breaks things
-        //        hubServerConfigBuilder.setUsername(capabilitySettings.get(HubConfigKeys.HUB_USERNAME.getKey()));
-        //        hubServerConfigBuilder.setPassword(capabilitySettings.get(HubConfigKeys.HUB_PASSWORD.getKey()));
         return hubServerConfigBuilder.build();
     }
 

@@ -1,15 +1,17 @@
-package com.synopsys.integration.blackduck.nexus3.task;
+package com.synopsys.integration.blackduck.nexus3.task.scan.model;
 
 import org.joda.time.DateTime;
 
 public class ScanTaskConfig {
     private String filePatterns;
+    private String repositoryPathRegex;
     private DateTime oldArtifactCutoffDate;
     private boolean rescanFailures;
     private boolean alwaysScan;
 
-    public ScanTaskConfig(final String filePatterns, final DateTime oldArtifactCutoffDate, final boolean rescanFailures, final boolean alwaysScan) {
+    public ScanTaskConfig(final String filePatterns, final String repositoryPathRegex, final DateTime oldArtifactCutoffDate, final boolean rescanFailures, final boolean alwaysScan) {
         this.filePatterns = filePatterns;
+        this.repositoryPathRegex = repositoryPathRegex;
         this.oldArtifactCutoffDate = oldArtifactCutoffDate;
         this.rescanFailures = rescanFailures;
         this.alwaysScan = alwaysScan;
@@ -21,6 +23,14 @@ public class ScanTaskConfig {
 
     public void setFilePatterns(final String filePatterns) {
         this.filePatterns = filePatterns;
+    }
+
+    public String getRepositoryPathRegex() {
+        return repositoryPathRegex;
+    }
+
+    public void setRepositoryPathRegex(final String repositoryPathRegex) {
+        this.repositoryPathRegex = repositoryPathRegex;
     }
 
     public DateTime getOldArtifactCutoffDate() {

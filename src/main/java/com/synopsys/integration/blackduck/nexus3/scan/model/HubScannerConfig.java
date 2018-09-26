@@ -21,17 +21,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.scan;
+package com.synopsys.integration.blackduck.nexus3.scan.model;
 
 import java.io.File;
 
-public class HubScanConfig {
+public class HubScannerConfig {
     private int memoryMB;
     private boolean dryRun;
     private File installDirectory;
     private File outputDirectory;
 
-    public HubScanConfig(final int memoryMB, final boolean dryRun, final File installDirectory, final File outputDirectory) {
+    public HubScannerConfig(final int memoryMB, final boolean dryRun, final File installDirectory, final File outputDirectory) {
         this.memoryMB = memoryMB;
         this.dryRun = dryRun;
         this.installDirectory = installDirectory;

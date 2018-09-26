@@ -69,6 +69,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!--<dependency>-->
+        <!--<groupId>joda-time</groupId>-->
+        <!--<artifactId>joda-time</artifactId>-->
+        <!--<version>2.10</version>-->
+        <!--<scope>runtime</scope>-->
+        <!--</dependency>-->
+
         <dependency>
             <groupId>org.sonatype.nexus</groupId>
             <artifactId>nexus-plugin-api</artifactId>
@@ -93,7 +100,13 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Added to include in bundle -->
+        <dependency>
+            <groupId>org.sonatype.goodies</groupId>
+            <artifactId>goodies-testsupport</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Added to include in bundle, will verify if needed -->
         <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
@@ -117,18 +130,20 @@
                             com.synopsys.integration.blackduck.nexus3.capability,
                             com.synopsys.integration.blackduck.nexus3.database,
                             com.synopsys.integration.blackduck.nexus3.task,
-                            com.synopsys.integration.blackduck.nexus3.task.model,
+                            com.synopsys.integration.blackduck.nexus3.task.scan.model,
                             com.synopsys.integration.util;resolution:=optional,
-                            org.sonatype.nexus.*;,
-                            org.apache.commons.io;,
+                            org.sonatype.nexus.*,
+                            org.apache.commons.io,
+                            org.apache.commons.lang,
                             org.apache.commons.lang3.*;version=3.7,
                             org.apache.commons.compress.*,
-                            org.apache.http.*;,
+                            org.apache.http.*,
                             com.google.common.base,
                             javax.inject,
                             javax.net,
                             javax.net.ssl,
                             org.slf4j,
+                            org.joda.time.*
                         </Import-Package>
                         <Embed-Dependency>
                             *;scope=compile|runtime

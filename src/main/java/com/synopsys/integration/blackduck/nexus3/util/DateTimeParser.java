@@ -15,7 +15,7 @@ public class DateTimeParser {
         return DateTime.parse(date, DateTimeFormat.forPattern(dateTimePattern).withZoneUTC());
     }
 
-    public long convertFromStringToMillis(String date) {
+    public long convertFromStringToMillis(final String date) {
         return convertFromStringToDate(date).toDate().getTime();
     }
 }

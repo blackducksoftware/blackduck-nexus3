@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.exception.HubIntegrationException;
+import com.synopsys.integration.blackduck.nexus3.scan.model.HubScannerConfig;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJob;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJobBuilder;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJobManager;
@@ -42,9 +43,9 @@ public class HubScanner {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final HubServerConfig hubServerConfig;
-    private final HubScanConfig scanConfig;
+    private final HubScannerConfig scanConfig;
 
-    public HubScanner(final HubServerConfig hubServerConfig, final HubScanConfig scanConfig) {
+    public HubScanner(final HubServerConfig hubServerConfig, final HubScannerConfig scanConfig) {
         this.hubServerConfig = hubServerConfig;
         this.scanConfig = scanConfig;
     }

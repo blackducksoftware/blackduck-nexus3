@@ -44,6 +44,7 @@ import org.sonatype.nexus.transaction.UnitOfWork;
 @Singleton
 public class QueryManager {
 
+    // TODO use pagination to get subsections of assets
     public Iterable<Asset> findAssetsInRepository(final Repository repository) {
         try (final StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
             storageTx.begin();

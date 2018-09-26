@@ -28,13 +28,11 @@ import java.util.List;
 
 public enum HubConfigKeys {
     HUB_TRUST_CERT("blackduck.hub.trust.cert"),
-    HUB_PASSWORD("blackduck.hub.password"),
     HUB_PROXY_HOST("blackduck.hub.proxy.host"),
     HUB_PROXY_PORT("blackduck.hub.proxy.port"),
     HUB_PROXY_USERNAME("blackduck.hub.proxy.username"),
     HUB_PROXY_PASSWORD("blackduck.hub.proxy.password"),
     HUB_TIMEOUT("blackduck.hub.timeout"),
-    HUB_USERNAME("blackduck.hub.username"),
     HUB_API_KEY("blackduck.hub.api.key"),
     HUB_URL("blackduck.hub.url");
 
@@ -45,7 +43,7 @@ public enum HubConfigKeys {
     }
 
     public static List<HubConfigKeys> passwordFields() {
-        return Arrays.asList(HUB_PASSWORD, HUB_PROXY_PASSWORD);
+        return Arrays.asList(HUB_API_KEY, HUB_PROXY_PASSWORD);
     }
 
     public String getKey() {
