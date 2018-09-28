@@ -26,71 +26,89 @@ package com.synopsys.integration.blackduck.nexus3.task.scan;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
-import org.sonatype.nexus.blobstore.api.Blob;
 import org.sonatype.nexus.repository.Repository;
+import org.sonatype.nexus.repository.RepositoryTaskSupport;
 import org.sonatype.nexus.repository.storage.Asset;
-import org.sonatype.nexus.repository.storage.Component;
+import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskConfiguration;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.exception.HubIntegrationException;
-import com.synopsys.integration.blackduck.nexus3.capability.HubCapabilityFinder;
+import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
-import com.synopsys.integration.blackduck.nexus3.scan.HubScanner;
-import com.synopsys.integration.blackduck.nexus3.scan.model.HubScannerConfig;
-import com.synopsys.integration.blackduck.nexus3.scan.model.ScanStatus;
-import com.synopsys.integration.blackduck.nexus3.task.BlackDuckTask;
+import com.synopsys.integration.blackduck.nexus3.task.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.task.TaskFilter;
 import com.synopsys.integration.blackduck.nexus3.task.scan.model.ScanTaskConfig;
 import com.synopsys.integration.blackduck.nexus3.task.scan.model.ScanTaskFields;
 import com.synopsys.integration.blackduck.nexus3.task.scan.model.ScanTaskKeys;
-import com.synopsys.integration.blackduck.nexus3.ui.ComponentPanel;
-import com.synopsys.integration.blackduck.nexus3.ui.ComponentPanelLabel;
-import com.synopsys.integration.blackduck.nexus3.util.BlobConverter;
+import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.nexus3.util.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.util.DateTimeParser;
-import com.synopsys.integration.blackduck.nexus3.util.ProjectNameVersionParser;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJob;
+import com.synopsys.integration.blackduck.signaturescanner.ScanJobBuilder;
+import com.synopsys.integration.blackduck.signaturescanner.ScanJobManager;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJobOutput;
 import com.synopsys.integration.blackduck.signaturescanner.command.ScanCommandOutput;
+import com.synopsys.integration.blackduck.signaturescanner.command.ScanTarget;
+import com.synopsys.integration.blackduck.summary.Result;
 import com.synopsys.integration.exception.EncryptionException;
+import com.synopsys.integration.log.Slf4jIntLogger;
 
 @Named
-public class ScanTask extends BlackDuckTask {
+public class ScanTask extends RepositoryTaskSupport {
+    private static final int SCAN_OUTPUT_LOCATION = 0;
+    private static int paramCounter;
     private final Logger logger = createLogger();
 
     private final QueryManager queryManager;
-    private final BlobConverter blobConverter;
     private final DateTimeParser dateTimeParser;
     private final TaskFilter taskFilter;
-    private final ProjectNameVersionParser projectNameVersionParser;
+    private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
 
     @Inject
-    public ScanTask(final ProjectNameVersionParser projectNameVersionParser, final QueryManager queryManager, final BlobConverter blobConverter, final DateTimeParser dateTimeParser,
-        final HubCapabilityFinder hubCapabilityFinder, final TaskFilter taskFilter) {
-        super("Scan", hubCapabilityFinder);
+    public ScanTask(final QueryManager queryManager, final DateTimeParser dateTimeParser, final TaskFilter taskFilter, final CommonRepositoryTaskHelper commonRepositoryTaskHelper) {
         this.queryManager = queryManager;
-        this.blobConverter = blobConverter;
         this.dateTimeParser = dateTimeParser;
         this.taskFilter = taskFilter;
-        this.projectNameVersionParser = projectNameVersionParser;
+        this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
     }
 
     @Override
-    protected void execute(final Repository repository, final HubServerConfig hubServerConfig) {
-        final HubScannerConfig hubScanConfig = getScanConfig();
+    protected boolean appliesTo(final Repository repository) {
+        return commonRepositoryTaskHelper.doesRepositoryApply(repository, getRepositoryField());
+    }
+
+    @Override
+    public String getMessage() {
+        return commonRepositoryTaskHelper.getTaskMessage("Hub Scan", getRepositoryField());
+    }
+
+    @Override
+    protected void execute(final Repository repository) {
+        final HubServerConfig hubServerConfig = commonRepositoryTaskHelper.getHubServerConfig();
         final ScanTaskConfig scanTaskConfig = getTaskConfig();
-        final HubScanner hubScanner = new HubScanner(hubServerConfig, hubScanConfig);
-        final Iterable<Asset> foundAssets = queryManager.findAssetsInRepository(repository);
-        for (final Asset asset : foundAssets) {
-            final Blob blob = queryManager.getBlob(repository, asset.blobRef());
-            final String filename = projectNameVersionParser.retrieveBlobName(blob);
+        final ScanJobManager scanJobManager;
+        try {
+            scanJobManager = ScanJobManager.createDefaultScanManager(new Slf4jIntLogger(logger), hubServerConfig);
+        } catch (final EncryptionException e) {
+            throw new TaskInterruptedException("Problem creating ScanJobManager: " + e.getMessage(), true);
+
+        }
+        final String workingDirectory = getConfiguration().getString(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskFields.DEFAULT_WORKING_DIRECTORY);
+        final File workingBlackDuckDirectory = new File(workingDirectory, "blackduck");
+        workingBlackDuckDirectory.mkdir();
+        final PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.pagedAssets(repository, Query.builder(), Optional.empty(), 100);
+        for (final Asset asset : foundAssets.getTypeList()) {
+            final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
+            final String filename = assetWrapper.getFilename();
 
             final boolean doesExtensionMatch = taskFilter.doesExtensionMatch(filename, scanTaskConfig.getFilePatterns());
             final boolean doesRepositoryPathMatch = taskFilter.doesRepositoryPathMatch(asset.name(), scanTaskConfig.getRepositoryPathRegex());
@@ -102,40 +120,55 @@ public class ScanTask extends BlackDuckTask {
 
             final File binaryFile;
             try {
-                binaryFile = blobConverter.convertBlobToFile(blob, hubScanConfig.getInstallDirectory());
+                binaryFile = assetWrapper.getBinaryBlobFile(workingBlackDuckDirectory);
             } catch (final IOException e) {
                 throw new TaskInterruptedException("Error saving blob binary to file", true);
             }
 
-            final Component component = queryManager.getComponent(repository, asset.componentId());
-            final String name = component.name();
-            final String version = component.version();
-
-            final ComponentPanel componentPanel = new ComponentPanel(component);
-            final String scanStatus = componentPanel.getFromBlackDuckPanel(ComponentPanelLabel.SCAN_STATUS);
+            final String scanStatus = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.SCAN_STATUS);
 
             boolean shouldScan = scanStatus == null;
             if (!shouldScan) {
-                shouldScan = !taskFilter.didArtifactFailScan(Enum.valueOf(ScanStatus.class, scanStatus)) || scanTaskConfig.isRescanFailures();
+                shouldScan = !taskFilter.didArtifactFailScan(Enum.valueOf(Result.class, scanStatus)) || scanTaskConfig.isRescanFailures();
             }
-            final boolean artifactTooOld = taskFilter.isArtifactTooOld(scanTaskConfig.getOldArtifactCutoffDate(), component.lastUpdated());
+
+            final boolean artifactTooOld = taskFilter.isArtifactTooOld(scanTaskConfig.getOldArtifactCutoffDate(), assetWrapper.getComponentLastUpdated());
             final boolean alwaysScan = !artifactTooOld && scanTaskConfig.isAlwaysScan();
 
+            final String name = assetWrapper.getName();
+            final String version = assetWrapper.getVersion();
             if (alwaysScan || (!artifactTooOld && shouldScan)) {
-                logger.info("Scanning item: {}", component.name());
+                logger.info("Scanning item: {}", name);
                 try {
-                    final ScanJob scanJob = hubScanner.createScanJob(binaryFile.getAbsolutePath(), name, version);
-                    final ScanJobOutput scanJobOutput = hubScanner.startScanJob(scanJob);
+                    final ScanJob scanJob = createScanJob(hubServerConfig, workingBlackDuckDirectory, name, version, binaryFile.getAbsolutePath());
+                    final ScanJobOutput scanJobOutput = scanJobManager.executeScans(scanJob);
                     final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
-                    final ScanCommandOutput scanResult = scanOutputs.get(0);
-                    componentPanel.addToBlackDuckPanel(ComponentPanelLabel.SCAN_STATUS, scanResult.getResult().name());
-                    queryManager.updateComponent(repository, component);
+                    final ScanCommandOutput scanResult = scanOutputs.get(SCAN_OUTPUT_LOCATION);
+                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.SCAN_STATUS, scanResult.getResult().name());
+                    queryManager.updateAsset(repository, asset);
                 } catch (final EncryptionException | IOException | HubIntegrationException e) {
                     logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
                 }
             }
-
         }
+    }
+
+    private Query.Builder createFilteredQueryBuilder(final ScanTaskConfig scanTaskConfig) {
+        final Query.Builder queryBuilder = Query.builder();
+
+        final DateTime artifactCutoffDate = scanTaskConfig.getOldArtifactCutoffDate();
+        final String repositoryPathRegex = scanTaskConfig.getRepositoryPathRegex();
+
+        queryBuilder.where("name REGEXP ").param(repositoryPathRegex);
+
+        if (scanTaskConfig.isRescanFailures()) {
+            queryBuilder.and("component.attributes.blackDuck.scanStatus = ").param(Result.FAILURE.name());
+        }
+        if (scanTaskConfig.isAlwaysScan()) {
+            queryBuilder.and("component.attributes.blackDuck.scanStatus = ").param(Result.SUCCESS.name());
+        }
+
+        return queryBuilder;
     }
 
     private ScanTaskConfig getTaskConfig() {
@@ -149,17 +182,22 @@ public class ScanTask extends BlackDuckTask {
         return new ScanTaskConfig(filePatterns, artifactPath, oldArtifactCutoffDate, rescanFailures, alwaysScan);
     }
 
-    private HubScannerConfig getScanConfig() {
+    private ScanJob createScanJob(final HubServerConfig hubServerConfig, final File workingBlackDuckDirectory, final String projectName, final String projectVersion, final String pathToScan) throws EncryptionException {
         final TaskConfiguration taskConfiguration = getConfiguration();
         final int scanMemory = taskConfiguration.getInteger(ScanTaskKeys.SCAN_MEMORY.getParameterKey(), ScanTaskFields.DEFAULT_SCAN_MEMORY);
-
-        final String workingDirectory = taskConfiguration.getString(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskFields.DEFAULT_WORKING_DIRECTORY);
-        final File workingBlackDuckDirectory = new File(workingDirectory, "blackduck");
-        workingBlackDuckDirectory.mkdir();
         final File outputDirectory = new File(workingBlackDuckDirectory, "output");
         outputDirectory.mkdir();
 
-        return new HubScannerConfig(scanMemory, false, workingBlackDuckDirectory, outputDirectory);
-    }
+        final ScanJobBuilder scanJobBuilder = new ScanJobBuilder()
+                                                  .fromHubServerConfig(hubServerConfig)
+                                                  .scanMemoryInMegabytes(scanMemory)
+                                                  .installDirectory(workingBlackDuckDirectory)
+                                                  .outputDirectory(outputDirectory)
+                                                  .projectAndVersionNames(projectName, projectVersion);
+        final ScanTarget scanTarget = ScanTarget.createBasicTarget(pathToScan);
+        scanJobBuilder.addTarget(scanTarget);
 
+        final ScanJob scanJob = scanJobBuilder.build();
+        return scanJob;
+    }
 }

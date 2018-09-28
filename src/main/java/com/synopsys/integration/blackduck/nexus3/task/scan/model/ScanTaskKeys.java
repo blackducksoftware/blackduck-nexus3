@@ -30,7 +30,7 @@ public enum ScanTaskKeys {
     RESCAN_FAILURES("blackduck.scan.rescan.failures"),
     ALWAYS_SCAN("blackduck.scan.rescan.always"),
     SCAN_MEMORY("blackduck.scan.memory"),
-    REPOSITORY_PATH("blckduck.scan.nexus.artifact.path");
+    REPOSITORY_PATH("blackduck.scan.nexus.artifact.path");
 
     private final String parameterKey;
 

@@ -45,14 +45,17 @@ import org.sonatype.nexus.transaction.UnitOfWork;
 public class QueryManager {
 
     // TODO use pagination to get subsections of assets
-    public Iterable<Asset> findAssetsInRepository(final Repository repository) {
+    public Iterable<Asset> findAssetsInRepository(final Repository repository, final Query query) {
         try (final StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
             storageTx.begin();
 
-            final Query.Builder query = Query.builder();
-
-            return storageTx.findAssets(query.build(), Collections.singletonList(repository));
+            return storageTx.findAssets(query, Collections.singletonList(repository));
         }
+    }
+
+    public Iterable<Asset> findAllAssetsInRepository(final Repository repository) {
+        final Query.Builder query = Query.builder();
+        return findAssetsInRepository(repository, query.build());
     }
 
     public void updateAsset(final Repository repository, final Asset asset) {

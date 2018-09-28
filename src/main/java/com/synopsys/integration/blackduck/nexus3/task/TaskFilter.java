@@ -12,7 +12,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 
-import com.synopsys.integration.blackduck.nexus3.scan.model.ScanStatus;
+import com.synopsys.integration.blackduck.summary.Result;
 
 @Named
 @Singleton
@@ -39,8 +39,8 @@ public class TaskFilter {
         return lastUpdated.isBefore(cutoffDate.getMillis());
     }
 
-    public boolean didArtifactFailScan(final ScanStatus scanStatus) {
-        return ScanStatus.FAILURE.equals(scanStatus);
+    public boolean didArtifactFailScan(final Result scanStatus) {
+        return Result.FAILURE.equals(scanStatus);
     }
 
 }
