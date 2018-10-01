@@ -37,8 +37,6 @@ import org.sonatype.nexus.repository.storage.Component;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.repository.storage.StorageFacet;
 import org.sonatype.nexus.repository.storage.StorageTx;
-import org.sonatype.nexus.transaction.Transactional;
-import org.sonatype.nexus.transaction.UnitOfWork;
 
 @Named
 @Singleton
@@ -82,12 +80,10 @@ public class QueryManager {
     }
 
     public Component getComponent(final Repository repository, final EntityId id) {
-        final Component foundComponent = Transactional.operation.withDb(repository.facet(StorageFacet.class).txSupplier()).call(() -> {
-            final StorageTx tx = UnitOfWork.currentTx();
-            return tx.findComponent(id);
-        });
-
-        return foundComponent;
+        try (final StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
+            storageTx.begin();
+            return storageTx.findComponent(id);
+        }
     }
 
 }

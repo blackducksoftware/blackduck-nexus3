@@ -24,4 +24,8 @@ public class PagedResult<TYPE> {
     public int getLimit() {
         return limit;
     }
+
+    public boolean hasResults() {
+        return (typeList != null) && typeList.iterator().hasNext();
+    }
 }

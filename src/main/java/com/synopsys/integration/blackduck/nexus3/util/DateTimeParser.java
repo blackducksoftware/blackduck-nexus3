@@ -9,10 +9,14 @@ import org.joda.time.format.DateTimeFormat;
 @Named
 @Singleton
 public class DateTimeParser {
+    public static final String DATE_TIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+
+    public String getCurrentDateTime() {
+        return new DateTime().toString(DATE_TIME_PATTERN);
+    }
 
     public DateTime convertFromStringToDate(final String date) {
-        final String dateTimePattern = "yyyy-MM-dd'T'HH:mm:ss.SSS";
-        return DateTime.parse(date, DateTimeFormat.forPattern(dateTimePattern).withZoneUTC());
+        return DateTime.parse(date, DateTimeFormat.forPattern(DATE_TIME_PATTERN).withZoneUTC());
     }
 
     public long convertFromStringToMillis(final String date) {

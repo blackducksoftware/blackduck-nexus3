@@ -50,7 +50,6 @@ public class AssetWrapper {
         if (associatedAssetPanel == null) {
             associatedAssetPanel = new AssetPanel(asset);
         }
-
         return associatedAssetPanel;
     }
 
