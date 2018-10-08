@@ -1,28 +1,30 @@
-package com.synopsys.integration.blackduck.nexus3.task.scan.model;
+package com.synopsys.integration.blackduck.nexus3.task.scan;
 
 import org.joda.time.DateTime;
 
 public class ScanTaskConfig {
-    private String filePatterns;
+    private String extensionPatterns;
     private String repositoryPathRegex;
     private DateTime oldArtifactCutoffDate;
     private boolean rescanFailures;
     private boolean alwaysScan;
+    private int limit;
 
-    public ScanTaskConfig(final String filePatterns, final String repositoryPathRegex, final DateTime oldArtifactCutoffDate, final boolean rescanFailures, final boolean alwaysScan) {
-        this.filePatterns = filePatterns;
+    public ScanTaskConfig(final String extensionPatterns, final String repositoryPathRegex, final DateTime oldArtifactCutoffDate, final boolean rescanFailures, final boolean alwaysScan, final int limit) {
+        this.extensionPatterns = extensionPatterns;
         this.repositoryPathRegex = repositoryPathRegex;
         this.oldArtifactCutoffDate = oldArtifactCutoffDate;
         this.rescanFailures = rescanFailures;
         this.alwaysScan = alwaysScan;
+        this.limit = limit;
     }
 
-    public String getFilePatterns() {
-        return filePatterns;
+    public String getExtensionPatterns() {
+        return extensionPatterns;
     }
 
-    public void setFilePatterns(final String filePatterns) {
-        this.filePatterns = filePatterns;
+    public void setExtensionPatterns(final String extensionPatterns) {
+        this.extensionPatterns = extensionPatterns;
     }
 
     public String getRepositoryPathRegex() {
@@ -55,6 +57,14 @@ public class ScanTaskConfig {
 
     public void setAlwaysScan(final boolean alwaysScan) {
         this.alwaysScan = alwaysScan;
+    }
+
+    public int getLimit() {
+        return limit;
+    }
+
+    public void setLimit(final int limit) {
+        this.limit = limit;
     }
 }
 

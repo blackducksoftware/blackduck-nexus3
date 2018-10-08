@@ -4,7 +4,7 @@ import org.sonatype.nexus.common.collect.NestedAttributesMap;
 import org.sonatype.nexus.repository.storage.Asset;
 
 public class AssetPanel {
-    private static final String BLACKDUCK_CATEGORY = "Black Duck";
+    public static final String BLACKDUCK_CATEGORY = "BlackDuck";
 
     private final NestedAttributesMap blackDuckNestedAttributes;
     private final NestedAttributesMap assetNestedAttributes;

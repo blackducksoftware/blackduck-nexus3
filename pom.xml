@@ -119,11 +119,9 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Import-Package>
                             com.synopsys.integration.blackduck.configuration;resolution:=optional,
-                            com.synopsys.integration.blackduck.nexus3.capability.model,
                             com.synopsys.integration.blackduck.nexus3.capability,
                             com.synopsys.integration.blackduck.nexus3.database,
                             com.synopsys.integration.blackduck.nexus3.task,
-                            com.synopsys.integration.blackduck.nexus3.task.scan.model,
                             com.synopsys.integration.util;resolution:=optional,
                             org.sonatype.nexus.*,
                             org.apache.commons.io,

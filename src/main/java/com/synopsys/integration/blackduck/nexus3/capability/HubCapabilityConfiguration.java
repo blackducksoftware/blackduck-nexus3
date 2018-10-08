@@ -29,7 +29,6 @@ import org.sonatype.nexus.capability.CapabilityConfigurationSupport;
 
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.configuration.HubServerConfigBuilder;
-import com.synopsys.integration.blackduck.nexus3.capability.model.HubConfigKeys;
 
 public class HubCapabilityConfiguration extends CapabilityConfigurationSupport {
     private final Map<String, String> capabilitySettings;

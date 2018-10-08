@@ -61,6 +61,10 @@ public class AssetWrapper {
         return blobFile;
     }
 
+    public void updateAsset() {
+        queryManager.updateAsset(repository, asset);
+    }
+
     public String getName() {
         return getComponent().name();
     }

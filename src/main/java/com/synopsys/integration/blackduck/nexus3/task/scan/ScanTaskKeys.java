@@ -21,7 +21,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.task.scan.model;
+package com.synopsys.integration.blackduck.nexus3.task.scan;
 
 public enum ScanTaskKeys {
     FILE_PATTERNS("blackduck.scan.file.pattern.match.wildcards"),
@@ -30,7 +30,8 @@ public enum ScanTaskKeys {
     RESCAN_FAILURES("blackduck.scan.rescan.failures"),
     ALWAYS_SCAN("blackduck.scan.rescan.always"),
     SCAN_MEMORY("blackduck.scan.memory"),
-    REPOSITORY_PATH("blackduck.scan.nexus.artifact.path");
+    REPOSITORY_PATH("blackduck.scan.nexus.artifact.path"),
+    PAGING_SIZE("blackduck.scan.paging.size");
 
     private final String parameterKey;
 
