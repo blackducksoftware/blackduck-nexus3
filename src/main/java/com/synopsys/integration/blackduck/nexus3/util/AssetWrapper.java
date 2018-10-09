@@ -92,4 +92,8 @@ public class AssetWrapper {
     public String getFromBlackDuckAssetPanel(final AssetPanelLabel label) {
         return getAssetPanel().getFromBlackDuckPanel(label);
     }
+
+    public Asset getAsset() {
+        return asset;
+    }
 }

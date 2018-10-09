@@ -84,7 +84,7 @@ public class ScanTask extends RepositoryTaskSupport {
 
     @Override
     protected boolean appliesTo(final Repository repository) {
-        return commonRepositoryTaskHelper.doesRepositoryApply(repository, getRepositoryField());
+        return commonRepositoryTaskHelper.doesRepositoryApply(repository, getRepositoryField()) && !commonRepositoryTaskHelper.isProxyRepository(repository);
     }
 
     @Override
@@ -95,7 +95,7 @@ public class ScanTask extends RepositoryTaskSupport {
     @Override
     protected void execute(final Repository repository) {
         final HubServerConfig hubServerConfig = commonRepositoryTaskHelper.getHubServerConfig();
-        final ScanTaskConfig scanTaskConfig = getTaskConfig();
+        final ScanTaskConfig scanTaskConfig = commonRepositoryTaskHelper.getTaskConfig(getConfiguration());
         final ScanJobManager scanJobManager;
         final IntLogger intLogger = new Slf4jIntLogger(logger);
         try {
@@ -110,11 +110,11 @@ public class ScanTask extends RepositoryTaskSupport {
         final File outputDirectory = new File(workingBlackDuckDirectory, "output");
         outputDirectory.mkdir();
 
-        final Set<AssetWrapper> scannedAssets = new HashSet<>();
         final Query.Builder filteredQuery = createFilteredQueryBuilder(scanTaskConfig, Optional.empty(), scanTaskConfig.getLimit());
         PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.pagedAssets(repository, filteredQuery.build());
         while (foundAssets.hasResults()) {
             logger.debug("Found results from DB");
+            final Set<AssetWrapper> scannedAssets = new HashSet<>();
             for (final Asset asset : foundAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
                 final String filename = assetWrapper.getFilename();
@@ -169,21 +169,14 @@ public class ScanTask extends RepositoryTaskSupport {
 
             final Query.Builder nextPageQuery = createFilteredQueryBuilder(scanTaskConfig, foundAssets.getLastName(), scanTaskConfig.getLimit());
             foundAssets = commonRepositoryTaskHelper.pagedAssets(repository, nextPageQuery.build());
+
+            commonRepositoryTaskHelper.verifyAndMarkUpload(scannedAssets, hubServerConfig);
         }
 
         try {
-            commonRepositoryTaskHelper.verifyAndMarkUpload(scannedAssets, hubServerConfig);
-        } catch (final IntegrationException e) {
-            logger.debug("Issue with BlackDuck: {}", e.getMessage());
-            throw new TaskInterruptedException("There was a problem communicating with BlackDuck", true);
-        } catch (final InterruptedException e) {
-            logger.error("There was an issue when checking scan status: {}", e.getMessage());
-        } finally {
-            try {
-                FileUtils.deleteDirectory(outputDirectory);
-            } catch (final IOException e) {
-                logger.warn("Problem deleting output directory {}", outputDirectory.getAbsolutePath());
-            }
+            FileUtils.deleteDirectory(outputDirectory);
+        } catch (final IOException e) {
+            logger.warn("Problem deleting output directory {}", outputDirectory.getAbsolutePath());
         }
     }
 
@@ -236,18 +229,6 @@ public class ScanTask extends RepositoryTaskSupport {
     //        extensionsWhereBuilder.append(")");
     //        return extensionsWhereBuilder.toString();
     //    }
-
-    private ScanTaskConfig getTaskConfig() {
-        final String filePatterns = getConfiguration().getString(ScanTaskKeys.FILE_PATTERNS.getParameterKey());
-        final String artifactPath = getConfiguration().getString(ScanTaskKeys.REPOSITORY_PATH.getParameterKey());
-        final boolean rescanFailures = getConfiguration().getBoolean(ScanTaskKeys.RESCAN_FAILURES.getParameterKey(), false);
-        final boolean alwaysScan = getConfiguration().getBoolean(ScanTaskKeys.ALWAYS_SCAN.getParameterKey(), false);
-        final int limit = getConfiguration().getInteger(ScanTaskKeys.PAGING_SIZE.getParameterKey(), ScanTaskDescriptor.DEFAULT_SCAN_PAGE_SIZE);
-
-        final String artifactCutoff = getConfiguration().getString(ScanTaskKeys.OLD_ARTIFACT_CUTOFF.getParameterKey());
-        final DateTime oldArtifactCutoffDate = dateTimeParser.convertFromStringToDate(artifactCutoff);
-        return new ScanTaskConfig(filePatterns, artifactPath, oldArtifactCutoffDate, rescanFailures, alwaysScan, limit);
-    }
 
     private ScanJob createScanJob(final HubServerConfig hubServerConfig, final File workingBlackDuckDirectory, final File outputDirectory, final String projectName, final String projectVersion, final String pathToScan)
         throws EncryptionException {

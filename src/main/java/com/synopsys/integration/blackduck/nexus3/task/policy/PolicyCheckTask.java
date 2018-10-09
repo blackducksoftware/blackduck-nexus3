@@ -17,13 +17,13 @@ import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 import com.synopsys.integration.blackduck.nexus3.task.CommonRepositoryTaskHelper;
+import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanel;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.nexus3.util.AssetWrapper;
 import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
-import com.synopsys.integration.blackduck.summary.Result;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.log.Slf4jIntLogger;
@@ -77,7 +77,7 @@ public class PolicyCheckTask extends RepositoryTaskSupport {
     private Query createFilteredQuery(final Optional<String> lastNameUsed, final int limit) {
         final Query.Builder pagedQueryBuilder = commonRepositoryTaskHelper.createPagedQuery(lastNameUsed, limit);
         final String blackduckDbPath = commonRepositoryTaskHelper.getBlackduckPanelPath(AssetPanelLabel.TASK_STATUS);
-        pagedQueryBuilder.and(blackduckDbPath).eq(Result.SUCCESS);
+        pagedQueryBuilder.and(blackduckDbPath).eq(TaskStatus.SUCCESS);
         return pagedQueryBuilder.build();
     }
 
