@@ -18,7 +18,6 @@ import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 import com.synopsys.integration.blackduck.nexus3.task.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
-import com.synopsys.integration.blackduck.nexus3.ui.AssetPanel;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.nexus3.util.AssetWrapper;
 import com.synopsys.integration.blackduck.service.HubServicesFactory;
@@ -49,8 +48,6 @@ public class PolicyCheckTask extends RepositoryTaskSupport {
         PagedResult<Asset> pagedAssets = commonRepositoryTaskHelper.pagedAssets(repository, filteredAssets);
         while (pagedAssets.hasResults()) {
             for (final Asset asset : pagedAssets.getTypeList()) {
-                logger.debug("All associated attributes: {}", asset.attributes());
-                logger.debug("All associated BD attribuets: {}", asset.attributes().child(AssetPanel.BLACKDUCK_CATEGORY));
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
                 final String name = assetWrapper.getName();
                 final String version = assetWrapper.getVersion();
@@ -69,8 +66,8 @@ public class PolicyCheckTask extends RepositoryTaskSupport {
                 }
             }
 
-            final Query.Builder nextPage = commonRepositoryTaskHelper.createPagedQuery(pagedAssets.getLastName(), PAGED_SIZE_LIMIT);
-            pagedAssets = commonRepositoryTaskHelper.pagedAssets(repository, nextPage.build());
+            final Query nextPage = createFilteredQuery(pagedAssets.getLastName(), PAGED_SIZE_LIMIT);
+            pagedAssets = commonRepositoryTaskHelper.pagedAssets(repository, nextPage);
         }
     }
 

@@ -6,6 +6,7 @@ import javax.inject.Singleton;
 import org.sonatype.nexus.formfields.FormField;
 import org.sonatype.nexus.formfields.RepositoryCombobox;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
+import org.sonatype.nexus.repository.types.ProxyType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
 @Named
@@ -16,7 +17,7 @@ public class PolicyCheckTaskDescriptor extends TaskDescriptorSupport {
 
     private static final String LABEL_REPOSITORY = "Repository";
     private static final String DESCRIPTION_REPO_NAME = "Type in the repository in which to run the task.";
-    private static final RepositoryCombobox FIELD_REPOSITORY = new RepositoryCombobox(RepositoryTaskSupport.REPOSITORY_NAME_FIELD_ID, LABEL_REPOSITORY, DESCRIPTION_REPO_NAME, FormField.MANDATORY);
+    private static final RepositoryCombobox FIELD_REPOSITORY = new RepositoryCombobox(RepositoryTaskSupport.REPOSITORY_NAME_FIELD_ID, LABEL_REPOSITORY, DESCRIPTION_REPO_NAME, FormField.MANDATORY).excludingAnyOfTypes(ProxyType.NAME);
 
     public PolicyCheckTaskDescriptor() {
         super(BLACK_DUCK_POLICY_CHECK_TASK_ID,

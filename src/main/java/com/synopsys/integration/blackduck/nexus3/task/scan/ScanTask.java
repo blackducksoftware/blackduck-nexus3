@@ -47,6 +47,7 @@ import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 import com.synopsys.integration.blackduck.nexus3.task.CommonRepositoryTaskHelper;
+import com.synopsys.integration.blackduck.nexus3.task.CommonTaskConfig;
 import com.synopsys.integration.blackduck.nexus3.task.TaskFilter;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
@@ -84,7 +85,7 @@ public class ScanTask extends RepositoryTaskSupport {
 
     @Override
     protected boolean appliesTo(final Repository repository) {
-        return commonRepositoryTaskHelper.doesRepositoryApply(repository, getRepositoryField()) && !commonRepositoryTaskHelper.isProxyRepository(repository);
+        return commonRepositoryTaskHelper.doesRepositoryApply(repository, getRepositoryField());
     }
 
     @Override
@@ -95,7 +96,7 @@ public class ScanTask extends RepositoryTaskSupport {
     @Override
     protected void execute(final Repository repository) {
         final HubServerConfig hubServerConfig = commonRepositoryTaskHelper.getHubServerConfig();
-        final ScanTaskConfig scanTaskConfig = commonRepositoryTaskHelper.getTaskConfig(getConfiguration());
+        final CommonTaskConfig commonTaskConfig = commonRepositoryTaskHelper.getTaskConfig(getConfiguration());
         final ScanJobManager scanJobManager;
         final IntLogger intLogger = new Slf4jIntLogger(logger);
         try {
@@ -110,8 +111,8 @@ public class ScanTask extends RepositoryTaskSupport {
         final File outputDirectory = new File(workingBlackDuckDirectory, "output");
         outputDirectory.mkdir();
 
-        final Query.Builder filteredQuery = createFilteredQueryBuilder(scanTaskConfig, Optional.empty(), scanTaskConfig.getLimit());
-        PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.pagedAssets(repository, filteredQuery.build());
+        final Query filteredQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(commonTaskConfig, Optional.empty(), commonTaskConfig.getLimit());
+        PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.pagedAssets(repository, filteredQuery);
         while (foundAssets.hasResults()) {
             logger.debug("Found results from DB");
             final Set<AssetWrapper> scannedAssets = new HashSet<>();
@@ -119,11 +120,10 @@ public class ScanTask extends RepositoryTaskSupport {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
                 final String filename = assetWrapper.getFilename();
                 final DateTime lastModified = assetWrapper.getComponentLastUpdated();
-                final boolean doesExtensionMatch = taskFilter.doesExtensionMatch(filename, scanTaskConfig.getExtensionPatterns());
-                final boolean doesRepositoryPathMatch = taskFilter.doesRepositoryPathMatch(asset.name(), scanTaskConfig.getRepositoryPathRegex());
-                final boolean isArtifactTooOld = taskFilter.isArtifactTooOld(scanTaskConfig.getOldArtifactCutoffDate(), lastModified);
+                final boolean doesRepositoryPathMatch = taskFilter.doesRepositoryPathMatch(asset.name(), commonTaskConfig.getRepositoryPathRegex());
+                final boolean isArtifactTooOld = taskFilter.isArtifactTooOld(commonTaskConfig.getOldArtifactCutoffDate(), lastModified);
 
-                if (!doesExtensionMatch || !doesRepositoryPathMatch || isArtifactTooOld) {
+                if (!doesRepositoryPathMatch || isArtifactTooOld) {
                     logger.debug("Binary file did not meet requirements for scan: {}", filename);
                     continue;
                 }
@@ -153,7 +153,7 @@ public class ScanTask extends RepositoryTaskSupport {
                         taskStatus = TaskStatus.FAILURE;
                     }
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, taskStatus.name());
-                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getNexusFormattedDate(new DateTime()));
+                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
                     logger.debug("Updating asset panel");
                     assetWrapper.updateAsset();
                     scannedAssets.add(assetWrapper);
@@ -167,10 +167,13 @@ public class ScanTask extends RepositoryTaskSupport {
 
             }
 
-            final Query.Builder nextPageQuery = createFilteredQueryBuilder(scanTaskConfig, foundAssets.getLastName(), scanTaskConfig.getLimit());
-            foundAssets = commonRepositoryTaskHelper.pagedAssets(repository, nextPageQuery.build());
+            final Query nextPageQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(commonTaskConfig, foundAssets.getLastName(), commonTaskConfig.getLimit());
+            foundAssets = commonRepositoryTaskHelper.pagedAssets(repository, nextPageQuery);
 
-            commonRepositoryTaskHelper.verifyAndMarkUpload(scannedAssets, hubServerConfig);
+            for (final AssetWrapper assetWrapper : scannedAssets) {
+                final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(assetWrapper.getName(), assetWrapper.getVersion());
+                commonRepositoryTaskHelper.finalStatus(assetWrapper, uploadUrl, TaskStatus.SUCCESS.name());
+            }
         }
 
         try {
@@ -179,56 +182,6 @@ public class ScanTask extends RepositoryTaskSupport {
             logger.warn("Problem deleting output directory {}", outputDirectory.getAbsolutePath());
         }
     }
-
-    private Query.Builder createFilteredQueryBuilder(final ScanTaskConfig scanTaskConfig, final Optional<String> lastNameUsed, final int limit) {
-        final Query.Builder baseQueryBuilder = commonRepositoryTaskHelper.createPagedQuery(lastNameUsed, limit);
-
-        //        final DateTime artifactCutoffDate = scanTaskConfig.getOldArtifactCutoffDate();
-        //        if (artifactCutoffDate != null) {
-        //            final String lastModifiedPath = "attributes.content.last_modified";
-        //            baseQueryBuilder.and(lastModifiedPath + " > " + dateTimeParser.convertFromDateTimeToMillis(artifactCutoffDate));
-        //        }
-        //
-        //        final String repositoryPathRegex = scanTaskConfig.getRepositoryPathRegex();
-        //        if (StringUtils.isNotBlank(repositoryPathRegex)) {
-        //            baseQueryBuilder.and("name MATCHES ").param(repositoryPathRegex);
-        //        }
-
-        final String statusPath = commonRepositoryTaskHelper.getBlackduckPanelPath(AssetPanelLabel.TASK_STATUS);
-
-        if (!scanTaskConfig.isRescanFailures()) {
-            baseQueryBuilder.and(statusPath + " != ").param(TaskStatus.FAILURE.name());
-        }
-        if (!scanTaskConfig.isAlwaysScan()) {
-            baseQueryBuilder.and(statusPath + " != ").param(TaskStatus.SUCCESS.name());
-            baseQueryBuilder.and(statusPath + " != ").param(TaskStatus.PENDING.name());
-        }
-
-        //        final String artifactExtensions = scanTaskConfig.getExtensionPatterns();
-        //        final List<String> extensions = Arrays.stream(artifactExtensions.split(",")).map(String::trim).collect(Collectors.toList());
-        //        final String extensionsWhereStatement = createExtensionsWhereStatement(extensions);
-        //        baseQueryBuilder.and("name").like(extensions.get(0));
-        //        baseQueryBuilder.and(extensionsWhereStatement);
-
-        return baseQueryBuilder;
-    }
-
-    //    private String createExtensionsWhereStatement(final List<String> extensions) {
-    //        final StringBuilder extensionsWhereBuilder = new StringBuilder();
-    //        extensionsWhereBuilder.append("(");
-    //        for (int extCount = 0; extCount < extensions.size(); extCount++) {
-    //            final String extension = extensions.get(extCount);
-    //            if (extCount == 0) {
-    //                extensionsWhereBuilder.append("component LIKE %");
-    //                extensionsWhereBuilder.append(extension);
-    //            } else {
-    //                extensionsWhereBuilder.append(" OR component LIKE %");
-    //                extensionsWhereBuilder.append(extension);
-    //            }
-    //        }
-    //        extensionsWhereBuilder.append(")");
-    //        return extensionsWhereBuilder.toString();
-    //    }
 
     private ScanJob createScanJob(final HubServerConfig hubServerConfig, final File workingBlackDuckDirectory, final File outputDirectory, final String projectName, final String projectVersion, final String pathToScan)
         throws EncryptionException {

@@ -25,12 +25,22 @@ package com.synopsys.integration.blackduck.nexus3.capability;
 
 import java.util.Map;
 
+import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.sonatype.nexus.capability.CapabilitySupport;
 
+import com.synopsys.integration.blackduck.configuration.HubServerConfig;
+import com.synopsys.integration.blackduck.nexus3.util.BlackDuckConnection;
+
 @Named(HubCapabilityDescriptor.CAPABILITY_ID)
 public class HubCapability extends CapabilitySupport<HubCapabilityConfiguration> {
+    BlackDuckConnection blackDuckConnection;
+
+    @Inject
+    public HubCapability(final BlackDuckConnection blackDuckConnection) {
+        this.blackDuckConnection = blackDuckConnection;
+    }
 
     @Override
     protected HubCapabilityConfiguration createConfig(final Map<String, String> properties) {
@@ -42,4 +52,11 @@ public class HubCapability extends CapabilitySupport<HubCapabilityConfiguration>
         return HubConfigKeys.passwordFields().stream().anyMatch(field -> field.getKey().equals(propertyName));
     }
 
+    @Override
+    protected void configure(final HubCapabilityConfiguration config) throws Exception {
+        log.debug("Configuring HubCapability");
+        super.configure(config);
+        final HubServerConfig hubServerConfig = config.createHubServerConfig();
+        blackDuckConnection.setHubServerConfig(hubServerConfig);
+    }
 }

@@ -43,7 +43,7 @@
         <dependency>
             <groupId>com.blackducksoftware.integration</groupId>
             <artifactId>hub-common</artifactId>
-            <version>38.3.3</version>
+            <version>38.5.0</version>
             <scope>compile</scope>
             <exclusions>
                 <!-- Commons logging is a transitive dependency from a dependency in hub-common-reporting
@@ -129,6 +129,7 @@
                             org.apache.commons.lang3.*;version=3.7,
                             org.apache.commons.compress.*,
                             org.apache.http.*,
+                            org.apache.commons.validator.routines.*,
                             com.google.common.base,
                             javax.inject,
                             javax.net,

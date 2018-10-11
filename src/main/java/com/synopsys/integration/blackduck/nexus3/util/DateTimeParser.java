@@ -4,7 +4,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tika.utils.DateUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -13,10 +12,6 @@ import org.joda.time.format.DateTimeFormatter;
 @Singleton
 public class DateTimeParser {
     public static final String DATE_TIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
-
-    public String getNexusFormattedDate(final DateTime dateTime) {
-        return DateUtils.formatDate(dateTime.toDate());
-    }
 
     public String getCurrentDateTime() {
         return new DateTime().toString(DATE_TIME_PATTERN);

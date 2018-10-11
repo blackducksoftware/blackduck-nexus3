@@ -32,6 +32,7 @@ import org.sonatype.nexus.formfields.NumberTextFormField;
 import org.sonatype.nexus.formfields.RepositoryCombobox;
 import org.sonatype.nexus.formfields.StringTextFormField;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
+import org.sonatype.nexus.repository.types.ProxyType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
 @Named
@@ -70,7 +71,7 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
                                                               + "the cutoff format of \"2016-01-01T00:00:00.000\"";
     private static final String DESCRIPTION_SCAN_PAGE_SIZE = "Use to limit the number of items we retrieve from the Database at one time. A maximum value of 100 and a minimum of 1 are allowed";
 
-    private static final RepositoryCombobox FIELD_REPOSITORY = new RepositoryCombobox(RepositoryTaskSupport.REPOSITORY_NAME_FIELD_ID, LABEL_REPOSITORY, DESCRIPTION_REPO_NAME, FormField.MANDATORY);
+    private static final RepositoryCombobox FIELD_REPOSITORY = new RepositoryCombobox(RepositoryTaskSupport.REPOSITORY_NAME_FIELD_ID, LABEL_REPOSITORY, DESCRIPTION_REPO_NAME, FormField.MANDATORY).excludingAnyOfTypes(ProxyType.NAME);
     private static final StringTextFormField FIELD_REPOSITORY_PATH = new StringTextFormField(ScanTaskKeys.REPOSITORY_PATH.getParameterKey(), LABEL_REPOSITORY_PATH, DESCRIPTION_REPOSITORY_PATH, FormField.OPTIONAL);
     private static final StringTextFormField FIELD_FILE_PATTERN = new StringTextFormField(ScanTaskKeys.FILE_PATTERNS.getParameterKey(), LABEL_FILE_PATTERN_MATCHES, DESCRIPTION_SCAN_FILE_PATTERN_MATCH, FormField.MANDATORY)
                                                                       .withInitialValue(DEFAULT_FILE_PATTERNS_MATCHES);

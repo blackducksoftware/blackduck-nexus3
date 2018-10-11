@@ -1,13 +1,14 @@
 package com.synopsys.integration.blackduck.nexus3.task.inspector;
 
 import java.io.File;
-import java.util.HashSet;
+import java.io.IOException;
 import java.util.Optional;
-import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.apache.commons.validator.routines.UrlValidator;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
@@ -16,15 +17,14 @@ import org.sonatype.nexus.repository.storage.Asset;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
-import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 import com.synopsys.integration.blackduck.nexus3.task.CommonRepositoryTaskHelper;
+import com.synopsys.integration.blackduck.nexus3.task.CommonTaskConfig;
 import com.synopsys.integration.blackduck.nexus3.task.TaskFilter;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.task.inspector.dependency.DependencyGenerator;
 import com.synopsys.integration.blackduck.nexus3.task.inspector.dependency.DependencyType;
-import com.synopsys.integration.blackduck.nexus3.task.scan.ScanTaskConfig;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.nexus3.util.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.util.DateTimeParser;
@@ -37,8 +37,6 @@ import com.synopsys.integration.hub.bdio.model.Forge;
 import com.synopsys.integration.hub.bdio.model.SimpleBdioDocument;
 import com.synopsys.integration.hub.bdio.model.dependency.Dependency;
 import com.synopsys.integration.hub.bdio.model.externalid.ExternalId;
-import com.synopsys.integration.log.IntLogger;
-import com.synopsys.integration.log.Slf4jIntLogger;
 import com.synopsys.integration.util.IntegrationEscapeUtil;
 
 @Named
@@ -67,83 +65,103 @@ public class InspectorTask extends RepositoryTaskSupport {
             throw new TaskInterruptedException("Task being run on unsupported repository", true);
         }
 
-        final HubServerConfig hubServerConfig = commonRepositoryTaskHelper.getHubServerConfig();
-        final ScanTaskConfig scanTaskConfig = commonRepositoryTaskHelper.getTaskConfig(getConfiguration());
+        final CommonTaskConfig commonTaskConfig = commonRepositoryTaskHelper.getTaskConfig(getConfiguration());
 
         final SimpleBdioFactory simpleBdioFactory = new SimpleBdioFactory();
         final MutableDependencyGraph mutableDependencyGraph = simpleBdioFactory.createMutableDependencyGraph();
 
-        final Query pagedQuery = createPagedQuery(Optional.empty(), scanTaskConfig.getLimit());
+        final Query pagedQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(commonTaskConfig, Optional.empty(), commonTaskConfig.getLimit());
         PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.pagedAssets(repository, pagedQuery);
+        final boolean resultsFound = filteredAssets.hasResults();
         while (filteredAssets.hasResults()) {
+            logger.info("Found some items from the DB");
             for (final Asset asset : filteredAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
                 final String name = assetWrapper.getName();
                 final String version = assetWrapper.getVersion();
 
+                final DateTime lastModified = assetWrapper.getComponentLastUpdated();
+                final boolean doesRepositoryPathMatch = taskFilter.doesRepositoryPathMatch(asset.name(), commonTaskConfig.getRepositoryPathRegex());
+                final boolean isArtifactTooOld = taskFilter.isArtifactTooOld(commonTaskConfig.getOldArtifactCutoffDate(), lastModified);
+
+                if (!doesRepositoryPathMatch || isArtifactTooOld) {
+                    logger.debug("Binary file did not meet requirements for scan: {}", name);
+                    continue;
+                }
+
                 final Dependency dependency = dependencyGenerator.createDependency(dependencyType.get(), name, version, asset.attributes());
+                logger.debug("Created new dependency: {}", dependency);
                 mutableDependencyGraph.addChildToRoot(dependency);
+
+                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.PENDING.name());
+                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+                assetWrapper.updateAsset();
             }
 
-            final Query nextPage = createPagedQuery(filteredAssets.getLastName(), scanTaskConfig.getLimit());
+            final Query nextPage = commonRepositoryTaskHelper.createFilteredQueryBuilder(commonTaskConfig, filteredAssets.getLastName(), commonTaskConfig.getLimit());
             filteredAssets = commonRepositoryTaskHelper.pagedAssets(repository, nextPage);
         }
 
-        final Forge nexusForge = new Forge("/", "/", "nexus");
-        final String projectName = repository.getName();
-        final String projectVersion = "Nexus-3-Plugin";
-        final String codeLocationName = String.join("/", projectName, projectVersion, dependencyType.get().getRepositoryType());
-        final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, projectName, projectVersion);
-        final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, projectName, projectVersion, projectRoot, mutableDependencyGraph);
+        if (resultsFound) {
+            logger.info("Creating hub project.");
+            final Forge nexusForge = new Forge("/", "/", "nexus");
+            final String projectName = repository.getName();
+            final String projectVersion = "Nexus-3-Plugin";
+            final String codeLocationName = String.join("/", projectName, projectVersion, dependencyType.get().getRepositoryType());
+            final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, projectName, projectVersion);
+            final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, projectName, projectVersion, projectRoot, mutableDependencyGraph);
 
-        try {
-            sendInspectorData(hubServerConfig, simpleBdioDocument);
-        } catch (final IntegrationException e) {
-            logger.debug("Issue communicating with BlackDuck: {}", e.getMessage());
-            throw new TaskInterruptedException("Issue communicating with BlackDuck", true);
+            try {
+                sendInspectorData(simpleBdioDocument, simpleBdioFactory);
+            } catch (final IntegrationException e) {
+                logger.debug("Issue communicating with BlackDuck: {}", e.getMessage());
+                throw new TaskInterruptedException("Issue communicating with BlackDuck", true);
+            } catch (final IOException e) {
+                logger.error("Error writing to file: {}", e.getMessage());
+                throw new TaskInterruptedException("Couldn't save inspection data", true);
+            }
+
+            final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(projectName, projectVersion);
+            final TaskStatus status = UrlValidator.getInstance().isValid(uploadUrl) ? TaskStatus.SUCCESS : TaskStatus.FAILURE;
+            updateStatus(commonTaskConfig, repository, uploadUrl, status);
+        } else {
+            logger.warn("No assets found with set criteria.");
         }
 
-        updateStatus(scanTaskConfig, hubServerConfig, repository);
     }
 
-    private void updateStatus(final ScanTaskConfig scanTaskConfig, final HubServerConfig hubServerConfig, final Repository repository) {
-        final Query pagedQuery = createPagedQuery(Optional.empty(), scanTaskConfig.getLimit());
+    private void updateStatus(final CommonTaskConfig commonTaskConfig, final Repository repository, final String uploadUrl, final TaskStatus status) {
+        final Query pagedQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(commonTaskConfig, Optional.empty(), commonTaskConfig.getLimit());
         PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.pagedAssets(repository, pagedQuery);
         while (filteredAssets.hasResults()) {
-            final Set<AssetWrapper> assetWrappers = new HashSet<>();
             for (final Asset asset : filteredAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
-                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.PENDING.name());
-                assetWrapper.updateAsset();
-
-                assetWrappers.add(assetWrapper);
+                commonRepositoryTaskHelper.finalStatus(assetWrapper, uploadUrl, status.name());
             }
 
-            final Query nextPage = createPagedQuery(filteredAssets.getLastName(), scanTaskConfig.getLimit());
+            final Query nextPage = commonRepositoryTaskHelper.createFilteredQueryBuilder(commonTaskConfig, filteredAssets.getLastName(), commonTaskConfig.getLimit());
             filteredAssets = commonRepositoryTaskHelper.pagedAssets(repository, nextPage);
-
-            commonRepositoryTaskHelper.verifyAndMarkUpload(assetWrappers, hubServerConfig);
         }
     }
 
-    private void sendInspectorData(final HubServerConfig hubServerConfig, final SimpleBdioDocument bdioDocument) throws IntegrationException {
-        final IntLogger intLogger = new Slf4jIntLogger(logger);
-        final HubServicesFactory hubServicesFactory = new HubServicesFactory(HubServicesFactory.createDefaultGson(), HubServicesFactory.createDefaultJsonParser(), hubServerConfig.createRestConnection(intLogger), intLogger);
+    private void sendInspectorData(final SimpleBdioDocument bdioDocument, final SimpleBdioFactory simpleBdioFactory) throws IntegrationException, IOException {
+        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
         final CodeLocationService codeLocationService = hubServicesFactory.createCodeLocationService();
 
         final IntegrationEscapeUtil integrationEscapeUtil = new IntegrationEscapeUtil();
-        final File bdioFile = new File("/inspector/" + integrationEscapeUtil.escapeForUri(bdioDocument.billOfMaterials.spdxName));
+        final File workingDirectory = new File("inspector");
+        workingDirectory.mkdir();
+        final File bdioFile = new File(workingDirectory, integrationEscapeUtil.escapeForUri(bdioDocument.billOfMaterials.spdxName));
+        bdioFile.delete();
+        bdioFile.createNewFile();
+        simpleBdioFactory.writeSimpleBdioDocumentToFile(bdioFile, bdioDocument);
 
         codeLocationService.importBomFile(bdioFile);
     }
 
-    private Query createPagedQuery(final Optional<String> lastNameUsed, final int limit) {
-        return commonRepositoryTaskHelper.createPagedQuery(lastNameUsed, limit).build();
-    }
-
     @Override
     protected boolean appliesTo(final Repository repository) {
-        return commonRepositoryTaskHelper.doesRepositoryApply(repository, getRepositoryField()) && commonRepositoryTaskHelper.isProxyRepository(repository);
+        return commonRepositoryTaskHelper.doesRepositoryApply(repository, getRepositoryField());
     }
 
     @Override
