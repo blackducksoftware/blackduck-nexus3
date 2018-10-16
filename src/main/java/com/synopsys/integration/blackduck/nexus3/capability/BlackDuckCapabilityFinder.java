@@ -14,24 +14,24 @@ import org.sonatype.nexus.capability.CapabilitySupport;
 
 @Named
 @Singleton
-public class HubCapabilityFinder {
+public class BlackDuckCapabilityFinder {
     private final CapabilityRegistry capabilityRegistry;
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
-    public HubCapabilityFinder(final CapabilityRegistry capabilityRegistry) {
+    public BlackDuckCapabilityFinder(final CapabilityRegistry capabilityRegistry) {
         this.capabilityRegistry = capabilityRegistry;
     }
 
-    public HubCapabilityConfiguration retrieveHubCapabilityConfiguration() {
-        final CapabilityReference capabilityReference = findCapabilityReference(HubCapability.class);
+    public BlackDuckCapabilityConfiguration retrieveBlackDuckCapabilityConfiguration() {
+        final CapabilityReference capabilityReference = findCapabilityReference(BlackDuckCapability.class);
         if (capabilityReference == null) {
-            logger.warn("Hub capability not created.");
+            logger.warn("BlackDuck capability not created.");
             return null;
         }
 
-        final HubCapability capability = capabilityReference.capabilityAs(HubCapability.class);
-        logger.info("Getting HubCapability config");
+        final BlackDuckCapability capability = capabilityReference.capabilityAs(BlackDuckCapability.class);
+        logger.info("Getting BlackDuckCapability config");
         return capability.getConfig();
     }
 

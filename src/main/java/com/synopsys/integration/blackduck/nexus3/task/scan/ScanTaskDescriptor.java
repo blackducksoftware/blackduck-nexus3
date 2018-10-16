@@ -35,6 +35,8 @@ import org.sonatype.nexus.repository.RepositoryTaskSupport;
 import org.sonatype.nexus.repository.types.ProxyType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
+import com.synopsys.integration.blackduck.nexus3.task.CommonTaskKeys;
+
 @Named
 @Singleton
 public class ScanTaskDescriptor extends TaskDescriptorSupport {
@@ -72,18 +74,18 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
     private static final String DESCRIPTION_SCAN_PAGE_SIZE = "Use to limit the number of items we retrieve from the Database at one time. A maximum value of 100 and a minimum of 1 are allowed";
 
     private static final RepositoryCombobox FIELD_REPOSITORY = new RepositoryCombobox(RepositoryTaskSupport.REPOSITORY_NAME_FIELD_ID, LABEL_REPOSITORY, DESCRIPTION_REPO_NAME, FormField.MANDATORY).excludingAnyOfTypes(ProxyType.NAME);
-    private static final StringTextFormField FIELD_REPOSITORY_PATH = new StringTextFormField(ScanTaskKeys.REPOSITORY_PATH.getParameterKey(), LABEL_REPOSITORY_PATH, DESCRIPTION_REPOSITORY_PATH, FormField.OPTIONAL);
-    private static final StringTextFormField FIELD_FILE_PATTERN = new StringTextFormField(ScanTaskKeys.FILE_PATTERNS.getParameterKey(), LABEL_FILE_PATTERN_MATCHES, DESCRIPTION_SCAN_FILE_PATTERN_MATCH, FormField.MANDATORY)
+    private static final StringTextFormField FIELD_REPOSITORY_PATH = new StringTextFormField(CommonTaskKeys.REPOSITORY_PATH.getParameterKey(), LABEL_REPOSITORY_PATH, DESCRIPTION_REPOSITORY_PATH, FormField.OPTIONAL);
+    private static final StringTextFormField FIELD_FILE_PATTERN = new StringTextFormField(CommonTaskKeys.FILE_PATTERNS.getParameterKey(), LABEL_FILE_PATTERN_MATCHES, DESCRIPTION_SCAN_FILE_PATTERN_MATCH, FormField.MANDATORY)
                                                                       .withInitialValue(DEFAULT_FILE_PATTERNS_MATCHES);
-    private static final StringTextFormField FIELD_WORKING_DIRECTORY = new StringTextFormField(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), LABEL_WORKING_DIRECTORY, DESCRIPTION_TASK_WORKING_DIRECTORY, FormField.MANDATORY)
+    private static final StringTextFormField FIELD_WORKING_DIRECTORY = new StringTextFormField(CommonTaskKeys.WORKING_DIRECTORY.getParameterKey(), LABEL_WORKING_DIRECTORY, DESCRIPTION_TASK_WORKING_DIRECTORY, FormField.MANDATORY)
                                                                            .withInitialValue(DEFAULT_WORKING_DIRECTORY);
-    private static final NumberTextFormField FIELD_SCAN_MEMORY = new NumberTextFormField(ScanTaskKeys.SCAN_MEMORY.getParameterKey(), LABEL_SCAN_MEMORY, DESCRIPTION_SCAN_MEMORY, FormField.MANDATORY)
+    private static final NumberTextFormField FIELD_SCAN_MEMORY = new NumberTextFormField(CommonTaskKeys.MAX_MEMORY.getParameterKey(), LABEL_SCAN_MEMORY, DESCRIPTION_SCAN_MEMORY, FormField.MANDATORY)
                                                                      .withInitialValue(DEFAULT_SCAN_MEMORY);
-    private static final CheckboxFormField FIELD_ALWAYS_SCAN = new CheckboxFormField(ScanTaskKeys.ALWAYS_SCAN.getParameterKey(), LABEL_ALWAYS_SCAN, DESCRIPTION_ALWAYS_SCAN, FormField.OPTIONAL);
-    private static final CheckboxFormField FIELD_RESCAN_FAILURE = new CheckboxFormField(ScanTaskKeys.RESCAN_FAILURES.getParameterKey(), LABEL_RESCAN_FAILURE, DESCRIPTION_RESCAN_FAILURE, FormField.OPTIONAL);
-    private static final StringTextFormField FIELD_ARTIFACT_CUTOFF = new StringTextFormField(ScanTaskKeys.OLD_ARTIFACT_CUTOFF.getParameterKey(), LABEL_ARTIFACT_CUTOFF, DESCRIPTION_SCAN_CUTOFF, FormField.OPTIONAL)
+    private static final CheckboxFormField FIELD_ALWAYS_SCAN = new CheckboxFormField(CommonTaskKeys.ALWAYS_CHECK.getParameterKey(), LABEL_ALWAYS_SCAN, DESCRIPTION_ALWAYS_SCAN, FormField.OPTIONAL);
+    private static final CheckboxFormField FIELD_RESCAN_FAILURE = new CheckboxFormField(CommonTaskKeys.REDO_FAILURES.getParameterKey(), LABEL_RESCAN_FAILURE, DESCRIPTION_RESCAN_FAILURE, FormField.OPTIONAL);
+    private static final StringTextFormField FIELD_ARTIFACT_CUTOFF = new StringTextFormField(CommonTaskKeys.OLD_ARTIFACT_CUTOFF.getParameterKey(), LABEL_ARTIFACT_CUTOFF, DESCRIPTION_SCAN_CUTOFF, FormField.OPTIONAL)
                                                                          .withInitialValue(DEFAULT_ARTIFACT_CUTOFF);
-    private static final NumberTextFormField FIELD_SCAN_PAGE_SIZE = new NumberTextFormField(ScanTaskKeys.PAGING_SIZE.getParameterKey(), LABEL_SCAN_PAGE_SIZE, DESCRIPTION_SCAN_PAGE_SIZE, FormField.MANDATORY)
+    private static final NumberTextFormField FIELD_SCAN_PAGE_SIZE = new NumberTextFormField(CommonTaskKeys.PAGING_SIZE.getParameterKey(), LABEL_SCAN_PAGE_SIZE, DESCRIPTION_SCAN_PAGE_SIZE, FormField.MANDATORY)
                                                                         .withInitialValue(DEFAULT_SCAN_PAGE_SIZE).withMinimumValue(MIN_SCAN_PAGE_SIZE).withMaximumValue(MAX_SCAN_PAGE_SIZE);
 
     public ScanTaskDescriptor() {

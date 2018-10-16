@@ -25,6 +25,7 @@ package com.synopsys.integration.blackduck.nexus3.task.scan;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -34,7 +35,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.apache.commons.io.FileUtils;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
@@ -43,13 +43,18 @@ import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskConfiguration;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
+import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
+import com.synopsys.integration.blackduck.api.generated.view.VulnerabilityV2View;
+import com.synopsys.integration.blackduck.api.generated.view.VulnerableComponentView;
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 import com.synopsys.integration.blackduck.nexus3.task.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.task.CommonTaskConfig;
-import com.synopsys.integration.blackduck.nexus3.task.TaskFilter;
+import com.synopsys.integration.blackduck.nexus3.task.CommonTaskKeys;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
+import com.synopsys.integration.blackduck.nexus3.task.metadata.MetaDataProcessor;
+import com.synopsys.integration.blackduck.nexus3.task.metadata.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.nexus3.util.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.util.DateTimeParser;
@@ -72,15 +77,15 @@ public class ScanTask extends RepositoryTaskSupport {
 
     private final QueryManager queryManager;
     private final DateTimeParser dateTimeParser;
-    private final TaskFilter taskFilter;
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
+    private final MetaDataProcessor metaDataProcessor;
 
     @Inject
-    public ScanTask(final QueryManager queryManager, final DateTimeParser dateTimeParser, final TaskFilter taskFilter, final CommonRepositoryTaskHelper commonRepositoryTaskHelper) {
+    public ScanTask(final QueryManager queryManager, final DateTimeParser dateTimeParser, final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final MetaDataProcessor metaDataProcessor) {
         this.queryManager = queryManager;
         this.dateTimeParser = dateTimeParser;
-        this.taskFilter = taskFilter;
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
+        this.metaDataProcessor = metaDataProcessor;
     }
 
     @Override
@@ -90,7 +95,7 @@ public class ScanTask extends RepositoryTaskSupport {
 
     @Override
     public String getMessage() {
-        return commonRepositoryTaskHelper.getTaskMessage("Hub Scan", getRepositoryField());
+        return commonRepositoryTaskHelper.getTaskMessage("BlackDuck Scan", getRepositoryField());
     }
 
     @Override
@@ -105,88 +110,116 @@ public class ScanTask extends RepositoryTaskSupport {
             throw new TaskInterruptedException("Problem creating ScanJobManager: " + e.getMessage(), true);
         }
 
-        final String workingDirectory = getConfiguration().getString(ScanTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskDescriptor.DEFAULT_WORKING_DIRECTORY);
+        final String workingDirectory = getConfiguration().getString(CommonTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskDescriptor.DEFAULT_WORKING_DIRECTORY);
         final File workingBlackDuckDirectory = new File(workingDirectory, "blackduck");
-        workingBlackDuckDirectory.mkdir();
+        final File tempFileStorage = new File(workingBlackDuckDirectory, "temp");
         final File outputDirectory = new File(workingBlackDuckDirectory, "output");
-        outputDirectory.mkdir();
+        try {
+            Files.createDirectories(tempFileStorage.toPath());
+            Files.createDirectories(outputDirectory.toPath());
+        } catch (final IOException e) {
+            e.printStackTrace();
+            throw new TaskInterruptedException("Could not create directories to use with Scanner: " + e.getMessage(), true);
+        }
 
-        final Query filteredQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(commonTaskConfig, Optional.empty(), commonTaskConfig.getLimit());
+        final Query filteredQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(commonTaskConfig, Optional.empty());
         PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.pagedAssets(repository, filteredQuery);
         while (foundAssets.hasResults()) {
             logger.debug("Found results from DB");
             final Set<AssetWrapper> scannedAssets = new HashSet<>();
             for (final Asset asset : foundAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
-                final String filename = assetWrapper.getFilename();
-                final DateTime lastModified = assetWrapper.getComponentLastUpdated();
-                final boolean doesRepositoryPathMatch = taskFilter.doesRepositoryPathMatch(asset.name(), commonTaskConfig.getRepositoryPathRegex());
-                final boolean isArtifactTooOld = taskFilter.isArtifactTooOld(commonTaskConfig.getOldArtifactCutoffDate(), lastModified);
-
-                if (!doesRepositoryPathMatch || isArtifactTooOld) {
-                    logger.debug("Binary file did not meet requirements for scan: {}", filename);
-                    continue;
-                }
                 final String name = assetWrapper.getName();
                 final String version = assetWrapper.getVersion();
+
+                if (commonRepositoryTaskHelper.skipAssetProcessing(assetWrapper, commonTaskConfig)) {
+                    logger.debug("Binary file did not meet requirements for scan: {}", name);
+                    continue;
+                }
+
                 logger.info("Scanning item: {}", name);
                 final File binaryFile;
                 try {
-                    binaryFile = assetWrapper.getBinaryBlobFile(workingBlackDuckDirectory);
+                    binaryFile = assetWrapper.getBinaryBlobFile(tempFileStorage);
                 } catch (final IOException e) {
-                    try {
-                        FileUtils.deleteDirectory(outputDirectory);
-                    } catch (final IOException e1) {
-                        logger.error("Error deleting output directory {}", outputDirectory.getAbsolutePath());
-                    }
                     logger.debug("Exception thrown: {}", e.getMessage());
                     throw new TaskInterruptedException("Error saving blob binary to file", true);
                 }
 
+                TaskStatus taskStatus = TaskStatus.FAILURE;
                 try {
                     final ScanJob scanJob = createScanJob(hubServerConfig, workingBlackDuckDirectory, outputDirectory, name, version, binaryFile.getAbsolutePath());
                     final ScanJobOutput scanJobOutput = scanJobManager.executeScans(scanJob);
                     final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
                     final ScanCommandOutput scanCommandResult = scanOutputs.get(SCAN_OUTPUT_LOCATION);
-                    TaskStatus taskStatus = TaskStatus.PENDING;
-                    if (Result.SUCCESS != scanCommandResult.getResult()) {
-                        taskStatus = TaskStatus.FAILURE;
+                    if (Result.SUCCESS == scanCommandResult.getResult()) {
+                        taskStatus = TaskStatus.PENDING;
                     }
+                } catch (final IOException | IntegrationException e) {
+                    logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
+                } finally {
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, taskStatus.name());
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
                     logger.debug("Updating asset panel");
                     assetWrapper.updateAsset();
                     scannedAssets.add(assetWrapper);
-                } catch (final IOException | IntegrationException e) {
-                    logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
-                }
-
-                if (binaryFile != null && binaryFile.exists()) {
-                    FileUtils.deleteQuietly(binaryFile);
                 }
 
             }
 
-            final Query nextPageQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(commonTaskConfig, foundAssets.getLastName(), commonTaskConfig.getLimit());
+            try {
+                FileUtils.cleanDirectory(tempFileStorage);
+                FileUtils.cleanDirectory(outputDirectory);
+            } catch (final IOException e) {
+                logger.warn("Problem cleaning scan directories {}", outputDirectory.getAbsolutePath());
+            }
+
+            final Query nextPageQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(commonTaskConfig, foundAssets.getLastName());
             foundAssets = commonRepositoryTaskHelper.pagedAssets(repository, nextPageQuery);
 
-            for (final AssetWrapper assetWrapper : scannedAssets) {
-                final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(assetWrapper.getName(), assetWrapper.getVersion());
-                commonRepositoryTaskHelper.finalStatus(assetWrapper, uploadUrl, TaskStatus.SUCCESS.name());
-            }
+            updatePanel(scannedAssets);
         }
 
-        try {
-            FileUtils.deleteDirectory(outputDirectory);
-        } catch (final IOException e) {
-            logger.warn("Problem deleting output directory {}", outputDirectory.getAbsolutePath());
+    }
+
+    private void updatePanel(final Set<AssetWrapper> assetWrappers) {
+        for (final AssetWrapper assetWrapper : assetWrappers) {
+            final String name = assetWrapper.getName();
+            final String version = assetWrapper.getVersion();
+
+            final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(name, version);
+            TaskStatus status = TaskStatus.SUCCESS;
+
+            try {
+                logger.info("Checking vulnerabilities.");
+                final List<VulnerableComponentView> vulnerableComponentViews = metaDataProcessor.checkAssetVulnerabilities(name, version);
+                final VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
+                for (final VulnerableComponentView vulnerableComponentView : vulnerableComponentViews) {
+                    logger.debug("Adding vulnerable component {}", vulnerableComponentView.componentName);
+                    final List<VulnerabilityV2View> vulnerabilities = metaDataProcessor.convertToVulnerabilities(vulnerableComponentView);
+                    vulnerabilityLevels.addVulnerabilityCounts(vulnerabilities);
+                }
+                logger.debug("Updating asset with Vulnerability info.");
+                metaDataProcessor.updateAssetVulnerabilityData(vulnerabilityLevels, assetWrapper);
+                logger.info("Checking policies.");
+                final VersionBomPolicyStatusView policyStatusView = metaDataProcessor.checkAssetPolicy(name, version);
+                logger.debug("Updating asset with Policy info.");
+                metaDataProcessor.updateAssetPolicyData(policyStatusView, assetWrapper);
+            } catch (final IntegrationException e) {
+                status = TaskStatus.FAILURE;
+                metaDataProcessor.removePolicyData(assetWrapper);
+                metaDataProcessor.removeAssetVulnerabilityData(assetWrapper);
+                logger.error("Problem retrieving status properties from BlackDuck: {}", e.getMessage());
+            }
+
+            commonRepositoryTaskHelper.addFinalPanelElements(assetWrapper, uploadUrl, status.name());
         }
     }
 
     private ScanJob createScanJob(final HubServerConfig hubServerConfig, final File workingBlackDuckDirectory, final File outputDirectory, final String projectName, final String projectVersion, final String pathToScan)
         throws EncryptionException {
         final TaskConfiguration taskConfiguration = getConfiguration();
-        final int scanMemory = taskConfiguration.getInteger(ScanTaskKeys.SCAN_MEMORY.getParameterKey(), ScanTaskDescriptor.DEFAULT_SCAN_MEMORY);
+        final int scanMemory = taskConfiguration.getInteger(CommonTaskKeys.MAX_MEMORY.getParameterKey(), ScanTaskDescriptor.DEFAULT_SCAN_MEMORY);
 
         final ScanJobBuilder scanJobBuilder = new ScanJobBuilder()
                                                   .fromHubServerConfig(hubServerConfig)

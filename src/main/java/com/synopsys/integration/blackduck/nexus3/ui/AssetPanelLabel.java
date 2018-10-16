@@ -2,13 +2,13 @@ package com.synopsys.integration.blackduck.nexus3.ui;
 
 public enum AssetPanelLabel {
     TASK_STATUS("status"),
-    HUB_URL("upload_url"),
+    BLACKDUCK_URL("upload_url"),
     TASK_FINISHED_TIME("completed_by"),
-    OVERALL_POLICY_STATUS("overall_policy_status"),
+    OVERALL_POLICY_STATUS("policy_status_overall"),
     POLICY_STATUS("policy_status"),
-    INSPECTOR_LOW_VULNERABILITY("low_vulnerabilities"),
-    INSPECTOR_MEDIUM_VULNERABILITY("medium_vulnerabilities"),
-    INSPECTOR_HIGH_VULNERABILITY("high_vulnerabilities");
+    LOW_VULNERABILITY("vulnerabilities_low"),
+    MEDIUM_VULNERABILITY("vulnerabilities_medium"),
+    HIGH_VULNERABILITY("vulnerabilities_high");
 
     private final String label;
 

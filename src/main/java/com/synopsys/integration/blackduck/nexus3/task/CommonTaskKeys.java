@@ -21,33 +21,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.capability;
+package com.synopsys.integration.blackduck.nexus3.task;
 
-import java.util.Arrays;
-import java.util.List;
+public enum CommonTaskKeys {
+    FILE_PATTERNS("blackduck.file.pattern.match.wildcards"),
+    WORKING_DIRECTORY("blackduck.working.directory"),
+    OLD_ARTIFACT_CUTOFF("blackduck.artifact.cutoff"),
+    REPOSITORY_PATH("blackduck.nexus.artifact.path"),
+    PAGING_SIZE("blackduck.paging.size"),
+    MAX_MEMORY("blackduck.memory"),
+    REDO_FAILURES("blackduck.redo.failures"),
+    ALWAYS_CHECK("blackduck.check.always");
 
-public enum HubConfigKeys {
-    HUB_TRUST_CERT("blackduck.hub.trust.cert"),
-    HUB_PROXY_HOST("blackduck.hub.proxy.host"),
-    HUB_PROXY_PORT("blackduck.hub.proxy.port"),
-    HUB_PROXY_USERNAME("blackduck.hub.proxy.username"),
-    HUB_PROXY_PASSWORD("blackduck.hub.proxy.password"),
-    HUB_TIMEOUT("blackduck.hub.timeout"),
-    HUB_API_KEY("blackduck.hub.api.key"),
-    HUB_URL("blackduck.hub.url");
+    private final String parameterKey;
 
-    private final String key;
-
-    HubConfigKeys(final String key) {
-        this.key = key;
+    CommonTaskKeys(final String parameterKey) {
+        this.parameterKey = parameterKey;
     }
 
-    public static List<HubConfigKeys> passwordFields() {
-        return Arrays.asList(HUB_API_KEY, HUB_PROXY_PASSWORD);
-    }
-
-    public String getKey() {
-        return key;
+    public String getParameterKey() {
+        return parameterKey;
     }
 
 }

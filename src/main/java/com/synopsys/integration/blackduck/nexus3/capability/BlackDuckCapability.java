@@ -30,33 +30,31 @@ import javax.inject.Named;
 
 import org.sonatype.nexus.capability.CapabilitySupport;
 
-import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.util.BlackDuckConnection;
 
-@Named(HubCapabilityDescriptor.CAPABILITY_ID)
-public class HubCapability extends CapabilitySupport<HubCapabilityConfiguration> {
+@Named(BlackDuckCapabilityDescriptor.CAPABILITY_ID)
+public class BlackDuckCapability extends CapabilitySupport<BlackDuckCapabilityConfiguration> {
     BlackDuckConnection blackDuckConnection;
 
     @Inject
-    public HubCapability(final BlackDuckConnection blackDuckConnection) {
+    public BlackDuckCapability(final BlackDuckConnection blackDuckConnection) {
         this.blackDuckConnection = blackDuckConnection;
     }
 
     @Override
-    protected HubCapabilityConfiguration createConfig(final Map<String, String> properties) {
-        return new HubCapabilityConfiguration(properties);
+    protected BlackDuckCapabilityConfiguration createConfig(final Map<String, String> properties) {
+        return new BlackDuckCapabilityConfiguration(properties);
     }
 
     @Override
     public boolean isPasswordProperty(final String propertyName) {
-        return HubConfigKeys.passwordFields().stream().anyMatch(field -> field.getKey().equals(propertyName));
+        return BlackDuckConfigKeys.passwordFields().stream().anyMatch(field -> field.getKey().equals(propertyName));
     }
 
     @Override
-    protected void configure(final HubCapabilityConfiguration config) throws Exception {
-        log.debug("Configuring HubCapability");
-        super.configure(config);
-        final HubServerConfig hubServerConfig = config.createHubServerConfig();
-        blackDuckConnection.setHubServerConfig(hubServerConfig);
+    protected void configure(final BlackDuckCapabilityConfiguration config) {
+        log.debug("Configuring BlackDuckCapability");
+        blackDuckConnection.markForUpdate();
     }
+
 }

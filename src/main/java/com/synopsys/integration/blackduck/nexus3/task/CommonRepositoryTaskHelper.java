@@ -1,9 +1,7 @@
 package com.synopsys.integration.blackduck.nexus3.task;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import javax.inject.Inject;
@@ -23,8 +21,6 @@ import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
-import com.synopsys.integration.blackduck.nexus3.task.scan.ScanTaskDescriptor;
-import com.synopsys.integration.blackduck.nexus3.task.scan.ScanTaskKeys;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanel;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.nexus3.util.AssetWrapper;
@@ -44,12 +40,14 @@ public class CommonRepositoryTaskHelper {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DateTimeParser dateTimeParser;
     private final BlackDuckConnection blackDuckConnection;
+    private final TaskFilter taskFilter;
 
     @Inject
-    public CommonRepositoryTaskHelper(final QueryManager queryManager, final DateTimeParser dateTimeParser, final BlackDuckConnection blackDuckConnection) {
+    public CommonRepositoryTaskHelper(final QueryManager queryManager, final DateTimeParser dateTimeParser, final BlackDuckConnection blackDuckConnection, final TaskFilter taskFilter) {
         this.queryManager = queryManager;
         this.dateTimeParser = dateTimeParser;
         this.blackDuckConnection = blackDuckConnection;
+        this.taskFilter = taskFilter;
     }
 
     // TODO verify that the group repository will work accordingly here
@@ -75,6 +73,14 @@ public class CommonRepositoryTaskHelper {
         } catch (final IntegrationException e) {
             throw new TaskInterruptedException("BlackDuck hub server config not set.", true);
         }
+    }
+
+    public boolean skipAssetProcessing(final AssetWrapper assetWrapper, final CommonTaskConfig commonTaskConfig) {
+        final DateTime lastModified = assetWrapper.getComponentLastUpdated();
+        final boolean doesRepositoryPathMatch = taskFilter.doesRepositoryPathMatch(assetWrapper.getName(), commonTaskConfig.getRepositoryPathRegex());
+        final boolean isArtifactTooOld = taskFilter.isArtifactTooOld(commonTaskConfig.getOldArtifactCutoffDate(), lastModified);
+        final boolean doesExtensionMatch = taskFilter.doesExtensionMatch(assetWrapper.getFilename(), commonTaskConfig.getExtensionPatterns());
+        return isArtifactTooOld || !doesRepositoryPathMatch || !doesExtensionMatch;
     }
 
     public Query.Builder createPagedQuery(final Optional<String> lastNameUsed, final int limit) {
@@ -107,47 +113,57 @@ public class CommonRepositoryTaskHelper {
     public String verifyUpload(final String name, final String version) {
         try {
             final HubServicesFactory hubServicesFactory = getHubServicesFactory();
-            final ProjectService projectService = hubServicesFactory.createProjectService();
-            final HubService hubService = hubServicesFactory.createHubService();
-            final ProjectVersionWrapper projectVersionWrapper = projectService.getProjectVersion(name, version);
-            final ProjectVersionView projectVersionView = projectVersionWrapper.getProjectVersionView();
             final ScanStatusService scanStatusService = hubServicesFactory.createScanStatusService(ScanStatusService.DEFAULT_TIMEOUT);
-            scanStatusService.assertScansFinished(projectVersionView);
-            return hubService.getFirstLink(projectVersionView, ProjectVersionView.COMPONENTS_LINK);
+            scanStatusService.assertScansFinished(name, version);
+            final ProjectService projectService = hubServicesFactory.createProjectService();
+            final ProjectVersionWrapper projectVersionWrapper = projectService.getProjectVersion(name, version);
+            return verifyUpload(projectVersionWrapper.getProjectVersionView());
         } catch (final InterruptedException | IntegrationException e) {
             logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
-            return "Error retrieving URL.";
+            return "Error retrieving URL: " + e.getMessage();
         }
     }
 
-    public void finalStatus(final AssetWrapper assetWrapper, final String componentsUrl, final String uploadStatus) {
-        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.HUB_URL, componentsUrl);
+    public String verifyUpload(final ProjectVersionView projectVersionView) {
+        try {
+            final HubService hubService = getHubServicesFactory().createHubService();
+            return hubService.getFirstLink(projectVersionView, ProjectVersionView.COMPONENTS_LINK);
+        } catch (final IntegrationException e) {
+            logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+            return "Error retrieving URL: " + e.getMessage();
+        }
+    }
+
+    public void addFinalPanelElements(final AssetWrapper assetWrapper, final String componentsUrl, final String uploadStatus) {
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, componentsUrl);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, uploadStatus);
 
         assetWrapper.updateAsset();
     }
 
     public CommonTaskConfig getTaskConfig(final TaskConfiguration taskConfiguration) {
-        final String filePatterns = taskConfiguration.getString(ScanTaskKeys.FILE_PATTERNS.getParameterKey());
-        final String artifactPath = taskConfiguration.getString(ScanTaskKeys.REPOSITORY_PATH.getParameterKey());
-        final boolean rescanFailures = taskConfiguration.getBoolean(ScanTaskKeys.RESCAN_FAILURES.getParameterKey(), false);
-        final boolean alwaysScan = taskConfiguration.getBoolean(ScanTaskKeys.ALWAYS_SCAN.getParameterKey(), false);
-        final int limit = taskConfiguration.getInteger(ScanTaskKeys.PAGING_SIZE.getParameterKey(), ScanTaskDescriptor.DEFAULT_SCAN_PAGE_SIZE);
+        final String filePatterns = taskConfiguration.getString(CommonTaskKeys.FILE_PATTERNS.getParameterKey());
+        final String artifactPath = taskConfiguration.getString(CommonTaskKeys.REPOSITORY_PATH.getParameterKey(), "");
+        final boolean rescanFailures = taskConfiguration.getBoolean(CommonTaskKeys.REDO_FAILURES.getParameterKey(), true);
+        final boolean alwaysScan = taskConfiguration.getBoolean(CommonTaskKeys.ALWAYS_CHECK.getParameterKey(), true);
+        final int limit = taskConfiguration.getInteger(CommonTaskKeys.PAGING_SIZE.getParameterKey(), 100);
 
-        final String artifactCutoff = taskConfiguration.getString(ScanTaskKeys.OLD_ARTIFACT_CUTOFF.getParameterKey());
+        final String artifactCutoff = taskConfiguration.getString(CommonTaskKeys.OLD_ARTIFACT_CUTOFF.getParameterKey());
         final DateTime oldArtifactCutoffDate = dateTimeParser.convertFromStringToDate(artifactCutoff);
         return new CommonTaskConfig(filePatterns, artifactPath, oldArtifactCutoffDate, rescanFailures, alwaysScan, limit);
     }
 
-    public Query createFilteredQueryBuilder(final CommonTaskConfig commonTaskConfig, final Optional<String> lastNameUsed, final int limit) {
-        final Query.Builder baseQueryBuilder = createPagedQuery(lastNameUsed, limit);
+    // TODO make query building easier for the tasks
+    public Query createFilteredQueryBuilder(final CommonTaskConfig commonTaskConfig, final Optional<String> lastNameUsed) {
+        final Query.Builder baseQueryBuilder = createPagedQuery(lastNameUsed, commonTaskConfig.getLimit());
 
-        //        final DateTime artifactCutoffDate = commonTaskConfig.getOldArtifactCutoffDate();
-        //        if (artifactCutoffDate != null) {
-        //            final String lastModifiedPath = "attributes.content.last_modified";
-        //            baseQueryBuilder.and(lastModifiedPath + " > " + dateTimeParser.convertFromDateTimeToMillis(artifactCutoffDate));
-        //        }
-        //
+        final DateTime artifactCutoffDate = commonTaskConfig.getOldArtifactCutoffDate();
+        if (artifactCutoffDate != null) {
+            // TODO verify that recently updated artifacts are grabbed successfully.
+            final String lastModifiedPath = "attributes.content.last_modified";
+            baseQueryBuilder.and(lastModifiedPath + " > " + dateTimeParser.convertFromDateTimeToMillis(artifactCutoffDate));
+        }
+
         //        final String repositoryPathRegex = commonTaskConfig.getRepositoryPathRegex();
         //        if (StringUtils.isNotBlank(repositoryPathRegex)) {
         //            baseQueryBuilder.and("name MATCHES '" + repositoryPathRegex + "'");
@@ -156,20 +172,26 @@ public class CommonRepositoryTaskHelper {
         final String statusSuccess = createSuccessWhereStatement(commonTaskConfig.isRescanFailures(), commonTaskConfig.isAlwaysScan());
         baseQueryBuilder.and(statusSuccess);
 
-        final List<String> extensions = Arrays.stream(commonTaskConfig.getExtensionPatterns().split(","))
-                                            .map(String::trim)
-                                            .collect(Collectors.toList());
-        final String extensionsCheck = createExtensionsWhereStatement(extensions);
-        baseQueryBuilder.and(extensionsCheck);
+        //        final List<String> extensions = Arrays.stream(commonTaskConfig.getExtensionPatterns().split(","))
+        //                                            .map(String::trim)
+        //                                            .collect(Collectors.toList());
+        //        final String extensionsCheck = createExtensionsWhereStatement(extensions);
+        //        baseQueryBuilder.and(extensionsCheck);
 
         return baseQueryBuilder.build();
     }
 
     public String createSuccessWhereStatement(final boolean checkFailures, final boolean checkSuccessAndPending) {
         final String statusPath = getBlackduckPanelPath(AssetPanelLabel.TASK_STATUS);
+        final String processedByPath = getBlackduckPanelPath(AssetPanelLabel.TASK_FINISHED_TIME);
+        final String lastModifiedPath = "attributes.content.last_modified";
         final StringBuilder extensionsWhereBuilder = new StringBuilder();
         extensionsWhereBuilder.append("(");
         extensionsWhereBuilder.append(statusPath + " IS NULL");
+        extensionsWhereBuilder.append(" OR ");
+        extensionsWhereBuilder.append(processedByPath);
+        extensionsWhereBuilder.append(" < ");
+        extensionsWhereBuilder.append(lastModifiedPath);
         if (checkSuccessAndPending) {
             extensionsWhereBuilder.append(" OR ");
             extensionsWhereBuilder.append(statusPath);
@@ -189,21 +211,28 @@ public class CommonRepositoryTaskHelper {
             extensionsWhereBuilder.append(TaskStatus.FAILURE.name());
             extensionsWhereBuilder.append("'");
         }
+
         extensionsWhereBuilder.append(")");
         return extensionsWhereBuilder.toString();
     }
 
+    // FIXME name doesn't always have the extension at the end (i.e. nuget repo). Must find another way to query for extensions
     public String createExtensionsWhereStatement(final List<String> extensions) {
+        //        final String blobNameHeader = "blob." + BlobStore.BLOB_NAME_HEADER;
+        final String blobNameHeader = "name";
         final StringBuilder extensionsWhereBuilder = new StringBuilder();
         extensionsWhereBuilder.append("(");
         for (int extCount = 0; extCount < extensions.size(); extCount++) {
             final String extension = extensions.get(extCount);
             if (extCount == 0) {
-                extensionsWhereBuilder.append("name LIKE '%");
+                extensionsWhereBuilder.append(blobNameHeader);
+                extensionsWhereBuilder.append(" LIKE '%");
                 extensionsWhereBuilder.append(extension);
                 extensionsWhereBuilder.append("'");
             } else {
-                extensionsWhereBuilder.append(" OR name LIKE '%");
+                extensionsWhereBuilder.append(" OR ");
+                extensionsWhereBuilder.append(blobNameHeader);
+                extensionsWhereBuilder.append(" LIKE '%");
                 extensionsWhereBuilder.append(extension);
                 extensionsWhereBuilder.append("'");
             }

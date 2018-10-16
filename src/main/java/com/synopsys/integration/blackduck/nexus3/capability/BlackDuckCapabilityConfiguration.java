@@ -30,19 +30,19 @@ import org.sonatype.nexus.capability.CapabilityConfigurationSupport;
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.configuration.HubServerConfigBuilder;
 
-public class HubCapabilityConfiguration extends CapabilityConfigurationSupport {
+public class BlackDuckCapabilityConfiguration extends CapabilityConfigurationSupport {
     private final Map<String, String> capabilitySettings;
 
-    public HubCapabilityConfiguration(final Map<String, String> capabilitySettings) {
+    public BlackDuckCapabilityConfiguration(final Map<String, String> capabilitySettings) {
         this.capabilitySettings = capabilitySettings;
     }
 
-    public HubServerConfig createHubServerConfig() {
+    public HubServerConfig createBlackDuckServerConfig() {
         final HubServerConfigBuilder hubServerConfigBuilder = new HubServerConfigBuilder();
-        hubServerConfigBuilder.setUrl(capabilitySettings.get(HubConfigKeys.HUB_URL.getKey()));
-        hubServerConfigBuilder.setTimeout(capabilitySettings.get(HubConfigKeys.HUB_TIMEOUT.getKey()));
-        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(HubConfigKeys.HUB_TRUST_CERT.getKey()));
-        hubServerConfigBuilder.setApiToken(capabilitySettings.get(HubConfigKeys.HUB_API_KEY.getKey()));
+        hubServerConfigBuilder.setUrl(capabilitySettings.get(BlackDuckConfigKeys.BLACKDUCK_URL.getKey()));
+        hubServerConfigBuilder.setTimeout(capabilitySettings.get(BlackDuckConfigKeys.BLACKDUCK_TIMEOUT.getKey()));
+        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(BlackDuckConfigKeys.BLACKDUCK_TRUST_CERT.getKey()));
+        hubServerConfigBuilder.setApiToken(capabilitySettings.get(BlackDuckConfigKeys.BLACKDUCK_API_KEY.getKey()));
         return hubServerConfigBuilder.build();
     }
 

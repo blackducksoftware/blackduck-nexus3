@@ -26,8 +26,8 @@ public class AssetPanel {
         blackDuckNestedAttributes.set(label.getLabel(), value);
     }
 
-    public void addToAssetPanel(final String label, final Object value) {
-        assetNestedAttributes.set(label, value);
+    public void removeFromBlackDuckPanel(AssetPanelLabel label) {
+        blackDuckNestedAttributes.remove(label.getLabel());
     }
 
     // This is used to Add items to the BlackDuck tab in the UI

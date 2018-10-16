@@ -93,6 +93,10 @@ public class AssetWrapper {
         return getAssetPanel().getFromBlackDuckPanel(label);
     }
 
+    public void removeFromBlackDuckAssetPanel(final AssetPanelLabel label) {
+        getAssetPanel().removeFromBlackDuckPanel(label);
+    }
+
     public Asset getAsset() {
         return asset;
     }
