@@ -13,9 +13,9 @@ import org.sonatype.nexus.repository.storage.Asset;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
+import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
+import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
-import com.synopsys.integration.blackduck.api.generated.view.VulnerabilityV2View;
-import com.synopsys.integration.blackduck.api.generated.view.VulnerableComponentView;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 import com.synopsys.integration.blackduck.nexus3.task.CommonRepositoryTaskHelper;
@@ -52,10 +52,10 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 final String version = assetWrapper.getVersion();
                 try {
                     final VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
-                    final List<VulnerableComponentView> vulnerableComponentViewList = metaDataProcessor.checkAssetVulnerabilities(name, version);
-                    for (final VulnerableComponentView vulnerableComponentView : vulnerableComponentViewList) {
-                        final List<VulnerabilityV2View> vulnerabilities = metaDataProcessor.convertToVulnerabilities(vulnerableComponentView);
-                        vulnerabilityLevels.addVulnerabilityCounts(vulnerabilities);
+                    final List<VersionBomComponentView> versionBomComponentViews = metaDataProcessor.checkAssetVulnerabilities(name, version);
+                    for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
+                        final List<RiskCountView> riskCountViews = versionBomComponentView.securityRiskProfile.counts;
+                        metaDataProcessor.updateAssetVulnerabilityCounts(riskCountViews, vulnerabilityLevels);
                     }
                     metaDataProcessor.updateAssetVulnerabilityData(vulnerabilityLevels, assetWrapper);
                     final VersionBomPolicyStatusView policyStatusView = metaDataProcessor.checkAssetPolicy(name, version);

@@ -43,9 +43,9 @@ import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskConfiguration;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
+import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
+import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
-import com.synopsys.integration.blackduck.api.generated.view.VulnerabilityV2View;
-import com.synopsys.integration.blackduck.api.generated.view.VulnerableComponentView;
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
@@ -192,12 +192,12 @@ public class ScanTask extends RepositoryTaskSupport {
 
             try {
                 logger.info("Checking vulnerabilities.");
-                final List<VulnerableComponentView> vulnerableComponentViews = metaDataProcessor.checkAssetVulnerabilities(name, version);
+                final List<VersionBomComponentView> versionBomComponentViews = metaDataProcessor.checkAssetVulnerabilities(name, version);
                 final VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
-                for (final VulnerableComponentView vulnerableComponentView : vulnerableComponentViews) {
-                    logger.debug("Adding vulnerable component {}", vulnerableComponentView.componentName);
-                    final List<VulnerabilityV2View> vulnerabilities = metaDataProcessor.convertToVulnerabilities(vulnerableComponentView);
-                    vulnerabilityLevels.addVulnerabilityCounts(vulnerabilities);
+                for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
+                    logger.debug("Adding vulnerable component {}, version {}", versionBomComponentView.componentName, versionBomComponentView.componentVersion);
+                    final List<RiskCountView> vulnerabilities = versionBomComponentView.securityRiskProfile.counts;
+                    metaDataProcessor.updateAssetVulnerabilityCounts(vulnerabilities, vulnerabilityLevels);
                 }
                 logger.debug("Updating asset with Vulnerability info.");
                 metaDataProcessor.updateAssetVulnerabilityData(vulnerabilityLevels, assetWrapper);

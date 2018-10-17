@@ -6,16 +6,17 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
+import com.synopsys.integration.blackduck.api.generated.enumeration.RiskCountType;
+import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
-import com.synopsys.integration.blackduck.api.generated.view.VulnerabilityV2View;
-import com.synopsys.integration.blackduck.api.generated.view.VulnerableComponentView;
 import com.synopsys.integration.blackduck.nexus3.task.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.nexus3.util.AssetWrapper;
-import com.synopsys.integration.blackduck.service.HubService;
 import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
@@ -39,16 +40,29 @@ public class MetaDataProcessor {
         assetWrapper.updateAsset();
     }
 
-    public List<VulnerableComponentView> checkAssetVulnerabilities(final String name, final String version) throws IntegrationException {
+    public List<VersionBomComponentView> checkAssetVulnerabilities(final String name, final String version) throws IntegrationException {
         final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
         final ProjectService projectService = hubServicesFactory.createProjectService();
-        return projectService.getVulnerableComponentsForProjectVersion(name, version);
+        return projectService.getComponentsForProjectVersion(name, version);
     }
 
-    public List<VulnerabilityV2View> convertToVulnerabilities(final VulnerableComponentView vulnerableComponentView) throws IntegrationException {
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
-        final HubService hubService = hubServicesFactory.createHubService();
-        return hubService.getAllResponses(vulnerableComponentView, VulnerableComponentView.VULNERABILITIES_LINK_RESPONSE);
+    public void updateAssetVulnerabilityCounts(final List<RiskCountView> vulnerabilities, final VulnerabilityLevels vulnerabilityLevels) {
+        String highestSeverity = "";
+        for (final RiskCountView vulnerability : vulnerabilities) {
+            final RiskCountType severity = vulnerability.countType;
+            final int severityCount = vulnerability.count;
+            if (RiskCountType.HIGH.equals(severity) && severityCount > 0) {
+                highestSeverity = VulnerabilityLevels.HIGH_VULNERABILITY;
+                break;
+            } else if (RiskCountType.MEDIUM.equals(severity) && severityCount > 0) {
+                highestSeverity = VulnerabilityLevels.MEDIUM_VULNERABILITY;
+            } else if (RiskCountType.LOW.equals(severity) && severityCount > 0) {
+                highestSeverity = VulnerabilityLevels.LOW_VULNERABILITY;
+            }
+        }
+        if (StringUtils.isNotBlank(highestSeverity)) {
+            vulnerabilityLevels.addVulnerability(highestSeverity);
+        }
     }
 
     public void removeAssetVulnerabilityData(final AssetWrapper assetWrapper) {
