@@ -1,5 +1,6 @@
 package com.synopsys.integration.blackduck.nexus3.task;
 
+import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
@@ -57,6 +58,10 @@ public class CommonRepositoryTaskHelper {
 
     public String getTaskMessage(final String taskName, final String repositoryField) {
         return String.format("Running BlackDuck %s for repository %s: ", taskName, repositoryField);
+    }
+
+    public QueryManager getQueryManager() {
+        return queryManager;
     }
 
     public HubServerConfig getHubServerConfig() {
@@ -125,6 +130,7 @@ public class CommonRepositoryTaskHelper {
     }
 
     public String verifyUpload(final ProjectVersionView projectVersionView) {
+        logger.debug("Checking that project exists in BlackDuck.");
         try {
             final HubService hubService = getHubServicesFactory().createHubService();
             return hubService.getFirstLink(projectVersionView, ProjectVersionView.COMPONENTS_LINK);
@@ -142,6 +148,8 @@ public class CommonRepositoryTaskHelper {
     }
 
     public CommonTaskConfig getTaskConfig(final TaskConfiguration taskConfiguration) {
+        final String workingDirecetoryName = taskConfiguration.getString(CommonTaskKeys.WORKING_DIRECTORY.getParameterKey());
+        final File workingDirectory = new File(workingDirecetoryName);
         final String filePatterns = taskConfiguration.getString(CommonTaskKeys.FILE_PATTERNS.getParameterKey());
         final String artifactPath = taskConfiguration.getString(CommonTaskKeys.REPOSITORY_PATH.getParameterKey(), "");
         final boolean rescanFailures = taskConfiguration.getBoolean(CommonTaskKeys.REDO_FAILURES.getParameterKey(), true);
@@ -150,7 +158,7 @@ public class CommonRepositoryTaskHelper {
 
         final String artifactCutoff = taskConfiguration.getString(CommonTaskKeys.OLD_ARTIFACT_CUTOFF.getParameterKey());
         final DateTime oldArtifactCutoffDate = dateTimeParser.convertFromStringToDate(artifactCutoff);
-        return new CommonTaskConfig(filePatterns, artifactPath, oldArtifactCutoffDate, rescanFailures, alwaysScan, limit);
+        return new CommonTaskConfig(workingDirectory, filePatterns, artifactPath, oldArtifactCutoffDate, rescanFailures, alwaysScan, limit);
     }
 
     // TODO make query building easier for the tasks
@@ -164,19 +172,8 @@ public class CommonRepositoryTaskHelper {
             baseQueryBuilder.and(lastModifiedPath + " > " + dateTimeParser.convertFromDateTimeToMillis(artifactCutoffDate));
         }
 
-        //        final String repositoryPathRegex = commonTaskConfig.getRepositoryPathRegex();
-        //        if (StringUtils.isNotBlank(repositoryPathRegex)) {
-        //            baseQueryBuilder.and("name MATCHES '" + repositoryPathRegex + "'");
-        //        }
-
         final String statusSuccess = createSuccessWhereStatement(commonTaskConfig.isRescanFailures(), commonTaskConfig.isAlwaysScan());
         baseQueryBuilder.and(statusSuccess);
-
-        //        final List<String> extensions = Arrays.stream(commonTaskConfig.getExtensionPatterns().split(","))
-        //                                            .map(String::trim)
-        //                                            .collect(Collectors.toList());
-        //        final String extensionsCheck = createExtensionsWhereStatement(extensions);
-        //        baseQueryBuilder.and(extensionsCheck);
 
         return baseQueryBuilder.build();
     }

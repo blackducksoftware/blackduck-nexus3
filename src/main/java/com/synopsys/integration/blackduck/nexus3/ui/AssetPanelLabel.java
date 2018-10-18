@@ -4,6 +4,7 @@ public enum AssetPanelLabel {
     TASK_STATUS("status"),
     BLACKDUCK_URL("upload_url"),
     TASK_FINISHED_TIME("completed_by"),
+    ASSET_ORIGIN_ID("origin_id"),
     OVERALL_POLICY_STATUS("policy_status_overall"),
     POLICY_STATUS("policy_status"),
     LOW_VULNERABILITY("vulnerabilities_low"),

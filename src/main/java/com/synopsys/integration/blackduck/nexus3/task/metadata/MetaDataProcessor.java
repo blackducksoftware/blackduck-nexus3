@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
 import com.synopsys.integration.blackduck.api.generated.enumeration.RiskCountType;
+import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
 import com.synopsys.integration.blackduck.nexus3.task.CommonRepositoryTaskHelper;
@@ -46,7 +47,21 @@ public class MetaDataProcessor {
         return projectService.getComponentsForProjectVersion(name, version);
     }
 
-    public void updateAssetVulnerabilityCounts(final List<RiskCountView> vulnerabilities, final VulnerabilityLevels vulnerabilityLevels) {
+    public List<VersionBomComponentView> checkAssetVulnerabilities(final ProjectVersionView projectVersionView) throws IntegrationException {
+        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+        final ProjectService projectService = hubServicesFactory.createProjectService();
+        return projectService.getComponentsForProjectVersion(projectVersionView);
+    }
+
+    public void addAllAssetVulnerabilityCounts(final List<RiskCountView> vulnerabilities, final VulnerabilityLevels vulnerabilityLevels) {
+        for (final RiskCountView riskCountView : vulnerabilities) {
+            final String riskCountType = riskCountView.countType.name();
+            final int riskCount = riskCountView.count;
+            vulnerabilityLevels.addXVulnerabilities(riskCountType, riskCount);
+        }
+    }
+
+    public void addMaxAssetVulnerabilityCounts(final List<RiskCountView> vulnerabilities, final VulnerabilityLevels vulnerabilityLevels) {
         String highestSeverity = "";
         for (final RiskCountView vulnerability : vulnerabilities) {
             final RiskCountType severity = vulnerability.countType;

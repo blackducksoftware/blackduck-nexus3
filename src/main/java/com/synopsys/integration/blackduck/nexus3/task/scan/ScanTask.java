@@ -109,9 +109,8 @@ public class ScanTask extends RepositoryTaskSupport {
         } catch (final EncryptionException e) {
             throw new TaskInterruptedException("Problem creating ScanJobManager: " + e.getMessage(), true);
         }
-
-        final String workingDirectory = getConfiguration().getString(CommonTaskKeys.WORKING_DIRECTORY.getParameterKey(), ScanTaskDescriptor.DEFAULT_WORKING_DIRECTORY);
-        final File workingBlackDuckDirectory = new File(workingDirectory, "blackduck");
+        
+        final File workingBlackDuckDirectory = new File(commonTaskConfig.getWorkingDirectory(), "blackduck");
         final File tempFileStorage = new File(workingBlackDuckDirectory, "temp");
         final File outputDirectory = new File(workingBlackDuckDirectory, "output");
         try {
@@ -130,41 +129,13 @@ public class ScanTask extends RepositoryTaskSupport {
             for (final Asset asset : foundAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
                 final String name = assetWrapper.getName();
-                final String version = assetWrapper.getVersion();
 
                 if (commonRepositoryTaskHelper.skipAssetProcessing(assetWrapper, commonTaskConfig)) {
                     logger.debug("Binary file did not meet requirements for scan: {}", name);
                     continue;
                 }
 
-                logger.info("Scanning item: {}", name);
-                final File binaryFile;
-                try {
-                    binaryFile = assetWrapper.getBinaryBlobFile(tempFileStorage);
-                } catch (final IOException e) {
-                    logger.debug("Exception thrown: {}", e.getMessage());
-                    throw new TaskInterruptedException("Error saving blob binary to file", true);
-                }
-
-                TaskStatus taskStatus = TaskStatus.FAILURE;
-                try {
-                    final ScanJob scanJob = createScanJob(hubServerConfig, workingBlackDuckDirectory, outputDirectory, name, version, binaryFile.getAbsolutePath());
-                    final ScanJobOutput scanJobOutput = scanJobManager.executeScans(scanJob);
-                    final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
-                    final ScanCommandOutput scanCommandResult = scanOutputs.get(SCAN_OUTPUT_LOCATION);
-                    if (Result.SUCCESS == scanCommandResult.getResult()) {
-                        taskStatus = TaskStatus.PENDING;
-                    }
-                } catch (final IOException | IntegrationException e) {
-                    logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
-                } finally {
-                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, taskStatus.name());
-                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
-                    logger.debug("Updating asset panel");
-                    assetWrapper.updateAsset();
-                    scannedAssets.add(assetWrapper);
-                }
-
+                performScan(hubServerConfig, workingBlackDuckDirectory, outputDirectory, tempFileStorage, assetWrapper, scanJobManager, scannedAssets);
             }
 
             try {
@@ -182,6 +153,40 @@ public class ScanTask extends RepositoryTaskSupport {
 
     }
 
+    private void performScan(final HubServerConfig hubServerConfig, final File workingBlackDuckDirectory, final File outputDirectory, final File tempFileStorage, final AssetWrapper assetWrapper, final ScanJobManager scanJobManager,
+        final Set<AssetWrapper> scannedAssets) {
+        final String name = assetWrapper.getName();
+        final String version = assetWrapper.getVersion();
+
+        logger.info("Scanning item: {}", name);
+        final File binaryFile;
+        try {
+            binaryFile = assetWrapper.getBinaryBlobFile(tempFileStorage);
+        } catch (final IOException e) {
+            logger.debug("Exception thrown: {}", e.getMessage());
+            throw new TaskInterruptedException("Error saving blob binary to file", true);
+        }
+
+        TaskStatus taskStatus = TaskStatus.FAILURE;
+        try {
+            final ScanJob scanJob = createScanJob(hubServerConfig, workingBlackDuckDirectory, outputDirectory, name, version, binaryFile.getAbsolutePath());
+            final ScanJobOutput scanJobOutput = scanJobManager.executeScans(scanJob);
+            final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
+            final ScanCommandOutput scanCommandResult = scanOutputs.get(SCAN_OUTPUT_LOCATION);
+            if (Result.SUCCESS == scanCommandResult.getResult()) {
+                taskStatus = TaskStatus.PENDING;
+                scannedAssets.add(assetWrapper);
+            }
+        } catch (final IOException | IntegrationException e) {
+            logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
+        } finally {
+            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, taskStatus.name());
+            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+            logger.debug("Updating asset panel");
+            assetWrapper.updateAsset();
+        }
+    }
+
     private void updatePanel(final Set<AssetWrapper> assetWrappers) {
         for (final AssetWrapper assetWrapper : assetWrappers) {
             final String name = assetWrapper.getName();
@@ -197,7 +202,7 @@ public class ScanTask extends RepositoryTaskSupport {
                 for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
                     logger.debug("Adding vulnerable component {}, version {}", versionBomComponentView.componentName, versionBomComponentView.componentVersion);
                     final List<RiskCountView> vulnerabilities = versionBomComponentView.securityRiskProfile.counts;
-                    metaDataProcessor.updateAssetVulnerabilityCounts(vulnerabilities, vulnerabilityLevels);
+                    metaDataProcessor.addMaxAssetVulnerabilityCounts(vulnerabilities, vulnerabilityLevels);
                 }
                 logger.debug("Updating asset with Vulnerability info.");
                 metaDataProcessor.updateAssetVulnerabilityData(vulnerabilityLevels, assetWrapper);
