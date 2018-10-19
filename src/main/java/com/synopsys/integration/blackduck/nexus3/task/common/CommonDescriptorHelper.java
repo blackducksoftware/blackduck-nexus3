@@ -1,4 +1,4 @@
-package com.synopsys.integration.blackduck.nexus3.task;
+package com.synopsys.integration.blackduck.nexus3.task.common;
 
 import org.sonatype.nexus.formfields.FormField;
 import org.sonatype.nexus.formfields.NumberTextFormField;

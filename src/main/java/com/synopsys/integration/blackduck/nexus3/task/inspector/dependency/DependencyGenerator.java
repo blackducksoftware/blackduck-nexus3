@@ -17,7 +17,7 @@ import com.synopsys.integration.hub.bdio.model.externalid.ExternalIdFactory;
 @Named
 @Singleton
 public class DependencyGenerator {
-    public static final Forge YUM_FORGE = new Forge("/", "/", "@centos");
+    public static final Forge YUM_FORGE = new Forge("/", "/", "@Centos");
     private final ExternalIdFactory externalIdFactory;
 
     public DependencyGenerator() {

@@ -65,16 +65,16 @@ public class BlackDuckCapabilityDescriptor extends CapabilityDescriptorSupport<B
     private static final String LABEL_PROXY_PORT = "Proxy Port";
     private static final String LABEL_PROXY_USERNAME = "Proxy Username";
 
-    private static final StringTextFormField blackDuckUrlField = new StringTextFormField(BlackDuckConfigKeys.BLACKDUCK_URL.getKey(), LABEL_BLACKDUCK_SERVER_URL, DESCRIPTION_BLACKDUCK_SERVER_URL, FormField.MANDATORY);
-    private static final StringTextFormField blackDuckApiKey = new StringTextFormField(BlackDuckConfigKeys.BLACKDUCK_API_KEY.getKey(), LABEL_BLACKDUCK_API_KEY, DESCRIPTION_BLACKDUCK_API_KEY, FormField.MANDATORY);
-    private static final StringTextFormField timeoutField = new StringTextFormField(BlackDuckConfigKeys.BLACKDUCK_TIMEOUT.getKey(), LABEL_CONNECTION_TIMEOUT, DESCRIPTION_BLACKDUCK_TIMEOUT, FormField.MANDATORY)
+    private static final StringTextFormField blackDuckUrlField = new StringTextFormField(BlackDuckCapabilityConfigKeys.BLACKDUCK_URL.getKey(), LABEL_BLACKDUCK_SERVER_URL, DESCRIPTION_BLACKDUCK_SERVER_URL, FormField.MANDATORY);
+    private static final StringTextFormField blackDuckApiKey = new StringTextFormField(BlackDuckCapabilityConfigKeys.BLACKDUCK_API_KEY.getKey(), LABEL_BLACKDUCK_API_KEY, DESCRIPTION_BLACKDUCK_API_KEY, FormField.MANDATORY);
+    private static final StringTextFormField timeoutField = new StringTextFormField(BlackDuckCapabilityConfigKeys.BLACKDUCK_TIMEOUT.getKey(), LABEL_CONNECTION_TIMEOUT, DESCRIPTION_BLACKDUCK_TIMEOUT, FormField.MANDATORY)
                                                                 .withInitialValue(DEFAULT_BLACKDUCK_TIMEOUT);
-    private static final CheckboxFormField trustCert = new CheckboxFormField(BlackDuckConfigKeys.BLACKDUCK_TRUST_CERT.getKey(), LABEL_TRUST_BLACKDUCK_SSL_CERTIFICATE, DESCRIPTION_BLACKDUCK_TRUST_CERT, FormField.OPTIONAL);
+    private static final CheckboxFormField trustCert = new CheckboxFormField(BlackDuckCapabilityConfigKeys.BLACKDUCK_TRUST_CERT.getKey(), LABEL_TRUST_BLACKDUCK_SSL_CERTIFICATE, DESCRIPTION_BLACKDUCK_TRUST_CERT, FormField.OPTIONAL);
 
-    private static final StringTextFormField proxyHostField = new StringTextFormField(BlackDuckConfigKeys.BLACKDUCK_PROXY_HOST.getKey(), LABEL_PROXY_HOST, DESCRIPTION_PROXY_HOST, FormField.OPTIONAL);
-    private static final StringTextFormField proxyPortField = new StringTextFormField(BlackDuckConfigKeys.BLACKDUCK_PROXY_PORT.getKey(), LABEL_PROXY_PORT, DESCRIPTION_PROXY_PORT, FormField.OPTIONAL);
-    private static final StringTextFormField proxyUsernameField = new StringTextFormField(BlackDuckConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey(), LABEL_PROXY_USERNAME, DESCRIPTION_PROXY_USERNAME, FormField.OPTIONAL);
-    private static final PasswordFormField proxyPasswordField = new PasswordFormField(BlackDuckConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey(), LABEL_PROXY_PASSWORD, DESCRIPTION_PROXY_PASSWORD, FormField.OPTIONAL);
+    private static final StringTextFormField proxyHostField = new StringTextFormField(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_HOST.getKey(), LABEL_PROXY_HOST, DESCRIPTION_PROXY_HOST, FormField.OPTIONAL);
+    private static final StringTextFormField proxyPortField = new StringTextFormField(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PORT.getKey(), LABEL_PROXY_PORT, DESCRIPTION_PROXY_PORT, FormField.OPTIONAL);
+    private static final StringTextFormField proxyUsernameField = new StringTextFormField(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey(), LABEL_PROXY_USERNAME, DESCRIPTION_PROXY_USERNAME, FormField.OPTIONAL);
+    private static final PasswordFormField proxyPasswordField = new PasswordFormField(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey(), LABEL_PROXY_PASSWORD, DESCRIPTION_PROXY_PASSWORD, FormField.OPTIONAL);
 
     @Override
     public CapabilityType type() {

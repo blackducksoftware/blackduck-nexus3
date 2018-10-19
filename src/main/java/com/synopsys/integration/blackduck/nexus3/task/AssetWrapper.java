@@ -1,4 +1,4 @@
-package com.synopsys.integration.blackduck.nexus3.util;
+package com.synopsys.integration.blackduck.nexus3.task;
 
 import java.io.File;
 import java.io.IOException;

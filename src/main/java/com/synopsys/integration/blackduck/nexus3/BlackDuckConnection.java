@@ -1,4 +1,4 @@
-package com.synopsys.integration.blackduck.nexus3.util;
+package com.synopsys.integration.blackduck.nexus3;
 
 import javax.inject.Inject;
 import javax.inject.Named;

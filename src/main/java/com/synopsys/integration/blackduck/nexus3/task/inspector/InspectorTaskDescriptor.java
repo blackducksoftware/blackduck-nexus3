@@ -7,7 +7,7 @@ import org.sonatype.nexus.formfields.FormField;
 import org.sonatype.nexus.repository.types.ProxyType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
-import com.synopsys.integration.blackduck.nexus3.task.CommonDescriptorHelper;
+import com.synopsys.integration.blackduck.nexus3.task.common.CommonDescriptorHelper;
 
 @Named
 @Singleton
@@ -36,4 +36,5 @@ public class InspectorTaskDescriptor extends TaskDescriptorSupport {
         };
         return fields;
     }
+
 }

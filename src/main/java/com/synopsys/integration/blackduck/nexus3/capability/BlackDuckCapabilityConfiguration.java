@@ -39,10 +39,10 @@ public class BlackDuckCapabilityConfiguration extends CapabilityConfigurationSup
 
     public HubServerConfig createBlackDuckServerConfig() {
         final HubServerConfigBuilder hubServerConfigBuilder = new HubServerConfigBuilder();
-        hubServerConfigBuilder.setUrl(capabilitySettings.get(BlackDuckConfigKeys.BLACKDUCK_URL.getKey()));
-        hubServerConfigBuilder.setTimeout(capabilitySettings.get(BlackDuckConfigKeys.BLACKDUCK_TIMEOUT.getKey()));
-        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(BlackDuckConfigKeys.BLACKDUCK_TRUST_CERT.getKey()));
-        hubServerConfigBuilder.setApiToken(capabilitySettings.get(BlackDuckConfigKeys.BLACKDUCK_API_KEY.getKey()));
+        hubServerConfigBuilder.setUrl(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_URL.getKey()));
+        hubServerConfigBuilder.setTimeout(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TIMEOUT.getKey()));
+        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TRUST_CERT.getKey()));
+        hubServerConfigBuilder.setApiToken(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_API_KEY.getKey()));
         return hubServerConfigBuilder.build();
     }
 

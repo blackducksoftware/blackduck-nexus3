@@ -1,4 +1,4 @@
-package com.synopsys.integration.blackduck.nexus3.task.metadata;
+package com.synopsys.integration.blackduck.nexus3.task.common;
 
 import java.util.List;
 
@@ -15,9 +15,9 @@ import com.synopsys.integration.blackduck.api.generated.enumeration.RiskCountTyp
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
-import com.synopsys.integration.blackduck.nexus3.task.CommonRepositoryTaskHelper;
+import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
+import com.synopsys.integration.blackduck.nexus3.task.metadata.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
-import com.synopsys.integration.blackduck.nexus3.util.AssetWrapper;
 import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
@@ -25,20 +25,19 @@ import com.synopsys.integration.exception.IntegrationException;
 
 @Named
 @Singleton
-public class MetaDataProcessor {
+public class CommonMetaDataProcessor {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
 
     @Inject
-    public MetaDataProcessor(final CommonRepositoryTaskHelper commonRepositoryTaskHelper) {
+    public CommonMetaDataProcessor(final CommonRepositoryTaskHelper commonRepositoryTaskHelper) {
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
     }
 
-    public void updateAssetVulnerabilityData(final VulnerabilityLevels vulnerabilityLevels, final AssetWrapper assetWrapper) {
+    public void setAssetVulnerabilityData(final VulnerabilityLevels vulnerabilityLevels, final AssetWrapper assetWrapper) {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.HIGH_VULNERABILITY, String.valueOf(vulnerabilityLevels.getHighVulnerabilityCount()));
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.MEDIUM_VULNERABILITY, String.valueOf(vulnerabilityLevels.getMediumVulnerabilityCount()));
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.LOW_VULNERABILITY, String.valueOf(vulnerabilityLevels.getLowVulnerabilityCount()));
-        assetWrapper.updateAsset();
     }
 
     public List<VersionBomComponentView> checkAssetVulnerabilities(final String name, final String version) throws IntegrationException {
@@ -84,23 +83,20 @@ public class MetaDataProcessor {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.HIGH_VULNERABILITY);
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.MEDIUM_VULNERABILITY);
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.LOW_VULNERABILITY);
-        assetWrapper.updateAsset();
     }
 
-    public void updateAssetPolicyData(final VersionBomPolicyStatusView policyStatusView, final AssetWrapper assetWrapper) {
+    public void setAssetPolicyData(final VersionBomPolicyStatusView policyStatusView, final AssetWrapper assetWrapper) {
         final PolicyStatusDescription policyStatusDescription = new PolicyStatusDescription(policyStatusView);
         final String policyStatus = policyStatusDescription.getPolicyStatusMessage();
         final String overallStatus = policyStatusView.overallStatus.prettyPrint();
 
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.POLICY_STATUS, policyStatus);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, overallStatus);
-        assetWrapper.updateAsset();
     }
 
     public void removePolicyData(final AssetWrapper assetWrapper) {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.POLICY_STATUS);
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS);
-        assetWrapper.updateAsset();
     }
 
     public VersionBomPolicyStatusView checkAssetPolicy(final String name, final String version) throws IntegrationException {
@@ -108,6 +104,18 @@ public class MetaDataProcessor {
         final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
         final ProjectService projectService = hubServicesFactory.createProjectService();
         return projectService.getPolicyStatusForProjectAndVersion(name, version);
+    }
+
+    public VersionBomPolicyStatusView checkAssetPolicy(final ProjectVersionView projectVersionView) throws IntegrationException {
+        logger.info("Checking metadata of {}", projectVersionView.versionName);
+        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+        final ProjectService projectService = hubServicesFactory.createProjectService();
+        return projectService.getPolicyStatusForVersion(projectVersionView);
+    }
+
+    public void removeAllMetaData(final AssetWrapper assetWrapper) {
+        removePolicyData(assetWrapper);
+        removeAssetVulnerabilityData(assetWrapper);
     }
 
 }

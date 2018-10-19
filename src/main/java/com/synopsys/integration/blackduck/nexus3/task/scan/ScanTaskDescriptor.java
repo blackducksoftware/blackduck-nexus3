@@ -32,29 +32,27 @@ import org.sonatype.nexus.formfields.NumberTextFormField;
 import org.sonatype.nexus.repository.types.ProxyType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
-import com.synopsys.integration.blackduck.nexus3.task.CommonDescriptorHelper;
-import com.synopsys.integration.blackduck.nexus3.task.CommonTaskKeys;
+import com.synopsys.integration.blackduck.nexus3.task.common.CommonDescriptorHelper;
 
 @Named
 @Singleton
 public class ScanTaskDescriptor extends TaskDescriptorSupport {
     public static final String BLACK_DUCK_SCAN_TASK_ID = "blackduck.scan";
     public static final String BLACK_DUCK_SCAN_TASK_NAME = "BlackDuck - Repository Scan";
-
     public static final int DEFAULT_SCAN_MEMORY = 4096;
-
+    public static final String KEY_SCAN_MEMORY = "blackduck.memory";
+    public static final String KEY_REDO_FAILURES = "blackduck.redo.failures";
+    public static final String KEY_ALWAYS_CHECK = "blackduck.check.always";
     private static final String LABEL_SCAN_MEMORY = "Scan memory Allocation";
     private static final String LABEL_ALWAYS_SCAN = "Scan Successful and Pending Artifacts";
     private static final String LABEL_RESCAN_FAILURE = "Scan Failed Artifacts";
-
     private static final String DESCRIPTION_SCAN_MEMORY = "Specify the memory, in megabytes, you would like to allocate for the BlackDuck Scan. Default: 4096";
     private static final String DESCRIPTION_ALWAYS_SCAN = "Scan Successful and Pending artifacts as long as they are not too old and match the file pattern";
     private static final String DESCRIPTION_RESCAN_FAILURE = "Scan artifacts if the previous scan result was failed";
-
-    private static final NumberTextFormField FIELD_SCAN_MEMORY = new NumberTextFormField(CommonTaskKeys.MAX_MEMORY.getParameterKey(), LABEL_SCAN_MEMORY, DESCRIPTION_SCAN_MEMORY, FormField.MANDATORY)
+    private static final NumberTextFormField FIELD_SCAN_MEMORY = new NumberTextFormField(KEY_SCAN_MEMORY, LABEL_SCAN_MEMORY, DESCRIPTION_SCAN_MEMORY, FormField.MANDATORY)
                                                                      .withInitialValue(DEFAULT_SCAN_MEMORY);
-    private static final CheckboxFormField FIELD_ALWAYS_SCAN = new CheckboxFormField(CommonTaskKeys.ALWAYS_CHECK.getParameterKey(), LABEL_ALWAYS_SCAN, DESCRIPTION_ALWAYS_SCAN, FormField.OPTIONAL);
-    private static final CheckboxFormField FIELD_RESCAN_FAILURE = new CheckboxFormField(CommonTaskKeys.REDO_FAILURES.getParameterKey(), LABEL_RESCAN_FAILURE, DESCRIPTION_RESCAN_FAILURE, FormField.OPTIONAL);
+    private static final CheckboxFormField FIELD_ALWAYS_SCAN = new CheckboxFormField(KEY_ALWAYS_CHECK, LABEL_ALWAYS_SCAN, DESCRIPTION_ALWAYS_SCAN, FormField.OPTIONAL);
+    private static final CheckboxFormField FIELD_RESCAN_FAILURE = new CheckboxFormField(KEY_REDO_FAILURES, LABEL_RESCAN_FAILURE, DESCRIPTION_RESCAN_FAILURE, FormField.OPTIONAL);
 
     public ScanTaskDescriptor() {
         super(BLACK_DUCK_SCAN_TASK_ID,

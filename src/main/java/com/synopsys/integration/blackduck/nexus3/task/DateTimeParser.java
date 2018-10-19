@@ -1,4 +1,4 @@
-package com.synopsys.integration.blackduck.nexus3.util;
+package com.synopsys.integration.blackduck.nexus3.task;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
