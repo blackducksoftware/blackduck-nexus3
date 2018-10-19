@@ -1,6 +1,7 @@
 package com.synopsys.integration.blackduck.nexus3.task;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
@@ -9,6 +10,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +20,9 @@ import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskConfiguration;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
+import com.synopsys.integration.blackduck.api.generated.view.CodeLocationView;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
+import com.synopsys.integration.blackduck.api.view.ScanSummaryView;
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
@@ -27,6 +31,7 @@ import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.nexus3.util.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.util.BlackDuckConnection;
 import com.synopsys.integration.blackduck.nexus3.util.DateTimeParser;
+import com.synopsys.integration.blackduck.service.CodeLocationService;
 import com.synopsys.integration.blackduck.service.HubService;
 import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
@@ -115,26 +120,42 @@ public class CommonRepositoryTaskHelper {
         return dbXmlPath + assetPanelLabel.getLabel();
     }
 
-    public String verifyUpload(final String name, final String version) {
+    public String verifyUpload(final List<String> codeLocationNames, final String name, final String version) {
         try {
-            final HubServicesFactory hubServicesFactory = getHubServicesFactory();
-            final ScanStatusService scanStatusService = hubServicesFactory.createScanStatusService(ScanStatusService.DEFAULT_TIMEOUT);
-            scanStatusService.assertScansFinished(name, version);
-            final ProjectService projectService = hubServicesFactory.createProjectService();
+            final ProjectService projectService = getHubServicesFactory().createProjectService();
             final ProjectVersionWrapper projectVersionWrapper = projectService.getProjectVersion(name, version);
-            return verifyUpload(projectVersionWrapper.getProjectVersionView());
-        } catch (final InterruptedException | IntegrationException e) {
+            return verifyUpload(codeLocationNames, projectVersionWrapper.getProjectVersionView());
+        } catch (final IntegrationException e) {
             logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
             return "Error retrieving URL: " + e.getMessage();
         }
     }
 
-    public String verifyUpload(final ProjectVersionView projectVersionView) {
+    public String verifyUpload(final List<String> codeLocationNames, final ProjectVersionView projectVersionView) {
         logger.debug("Checking that project exists in BlackDuck.");
         try {
+            final CodeLocationService codeLocationService = getHubServicesFactory().createCodeLocationService();
             final HubService hubService = getHubServicesFactory().createHubService();
+
+            final List<CodeLocationView> allCodeLocations = new ArrayList<>();
+            for (final String codeLocationName : codeLocationNames) {
+                final CodeLocationView codeLocationView = codeLocationService.getCodeLocationByName(codeLocationName);
+                allCodeLocations.add(codeLocationView);
+            }
+            final List<ScanSummaryView> scanSummaryViews = new ArrayList<>();
+            for (final CodeLocationView codeLocationView : allCodeLocations) {
+                final String scansLink = hubService.getFirstLinkSafely(codeLocationView, CodeLocationView.SCANS_LINK);
+                if (StringUtils.isNotBlank(scansLink)) {
+                    final List<ScanSummaryView> codeLocationScanSummaryViews = hubService.getResponses(scansLink, ScanSummaryView.class, true);
+                    scanSummaryViews.addAll(codeLocationScanSummaryViews);
+                }
+            }
+
+            final ScanStatusService scanStatusService = getHubServicesFactory().createScanStatusService(ScanStatusService.DEFAULT_TIMEOUT);
+            scanStatusService.assertScansFinished(scanSummaryViews);
+
             return hubService.getFirstLink(projectVersionView, ProjectVersionView.COMPONENTS_LINK);
-        } catch (final IntegrationException e) {
+        } catch (final IntegrationException | InterruptedException e) {
             logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
             return "Error retrieving URL: " + e.getMessage();
         }

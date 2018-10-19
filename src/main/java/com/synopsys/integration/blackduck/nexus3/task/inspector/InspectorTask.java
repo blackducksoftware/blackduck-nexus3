@@ -2,6 +2,7 @@ package com.synopsys.integration.blackduck.nexus3.task.inspector;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -128,6 +129,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         final String projectName = repository.getName();
         final String projectVersion = "Nexus-3-Plugin";
         final ProjectVersionView projectVersionView;
+        final String codeLocationName = String.join("/", projectName, projectVersion, dependencyType.getRepositoryType());
         try {
             logger.debug("Creating project in BlackDuck if needed: {}", projectName);
             final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
@@ -137,7 +139,6 @@ public class InspectorTask extends RepositoryTaskSupport {
             projectRequestBuilder.setVersionName(projectVersion);
             final ProjectVersionWrapper projectVersionWrapper = projectService.getProjectVersionAndCreateIfNeeded(projectRequestBuilder.buildObject());
             projectVersionView = projectVersionWrapper.getProjectVersionView();
-            final String codeLocationName = String.join("/", projectName, projectVersion, dependencyType.getRepositoryType());
             final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, projectName, projectVersion);
             final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, projectName, projectVersion, projectRoot, mutableDependencyGraph);
             sendInspectorData(simpleBdioDocument, simpleBdioFactory, workingDirectory);
@@ -149,7 +150,7 @@ public class InspectorTask extends RepositoryTaskSupport {
             throw new TaskInterruptedException("Couldn't save inspection data", true);
         }
 
-        final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(projectVersionView);
+        final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(Arrays.asList(codeLocationName), projectVersionView);
         final TaskStatus status = uploadUrl.startsWith("http") ? TaskStatus.SUCCESS : TaskStatus.FAILURE;
         updateStatus(projectVersionView, status, assetWrapperMap);
     }
