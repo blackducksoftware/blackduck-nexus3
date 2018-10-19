@@ -49,6 +49,7 @@ import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
+import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
@@ -73,13 +74,16 @@ public class ScanTask extends RepositoryTaskSupport {
     private final DateTimeParser dateTimeParser;
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
     private final ScanMetaDataProcessor scanMetaDataProcessor;
+    private final CommonMetaDataProcessor commonMetaDataProcessor;
 
     @Inject
-    public ScanTask(final QueryManager queryManager, final DateTimeParser dateTimeParser, final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final ScanMetaDataProcessor scanMetaDataProcessor) {
+    public ScanTask(final QueryManager queryManager, final DateTimeParser dateTimeParser, final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final ScanMetaDataProcessor scanMetaDataProcessor,
+        final CommonMetaDataProcessor commonMetaDataProcessor) {
         this.queryManager = queryManager;
         this.dateTimeParser = dateTimeParser;
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
         this.scanMetaDataProcessor = scanMetaDataProcessor;
+        this.commonMetaDataProcessor = commonMetaDataProcessor;
     }
 
     @Override
@@ -156,6 +160,8 @@ public class ScanTask extends RepositoryTaskSupport {
                     final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(projectVersionWrapper.getProjectVersionView());
                     scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, uploadUrl);
                 } catch (final IntegrationException e) {
+                    commonMetaDataProcessor.removeAllMetaData(assetWrapper);
+                    assetWrapper.updateAsset();
                     logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
                 }
             }
@@ -188,6 +194,7 @@ public class ScanTask extends RepositoryTaskSupport {
                 scannedAssets.add(assetWrapper);
             }
         } catch (final IOException | IntegrationException e) {
+            commonMetaDataProcessor.removeAllMetaData(assetWrapper);
             logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
         } finally {
             assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, taskStatus.name());

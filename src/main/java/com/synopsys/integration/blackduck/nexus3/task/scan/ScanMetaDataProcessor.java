@@ -2,6 +2,10 @@ package com.synopsys.integration.blackduck.nexus3.task.scan;
 
 import java.util.List;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,10 +19,13 @@ import com.synopsys.integration.blackduck.nexus3.task.metadata.VulnerabilityLeve
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.exception.IntegrationException;
 
+@Named
+@Singleton
 public class ScanMetaDataProcessor {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final CommonMetaDataProcessor commonMetaDataProcessor;
 
+    @Inject
     public ScanMetaDataProcessor(final CommonMetaDataProcessor commonMetaDataProcessor) {
         this.commonMetaDataProcessor = commonMetaDataProcessor;
     }

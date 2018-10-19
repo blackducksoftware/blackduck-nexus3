@@ -103,7 +103,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         }
 
         if (resultsFound) {
-            logger.info("Creating hub project.");
+            logger.info("Creating BlackDuck project.");
             uploadToBlackDuck(repository, mutableDependencyGraph, simpleBdioFactory, dependencyType.get(), assetWrapperMap);
         } else {
             logger.warn("No assets found with set criteria.");

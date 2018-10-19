@@ -55,7 +55,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
         final Query filteredAssets = createFilteredQuery(Optional.empty());
         PagedResult<Asset> pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, filteredAssets);
         final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
-        final boolean isProxyRepo = !proxyType.equals(repository.getType());
+        final boolean isProxyRepo = proxyType.equals(repository.getType());
         while (pagedAssets.hasResults()) {
             logger.debug("Found items in the DB.");
             for (final Asset asset : pagedAssets.getTypeList()) {
