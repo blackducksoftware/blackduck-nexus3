@@ -30,7 +30,7 @@ import javax.inject.Named;
 
 import org.sonatype.nexus.capability.CapabilitySupport;
 
-import com.synopsys.integration.blackduck.nexus3.util.BlackDuckConnection;
+import com.synopsys.integration.blackduck.nexus3.BlackDuckConnection;
 
 @Named(BlackDuckCapabilityDescriptor.CAPABILITY_ID)
 public class BlackDuckCapability extends CapabilitySupport<BlackDuckCapabilityConfiguration> {
@@ -48,7 +48,7 @@ public class BlackDuckCapability extends CapabilitySupport<BlackDuckCapabilityCo
 
     @Override
     public boolean isPasswordProperty(final String propertyName) {
-        return BlackDuckConfigKeys.passwordFields().stream().anyMatch(field -> field.getKey().equals(propertyName));
+        return BlackDuckCapabilityConfigKeys.passwordFields().stream().anyMatch(field -> field.getKey().equals(propertyName));
     }
 
     @Override

@@ -21,26 +21,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.blackduck.nexus3.task;
+package com.synopsys.integration.blackduck.nexus3.capability;
 
-public enum CommonTaskKeys {
-    FILE_PATTERNS("blackduck.file.pattern.match.wildcards"),
-    WORKING_DIRECTORY("blackduck.working.directory"),
-    OLD_ARTIFACT_CUTOFF("blackduck.artifact.cutoff"),
-    REPOSITORY_PATH("blackduck.nexus.artifact.path"),
-    PAGING_SIZE("blackduck.paging.size"),
-    MAX_MEMORY("blackduck.memory"),
-    REDO_FAILURES("blackduck.redo.failures"),
-    ALWAYS_CHECK("blackduck.check.always");
+import java.util.Arrays;
+import java.util.List;
 
-    private final String parameterKey;
+public enum BlackDuckCapabilityConfigKeys {
+    BLACKDUCK_TRUST_CERT("blackduck.trust.cert"),
+    BLACKDUCK_PROXY_HOST("blackduck.proxy.host"),
+    BLACKDUCK_PROXY_PORT("blackduck.proxy.port"),
+    BLACKDUCK_PROXY_USERNAME("blackduck.proxy.username"),
+    BLACKDUCK_PROXY_PASSWORD("blackduck.proxy.password"),
+    BLACKDUCK_TIMEOUT("blackduck.timeout"),
+    BLACKDUCK_API_KEY("blackduck.api.key"),
+    BLACKDUCK_URL("blackduck.url");
 
-    CommonTaskKeys(final String parameterKey) {
-        this.parameterKey = parameterKey;
+    private final String key;
+
+    BlackDuckCapabilityConfigKeys(final String key) {
+        this.key = key;
     }
 
-    public String getParameterKey() {
-        return parameterKey;
+    public static List<BlackDuckCapabilityConfigKeys> passwordFields() {
+        return Arrays.asList(BLACKDUCK_API_KEY, BLACKDUCK_PROXY_PASSWORD);
+    }
+
+    public String getKey() {
+        return key;
     }
 
 }
