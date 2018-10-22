@@ -23,7 +23,7 @@ apply plugin: 'com.blackducksoftware.integration.solution'
 //}
 
 dependencies {
-    compile 'com.blackducksoftware.integration:hub-common:38.1.0'
+    compile 'com.blackducksoftware.integration:hub-common:38.3.3'
 
     compile 'org.sonatype.nexus:nexus-plugin-api:3.13.0-01'
     compile 'org.sonatype.nexus:nexus-repository:3.13.0-01'
