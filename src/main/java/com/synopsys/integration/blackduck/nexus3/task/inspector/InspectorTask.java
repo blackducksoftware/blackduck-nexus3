@@ -151,7 +151,6 @@ public class InspectorTask extends RepositoryTaskSupport {
             final ProjectVersionWrapper projectVersionWrapper = projectService.getProjectVersionAndCreateIfNeeded(projectRequestBuilder.buildObject());
             projectVersionView = projectVersionWrapper.getProjectVersionView();
             final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, projectName, InspectorMetaDataProcessor.PROXY_INSPECTION_VERSION);
-            // TODO use the code location to check if everything has been uploaded
             final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, projectName, InspectorMetaDataProcessor.PROXY_INSPECTION_VERSION, projectRoot, mutableDependencyGraph);
             sendInspectorData(simpleBdioDocument, simpleBdioFactory);
         } catch (final IntegrationException e) {
