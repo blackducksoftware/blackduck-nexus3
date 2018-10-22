@@ -134,7 +134,7 @@ public class ScanTask extends RepositoryTaskSupport {
                 final String name = assetWrapper.getName();
                 final String version = assetWrapper.getVersion();
                 final String repoName = repository.getName();
-                final String codeLocationName = String.join("/", name, version, repoName, "Nexus3Scan");
+                final String codeLocationName = String.join("/", "Nexus3Scan", repoName, name, version);
 
                 if (commonRepositoryTaskHelper.skipAssetProcessing(assetWrapper, taskConfiguration())) {
                     logger.debug("Binary file did not meet requirements for scan: {}", name);
