@@ -63,8 +63,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
 
     @Inject
     public MetaDataTask(final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final QueryManager queryManager, final CommonMetaDataProcessor commonMetaDataProcessor, final InspectorMetaDataProcessor inspectorMetaDataProcessor,
-        final ScanMetaDataProcessor scanMetaDataProcessor,
-        @Named(ProxyType.NAME) final Type proxyType) {
+        final ScanMetaDataProcessor scanMetaDataProcessor, @Named(ProxyType.NAME) final Type proxyType) {
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
         this.queryManager = queryManager;
         this.commonMetaDataProcessor = commonMetaDataProcessor;

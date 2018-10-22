@@ -27,7 +27,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.sonatype.nexus.formfields.FormField;
-import org.sonatype.nexus.repository.types.ProxyType;
+import org.sonatype.nexus.repository.types.GroupType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonDescriptorHelper;
@@ -50,7 +50,7 @@ public class InspectorTaskDescriptor extends TaskDescriptorSupport {
 
     public static FormField[] getFields() {
         final FormField[] fields = {
-            CommonDescriptorHelper.getRepositoryField().includingAnyOfTypes(ProxyType.NAME),
+            CommonDescriptorHelper.getRepositoryField().excludingAnyOfTypes(GroupType.NAME),
             CommonDescriptorHelper.getRepositoryPathField(),
             CommonDescriptorHelper.getFilePatternField(),
             CommonDescriptorHelper.getWorkingDirectoryField(),

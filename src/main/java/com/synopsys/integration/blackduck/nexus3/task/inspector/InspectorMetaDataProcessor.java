@@ -52,7 +52,6 @@ import com.synopsys.integration.exception.IntegrationException;
 @Named
 @Singleton
 public class InspectorMetaDataProcessor {
-    public static final String PROXY_INSPECTION_VERSION = "Nexus-3-Plugin";
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final CommonMetaDataProcessor commonMetaDataProcessor;
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
@@ -64,7 +63,7 @@ public class InspectorMetaDataProcessor {
     }
 
     public ProjectVersionWrapper getProjectVersionWrapper(final String name) throws IntegrationException {
-        return commonRepositoryTaskHelper.getProjectVersionWrapper(name, PROXY_INSPECTION_VERSION);
+        return commonRepositoryTaskHelper.getProjectVersionWrapper(name, InspectorTask.INSPECTOR_CODE_LOCATION_NAME);
     }
 
     public void updateRepositoryMetaData(final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap, final TaskStatus status) throws IntegrationException {

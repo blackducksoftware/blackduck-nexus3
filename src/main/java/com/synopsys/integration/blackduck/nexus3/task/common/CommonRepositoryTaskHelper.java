@@ -84,7 +84,6 @@ public class CommonRepositoryTaskHelper {
         this.blackDuckConnection = blackDuckConnection;
     }
 
-    // TODO verify that the group repository will work accordingly here
     public boolean doesRepositoryApply(final Repository repository, final String repositoryField) {
         return repository.getName().equals(repositoryField);
     }
@@ -140,7 +139,10 @@ public class CommonRepositoryTaskHelper {
         final boolean doesRepositoryPathMatch = doesRepositoryPathMatch(assetWrapper.getName(), getRepositoryPath(taskConfiguration));
         final boolean isArtifactTooOld = isArtifactTooOld(getArtifactCutoffDateTime(taskConfiguration), lastModified);
         final boolean doesExtensionMatch = doesExtensionMatch(assetWrapper.getFilename(), getFileExtensionPatterns(taskConfiguration));
-        return isArtifactTooOld || !doesRepositoryPathMatch || !doesExtensionMatch;
+        final DateTime lastUpdated = assetWrapper.getComponentLastUpdated();
+        final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
+        final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
+        return isArtifactTooOld || !doesRepositoryPathMatch || !doesExtensionMatch || lastUpdated.isAfter(lastProcessed);
     }
 
     public boolean doesExtensionMatch(final String filename, final String allowedExtensions) {
@@ -162,28 +164,6 @@ public class CommonRepositoryTaskHelper {
 
     public boolean isArtifactTooOld(final DateTime cutoffDate, final DateTime lastUpdated) {
         return lastUpdated.isBefore(cutoffDate.getMillis());
-    }
-
-    public Query.Builder createPagedQuery(final Optional<String> lastNameUsed, final int limit) {
-        final Query.Builder pagedQueryBuilder = Query.builder();
-        pagedQueryBuilder.where("component").isNotNull();
-        if (lastNameUsed.isPresent()) {
-            pagedQueryBuilder.and("name > ").param(lastNameUsed.get());
-        }
-
-        pagedQueryBuilder.suffix(String.format("ORDER BY name LIMIT %d", limit));
-        return pagedQueryBuilder;
-    }
-
-    public PagedResult<Asset> retrievePagedAssets(final Repository repository, final Query filteredQuery) {
-        logger.debug("Running where statement from asset table of: {}. With the parameters: {}. And suffix: {}", filteredQuery.getWhere(), filteredQuery.getParameters(), filteredQuery.getQuerySuffix());
-        final Iterable<Asset> filteredAssets = queryManager.findAssetsInRepository(repository, filteredQuery);
-        final Optional<Asset> lastReturnedAsset = StreamSupport.stream(filteredAssets.spliterator(), true).reduce((first, second) -> second);
-        Optional<String> name = Optional.empty();
-        if (lastReturnedAsset.isPresent()) {
-            name = Optional.of(lastReturnedAsset.get().name());
-        }
-        return new PagedResult<>(filteredAssets, name);
     }
 
     public String getBlackduckPanelPath(final AssetPanelLabel assetPanelLabel) {
@@ -236,16 +216,31 @@ public class CommonRepositoryTaskHelper {
         }
     }
 
-    // TODO make query building easier for the tasks
+    public Query.Builder createPagedQuery(final Optional<String> lastNameUsed, final int limit) {
+        final Query.Builder pagedQueryBuilder = Query.builder();
+        pagedQueryBuilder.where("component").isNotNull();
+        if (lastNameUsed.isPresent()) {
+            pagedQueryBuilder.and("name > ").param(lastNameUsed.get());
+        }
+
+        pagedQueryBuilder.suffix(String.format("ORDER BY name LIMIT %d", limit));
+        return pagedQueryBuilder;
+    }
+
+    public PagedResult<Asset> retrievePagedAssets(final Repository repository, final Query filteredQuery) {
+        logger.debug("Running where statement from asset table of: {}. With the parameters: {}. And suffix: {}", filteredQuery.getWhere(), filteredQuery.getParameters(), filteredQuery.getQuerySuffix());
+        final Iterable<Asset> filteredAssets = queryManager.findAssetsInRepository(repository, filteredQuery);
+        final Optional<Asset> lastReturnedAsset = StreamSupport.stream(filteredAssets.spliterator(), true).reduce((first, second) -> second);
+        Optional<String> name = Optional.empty();
+        if (lastReturnedAsset.isPresent()) {
+            name = Optional.of(lastReturnedAsset.get().name());
+        }
+        return new PagedResult<>(filteredAssets, name);
+    }
+
+    // TODO Pull most query building code out of here and make query building easier
     public Query createFilteredQueryBuilder(final boolean rescanFailures, final boolean alwaysScan, final Optional<String> lastNameUsed, final int limit) {
         final Query.Builder baseQueryBuilder = createPagedQuery(lastNameUsed, limit);
-
-        //        final DateTime artifactCutoffDate = commonTaskConfig.getOldArtifactCutoffDate();
-        //        if (artifactCutoffDate != null) {
-        //// TODO verify that recently updated artifacts are grabbed successfully.
-        //            final String lastModifiedPath = "attributes.content.last_modified";
-        //            baseQueryBuilder.and(lastModifiedPath + " > " + dateTimeParser.convertFromDateTimeToMillis(artifactCutoffDate));
-        //        }
 
         final String statusSuccess = createSuccessWhereStatement(rescanFailures, alwaysScan);
         baseQueryBuilder.and(statusSuccess);
@@ -255,15 +250,9 @@ public class CommonRepositoryTaskHelper {
 
     public String createSuccessWhereStatement(final boolean checkFailures, final boolean checkSuccessAndPending) {
         final String statusPath = getBlackduckPanelPath(AssetPanelLabel.TASK_STATUS);
-        final String processedByPath = getBlackduckPanelPath(AssetPanelLabel.TASK_FINISHED_TIME);
-        final String lastModifiedPath = "attributes.content.last_modified";
         final StringBuilder extensionsWhereBuilder = new StringBuilder();
         extensionsWhereBuilder.append("(");
         extensionsWhereBuilder.append(statusPath + " IS NULL");
-        extensionsWhereBuilder.append(" OR ");
-        extensionsWhereBuilder.append(processedByPath);
-        extensionsWhereBuilder.append(" < ");
-        extensionsWhereBuilder.append(lastModifiedPath);
         if (checkSuccessAndPending) {
             extensionsWhereBuilder.append(" OR ");
             extensionsWhereBuilder.append(statusPath);
@@ -284,30 +273,6 @@ public class CommonRepositoryTaskHelper {
             extensionsWhereBuilder.append("'");
         }
 
-        extensionsWhereBuilder.append(")");
-        return extensionsWhereBuilder.toString();
-    }
-
-    // FIXME name doesn't always have the extension at the end (i.e. nuget repo). Must find another way to query for extensions
-    public String createExtensionsWhereStatement(final List<String> extensions) {
-        final String nameColumn = "name";
-        final StringBuilder extensionsWhereBuilder = new StringBuilder();
-        extensionsWhereBuilder.append("(");
-        for (int extCount = 0; extCount < extensions.size(); extCount++) {
-            final String extension = extensions.get(extCount);
-            if (extCount == 0) {
-                extensionsWhereBuilder.append(nameColumn);
-                extensionsWhereBuilder.append(" LIKE '%");
-                extensionsWhereBuilder.append(extension);
-                extensionsWhereBuilder.append("'");
-            } else {
-                extensionsWhereBuilder.append(" OR ");
-                extensionsWhereBuilder.append(nameColumn);
-                extensionsWhereBuilder.append(" LIKE '%");
-                extensionsWhereBuilder.append(extension);
-                extensionsWhereBuilder.append("'");
-            }
-        }
         extensionsWhereBuilder.append(")");
         return extensionsWhereBuilder.toString();
     }

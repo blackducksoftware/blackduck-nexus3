@@ -29,7 +29,7 @@ import javax.inject.Singleton;
 import org.sonatype.nexus.formfields.CheckboxFormField;
 import org.sonatype.nexus.formfields.FormField;
 import org.sonatype.nexus.formfields.NumberTextFormField;
-import org.sonatype.nexus.repository.types.ProxyType;
+import org.sonatype.nexus.repository.types.HostedType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonDescriptorHelper;
@@ -66,7 +66,7 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
 
     public static FormField[] getFields() {
         final FormField[] fields = {
-            CommonDescriptorHelper.getRepositoryField().excludingAnyOfTypes(ProxyType.NAME),
+            CommonDescriptorHelper.getRepositoryField().includingAnyOfTypes(HostedType.NAME),
             CommonDescriptorHelper.getRepositoryPathField(),
             CommonDescriptorHelper.getFilePatternField(),
             CommonDescriptorHelper.getWorkingDirectoryField(),

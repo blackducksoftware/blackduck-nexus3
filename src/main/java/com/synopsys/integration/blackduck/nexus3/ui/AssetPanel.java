@@ -41,15 +41,11 @@ public class AssetPanel {
         return (String) blackDuckNestedAttributes.get(label.getLabel());
     }
 
-    public String getFromAssetPanel(final String label) {
-        return (String) assetNestedAttributes.get(label);
-    }
-
     public void addToBlackDuckPanel(final AssetPanelLabel label, final Object value) {
         blackDuckNestedAttributes.set(label.getLabel(), value);
     }
 
-    public void removeFromBlackDuckPanel(AssetPanelLabel label) {
+    public void removeFromBlackDuckPanel(final AssetPanelLabel label) {
         blackDuckNestedAttributes.remove(label.getLabel());
     }
 

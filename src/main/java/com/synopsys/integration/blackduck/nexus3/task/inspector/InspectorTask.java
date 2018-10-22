@@ -66,6 +66,7 @@ import com.synopsys.integration.util.IntegrationEscapeUtil;
 
 @Named
 public class InspectorTask extends RepositoryTaskSupport {
+    public static final String INSPECTOR_CODE_LOCATION_NAME = "Nexus3Inspection";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
@@ -101,25 +102,7 @@ public class InspectorTask extends RepositoryTaskSupport {
             logger.info("Found some items from the DB");
             for (final Asset asset : filteredAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, commonRepositoryTaskHelper.getQueryManager());
-                final String name = assetWrapper.getName();
-                final String version = assetWrapper.getVersion();
-
-                if (commonRepositoryTaskHelper.skipAssetProcessing(assetWrapper, taskConfiguration())) {
-                    logger.debug("Binary file did not meet requirements for inspection: {}", name);
-                    continue;
-                }
-
-                final Dependency dependency = dependencyGenerator.createDependency(dependencyType.get(), name, version, asset.attributes());
-                logger.debug("Created new dependency: {}", dependency);
-                mutableDependencyGraph.addChildToRoot(dependency);
-
-                final String originId = dependency.externalId.createHubOriginId();
-                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.PENDING.name());
-                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID, originId);
-                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
-                assetWrapper.updateAsset();
-                logger.debug("Adding asset to map with originId as key: {}", originId);
-                assetWrapperMap.put(originId, assetWrapper);
+                processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
             }
 
             final Query nextPage = commonRepositoryTaskHelper.createFilteredQueryBuilder(true, true, filteredAssets.getLastName(), limit);
@@ -132,7 +115,28 @@ public class InspectorTask extends RepositoryTaskSupport {
         } else {
             logger.warn("No assets found with set criteria.");
         }
+    }
 
+    private void processAsset(final AssetWrapper assetWrapper, final DependencyType dependencyType, final MutableDependencyGraph mutableDependencyGraph, final Map<String, AssetWrapper> assetWrapperMap) {
+        final String name = assetWrapper.getName();
+        final String version = assetWrapper.getVersion();
+
+        if (commonRepositoryTaskHelper.skipAssetProcessing(assetWrapper, taskConfiguration())) {
+            logger.debug("Binary file did not meet requirements for inspection: {}", name);
+            return;
+        }
+
+        final Dependency dependency = dependencyGenerator.createDependency(dependencyType, name, version, assetWrapper.getAsset().attributes());
+        logger.debug("Created new dependency: {}", dependency);
+        mutableDependencyGraph.addChildToRoot(dependency);
+
+        final String originId = dependency.externalId.createHubOriginId();
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.PENDING.name());
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID, originId);
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+        assetWrapper.updateAsset();
+        logger.debug("Adding asset to map with originId as key: {}", originId);
+        assetWrapperMap.put(originId, assetWrapper);
     }
 
     private void uploadToBlackDuck(final Repository repository, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory, final DependencyType dependencyType,
@@ -140,18 +144,18 @@ public class InspectorTask extends RepositoryTaskSupport {
         final Forge nexusForge = new Forge("/", "/", "nexus");
         final String projectName = repository.getName();
         final ProjectVersionView projectVersionView;
-        final String codeLocationName = String.join("/", projectName, InspectorMetaDataProcessor.PROXY_INSPECTION_VERSION, dependencyType.getRepositoryType());
+        final String codeLocationName = String.join("/", INSPECTOR_CODE_LOCATION_NAME, projectName, dependencyType.getRepositoryType());
         try {
             logger.debug("Creating project in BlackDuck if needed: {}", projectName);
             final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
             final ProjectService projectService = hubServicesFactory.createProjectService();
             final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
             projectRequestBuilder.setProjectName(projectName);
-            projectRequestBuilder.setVersionName(InspectorMetaDataProcessor.PROXY_INSPECTION_VERSION);
+            projectRequestBuilder.setVersionName(INSPECTOR_CODE_LOCATION_NAME);
             final ProjectVersionWrapper projectVersionWrapper = projectService.getProjectVersionAndCreateIfNeeded(projectRequestBuilder.buildObject());
             projectVersionView = projectVersionWrapper.getProjectVersionView();
-            final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, projectName, InspectorMetaDataProcessor.PROXY_INSPECTION_VERSION);
-            final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, projectName, InspectorMetaDataProcessor.PROXY_INSPECTION_VERSION, projectRoot, mutableDependencyGraph);
+            final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, projectName, INSPECTOR_CODE_LOCATION_NAME);
+            final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, projectName, INSPECTOR_CODE_LOCATION_NAME, projectRoot, mutableDependencyGraph);
             sendInspectorData(simpleBdioDocument, simpleBdioFactory);
         } catch (final IntegrationException e) {
             logger.debug("Issue communicating with BlackDuck: {}", e.getMessage());

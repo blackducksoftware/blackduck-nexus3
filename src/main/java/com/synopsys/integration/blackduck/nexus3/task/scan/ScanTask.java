@@ -67,6 +67,7 @@ import com.synopsys.integration.log.Slf4jIntLogger;
 
 @Named
 public class ScanTask extends RepositoryTaskSupport {
+    public static final String SCAN_CODE_LOCATION_NAME = "Nexus3Scan";
     private static final int SCAN_OUTPUT_LOCATION = 0;
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -134,7 +135,7 @@ public class ScanTask extends RepositoryTaskSupport {
                 final String name = assetWrapper.getName();
                 final String version = assetWrapper.getVersion();
                 final String repoName = repository.getName();
-                final String codeLocationName = String.join("/", "Nexus3Scan", repoName, name, version);
+                final String codeLocationName = String.join("/", SCAN_CODE_LOCATION_NAME, repoName, name, version);
 
                 if (commonRepositoryTaskHelper.skipAssetProcessing(assetWrapper, taskConfiguration())) {
                     logger.debug("Binary file did not meet requirements for scan: {}", name);
@@ -168,7 +169,6 @@ public class ScanTask extends RepositoryTaskSupport {
                 }
             }
         }
-
     }
 
     private void performScan(final HubServerConfig hubServerConfig, final File workingBlackDuckDirectory, final File outputDirectory, final File tempFileStorage, final String codeLocationName, final AssetWrapper assetWrapper,
@@ -197,6 +197,7 @@ public class ScanTask extends RepositoryTaskSupport {
             }
         } catch (final IOException | IntegrationException e) {
             commonMetaDataProcessor.removeAllMetaData(assetWrapper);
+            assetWrapper.updateAsset();
             logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
         } finally {
             assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, taskStatus.name());
