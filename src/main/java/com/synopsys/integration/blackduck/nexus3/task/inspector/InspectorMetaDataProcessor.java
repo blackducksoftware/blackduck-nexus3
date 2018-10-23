@@ -67,6 +67,7 @@ public class InspectorMetaDataProcessor {
     }
 
     public void updateRepositoryMetaData(final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap, final TaskStatus status) throws IntegrationException {
+        logger.debug("Currently have following items in asset map: {}", assetWrapperMap);
         final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(projectVersionView);
         for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
             final Set<String> externalIds = versionBomComponentView.origins.stream()
@@ -86,7 +87,16 @@ public class InspectorMetaDataProcessor {
                 assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, policyStatus.prettyPrint());
                 addVulnerabilityStatus(assetWrapper, versionBomComponentView);
                 assetWrapper.updateAsset();
+                final String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
+                assetWrapperMap.remove(originId);
             }
+        }
+
+        logger.debug("Currently have following items in asset map: {}", assetWrapperMap);
+        for (final AssetWrapper assetWrapper : assetWrapperMap.values()) {
+            logger.warn("Asset was not found in Black Duck, {}", assetWrapper.getName());
+            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.COMPONENT_NOT_FOUND.name());
+            assetWrapper.updateAsset();
         }
     }
 

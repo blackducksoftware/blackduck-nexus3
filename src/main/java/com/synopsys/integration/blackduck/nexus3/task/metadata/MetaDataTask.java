@@ -113,9 +113,8 @@ public class MetaDataTask extends RepositoryTaskSupport {
     }
 
     private Query createFilteredQuery(final Optional<String> lastNameUsed) {
-        final int limit = commonRepositoryTaskHelper.getPagingSizeLimit(taskConfiguration());
-        final Query.Builder pagedQueryBuilder = commonRepositoryTaskHelper.createPagedQuery(lastNameUsed, limit);
-        final String blackDuckDbPath = commonRepositoryTaskHelper.getBlackduckPanelPath(AssetPanelLabel.TASK_STATUS);
+        final Query.Builder pagedQueryBuilder = commonRepositoryTaskHelper.createPagedQuery(lastNameUsed);
+        final String blackDuckDbPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(AssetPanelLabel.TASK_STATUS);
         pagedQueryBuilder.and(blackDuckDbPath).eq(TaskStatus.SUCCESS);
         return pagedQueryBuilder.build();
     }

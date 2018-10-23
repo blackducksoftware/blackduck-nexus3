@@ -123,9 +123,8 @@ public class ScanTask extends RepositoryTaskSupport {
 
         final boolean alwaysScan = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_ALWAYS_CHECK, false);
         final boolean redoFailures = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_REDO_FAILURES, false);
-        final int limit = commonRepositoryTaskHelper.getPagingSizeLimit(taskConfiguration());
 
-        final Query filteredQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(alwaysScan, redoFailures, Optional.empty(), limit);
+        final Query filteredQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(alwaysScan, redoFailures, Optional.empty());
         PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, filteredQuery);
         while (foundAssets.hasResults()) {
             logger.debug("Found results from DB");
@@ -153,7 +152,7 @@ public class ScanTask extends RepositoryTaskSupport {
                 logger.warn("Problem cleaning scan directories {}", outputDirectory.getAbsolutePath());
             }
 
-            final Query nextPageQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(alwaysScan, redoFailures, foundAssets.getLastName(), limit);
+            final Query nextPageQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(alwaysScan, redoFailures, foundAssets.getLastName());
             foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPageQuery);
 
             for (final AssetWrapper assetWrapper : assetWrappers.values()) {

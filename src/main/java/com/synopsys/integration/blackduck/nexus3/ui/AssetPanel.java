@@ -30,11 +30,9 @@ public class AssetPanel {
     public static final String BLACKDUCK_CATEGORY = "BlackDuck";
 
     private final NestedAttributesMap blackDuckNestedAttributes;
-    private final NestedAttributesMap assetNestedAttributes;
 
     public AssetPanel(final Asset asset) {
         blackDuckNestedAttributes = getBlackDuckNestedAttributes(asset.attributes());
-        assetNestedAttributes = asset.attributes();
     }
 
     public String getFromBlackDuckPanel(final AssetPanelLabel label) {
@@ -49,7 +47,7 @@ public class AssetPanel {
         blackDuckNestedAttributes.remove(label.getLabel());
     }
 
-    // This is used to Add items to the BlackDuck tab in the UI
+    // This is used to Add items to the Black Duck tab in the UI
     private NestedAttributesMap getBlackDuckNestedAttributes(final NestedAttributesMap nestedAttributesMap) {
         return nestedAttributesMap.child(BLACKDUCK_CATEGORY);
     }

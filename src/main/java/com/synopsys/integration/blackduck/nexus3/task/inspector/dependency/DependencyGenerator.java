@@ -29,6 +29,8 @@ import java.util.Optional;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.common.collect.NestedAttributesMap;
 import org.sonatype.nexus.repository.Format;
 
@@ -41,6 +43,7 @@ import com.synopsys.integration.hub.bdio.model.externalid.ExternalIdFactory;
 @Singleton
 public class DependencyGenerator {
     public static final Forge YUM_FORGE = new Forge("/", "/", "@Centos");
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExternalIdFactory externalIdFactory;
 
     public DependencyGenerator() {
@@ -58,10 +61,12 @@ public class DependencyGenerator {
         if (DependencyType.maven == dependencyType) {
             final String group = attributesMap.child("maven2").get("groupId", String.class);
             final ExternalId mavenExternalId = externalIdFactory.createMavenExternalId(group, name, version);
+            logger.debug("Created externalId of: {}", mavenExternalId);
             return new Dependency(name, version, mavenExternalId);
         }
 
         final ExternalId externalId = externalIdFactory.createNameVersionExternalId(dependencyType.getForge(), name, version);
+        logger.debug("Created externalId of: {}", externalId);
         return new Dependency(name, version, externalId);
     }
 

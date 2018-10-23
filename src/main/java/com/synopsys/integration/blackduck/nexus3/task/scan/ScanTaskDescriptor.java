@@ -38,15 +38,15 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonDescriptorHel
 @Singleton
 public class ScanTaskDescriptor extends TaskDescriptorSupport {
     public static final String BLACK_DUCK_SCAN_TASK_ID = "blackduck.scan";
-    public static final String BLACK_DUCK_SCAN_TASK_NAME = "BlackDuck - Repository Scan";
+    public static final String BLACK_DUCK_SCAN_TASK_NAME = "Black Duck - Hosted Repository Scan";
     public static final int DEFAULT_SCAN_MEMORY = 4096;
     public static final String KEY_SCAN_MEMORY = "blackduck.memory";
     public static final String KEY_REDO_FAILURES = "blackduck.redo.failures";
     public static final String KEY_ALWAYS_CHECK = "blackduck.check.always";
-    private static final String LABEL_SCAN_MEMORY = "Scan memory Allocation";
-    private static final String LABEL_ALWAYS_SCAN = "Scan Successful and Pending Artifacts";
-    private static final String LABEL_RESCAN_FAILURE = "Scan Failed Artifacts";
-    private static final String DESCRIPTION_SCAN_MEMORY = "Specify the memory, in megabytes, you would like to allocate for the BlackDuck Scan. Default: 4096";
+    private static final String LABEL_SCAN_MEMORY = "Black Duck - Scan memory Allocation";
+    private static final String LABEL_ALWAYS_SCAN = "Black Duck - Scan Successful and Pending Assets";
+    private static final String LABEL_RESCAN_FAILURE = "Black Duck - Scan Failed Assets";
+    private static final String DESCRIPTION_SCAN_MEMORY = "Specify the memory, in megabytes, you would like to allocate for the Black Duck Scan. Default: 4096";
     private static final String DESCRIPTION_ALWAYS_SCAN = "Scan Successful and Pending artifacts as long as they are not too old and match the file pattern";
     private static final String DESCRIPTION_RESCAN_FAILURE = "Scan artifacts if the previous scan result was failed";
     private static final NumberTextFormField FIELD_SCAN_MEMORY = new NumberTextFormField(KEY_SCAN_MEMORY, LABEL_SCAN_MEMORY, DESCRIPTION_SCAN_MEMORY, FormField.MANDATORY)
@@ -65,16 +65,16 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
     }
 
     public static FormField[] getFields() {
+        final String repoTypes = HostedType.NAME;
         final FormField[] fields = {
-            CommonDescriptorHelper.getRepositoryField().includingAnyOfTypes(HostedType.NAME),
+            CommonDescriptorHelper.getRepositoryField(repoTypes),
             CommonDescriptorHelper.getRepositoryPathField(),
             CommonDescriptorHelper.getFilePatternField(),
             CommonDescriptorHelper.getWorkingDirectoryField(),
             FIELD_SCAN_MEMORY,
             FIELD_ALWAYS_SCAN,
             FIELD_RESCAN_FAILURE,
-            CommonDescriptorHelper.getArtifactCutoffDateField(),
-            CommonDescriptorHelper.getPageSizeLimitField()
+            CommonDescriptorHelper.getAssetCutoffDateField()
         };
         return fields;
     }

@@ -93,9 +93,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         final MutableDependencyGraph mutableDependencyGraph = simpleBdioFactory.createMutableDependencyGraph();
         final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
 
-        final int limit = commonRepositoryTaskHelper.getPagingSizeLimit(taskConfiguration());
-
-        final Query pagedQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(true, true, Optional.empty(), limit);
+        final Query pagedQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(true, true, Optional.empty());
         PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, pagedQuery);
         final boolean resultsFound = filteredAssets.hasResults();
         while (filteredAssets.hasResults()) {
@@ -105,12 +103,12 @@ public class InspectorTask extends RepositoryTaskSupport {
                 processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
             }
 
-            final Query nextPage = commonRepositoryTaskHelper.createFilteredQueryBuilder(true, true, filteredAssets.getLastName(), limit);
+            final Query nextPage = commonRepositoryTaskHelper.createFilteredQueryBuilder(true, true, filteredAssets.getLastName());
             filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPage);
         }
 
         if (resultsFound) {
-            logger.info("Creating BlackDuck project.");
+            logger.info("Creating Black Duck project.");
             uploadToBlackDuck(repository, mutableDependencyGraph, simpleBdioFactory, dependencyType.get(), assetWrapperMap);
         } else {
             logger.warn("No assets found with set criteria.");
@@ -146,7 +144,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         final ProjectVersionView projectVersionView;
         final String codeLocationName = String.join("/", INSPECTOR_CODE_LOCATION_NAME, projectName, dependencyType.getRepositoryType());
         try {
-            logger.debug("Creating project in BlackDuck if needed: {}", projectName);
+            logger.debug("Creating project in Black Duck if needed: {}", projectName);
             final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
             final ProjectService projectService = hubServicesFactory.createProjectService();
             final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();

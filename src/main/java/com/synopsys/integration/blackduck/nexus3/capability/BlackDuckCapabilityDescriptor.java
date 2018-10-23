@@ -41,24 +41,24 @@ import org.sonatype.nexus.formfields.StringTextFormField;
 @Named(BlackDuckCapabilityDescriptor.CAPABILITY_ID)
 public class BlackDuckCapabilityDescriptor extends CapabilityDescriptorSupport<BlackDuckCapabilityConfiguration> {
     public static final String CAPABILITY_ID = "blackduck.capability";
-    public static final String CAPABILITY_NAME = "BlackDuck";
+    public static final String CAPABILITY_NAME = "Black Duck";
     public static final String CAPABILITY_DESCRIPTION = "Settings required to communicate with Black Duck.";
 
     public static final String DEFAULT_BLACKDUCK_TIMEOUT = "300";
 
-    private static final String DESCRIPTION_BLACKDUCK_TRUST_CERT = "Automatically trust the SSL Certificates from the specified HTTPS BlackDuck Server.";
-    private static final String DESCRIPTION_BLACKDUCK_TIMEOUT = "The timeout in seconds for a request to the BlackDuck server.";
-    private static final String DESCRIPTION_BLACKDUCK_SERVER_URL = "Provide the URL that lets you access your BlackDuck server. For example \"https://blackduck.example.com/\".";
-    private static final String DESCRIPTION_BLACKDUCK_API_KEY = "Api key used to access the BlackDuck instance.";
-    private static final String DESCRIPTION_PROXY_HOST = "The hostname of the proxy to communicate with your BlackDuck server.";
+    private static final String DESCRIPTION_BLACKDUCK_TRUST_CERT = "Automatically trust the SSL Certificates from the specified HTTPS Black Duck Server.";
+    private static final String DESCRIPTION_BLACKDUCK_TIMEOUT = "The timeout in seconds for a request to the Black Duck server.";
+    private static final String DESCRIPTION_BLACKDUCK_SERVER_URL = "Provide the URL that lets you access your Black Duck server. For example \"https://blackduck.example.com/\".";
+    private static final String DESCRIPTION_BLACKDUCK_API_KEY = "API key used to access the Black Duck instance.";
+    private static final String DESCRIPTION_PROXY_HOST = "The hostname of the proxy to communicate with your Black Duck server.";
     private static final String DESCRIPTION_PROXY_PASSWORD = "Password for your authenticated proxy.";
     private static final String DESCRIPTION_PROXY_PORT = "Port to communicate with the proxy.";
     private static final String DESCRIPTION_PROXY_USERNAME = "Username for your authenticated proxy.";
 
-    private static final String LABEL_CONNECTION_TIMEOUT = "BlackDuck Connection Timeout";
-    private static final String LABEL_BLACKDUCK_SERVER_URL = "BlackDuck Server URL";
-    private static final String LABEL_TRUST_BLACKDUCK_SSL_CERTIFICATE = "Trust BlackDuck SSL Certificate";
-    private static final String LABEL_BLACKDUCK_API_KEY = "BlackDuck Api Key";
+    private static final String LABEL_CONNECTION_TIMEOUT = "Black Duck Connection Timeout";
+    private static final String LABEL_BLACKDUCK_SERVER_URL = "Black Duck Server URL";
+    private static final String LABEL_TRUST_BLACKDUCK_SSL_CERTIFICATE = "Trust Black Duck SSL Certificate";
+    private static final String LABEL_BLACKDUCK_API_KEY = "Black Duck API Key";
 
     private static final String LABEL_PROXY_HOST = "Proxy Host";
     private static final String LABEL_PROXY_PASSWORD = "Proxy Password";
@@ -114,7 +114,7 @@ public class BlackDuckCapabilityDescriptor extends CapabilityDescriptorSupport<B
     protected void validateConfig(final Map<String, String> properties, final ValidationMode validationMode) {
         log.debug("Validation Mode: {}", validationMode.name());
         if (validationMode != ValidationMode.LOAD) {
-            log.info("Validating BlackDuck credentials");
+            log.info("Validating Black Duck credentials");
             final BlackDuckCapabilityConfiguration configuration = createConfig(properties);
             configuration.createBlackDuckServerConfig();
         }

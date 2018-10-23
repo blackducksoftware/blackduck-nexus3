@@ -27,7 +27,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.sonatype.nexus.formfields.FormField;
-import org.sonatype.nexus.repository.types.GroupType;
+import org.sonatype.nexus.repository.types.ProxyType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonDescriptorHelper;
@@ -36,7 +36,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonDescriptorHel
 @Singleton
 public class InspectorTaskDescriptor extends TaskDescriptorSupport {
     public static final String BLACK_DUCK_INSPECTOR_TASK_ID = "blackduck.inspector";
-    public static final String BLACK_DUCK_INSPECTOR_TASK_NAME = "BlackDuck - Repository Inspector";
+    public static final String BLACK_DUCK_INSPECTOR_TASK_NAME = "Black Duck - Proxy Repository Inspector";
 
     public InspectorTaskDescriptor() {
         super(BLACK_DUCK_INSPECTOR_TASK_ID,
@@ -50,12 +50,11 @@ public class InspectorTaskDescriptor extends TaskDescriptorSupport {
 
     public static FormField[] getFields() {
         final FormField[] fields = {
-            CommonDescriptorHelper.getRepositoryField().excludingAnyOfTypes(GroupType.NAME),
+            CommonDescriptorHelper.getRepositoryField(ProxyType.NAME),
             CommonDescriptorHelper.getRepositoryPathField(),
             CommonDescriptorHelper.getFilePatternField(),
             CommonDescriptorHelper.getWorkingDirectoryField(),
-            CommonDescriptorHelper.getArtifactCutoffDateField(),
-            CommonDescriptorHelper.getPageSizeLimitField()
+            CommonDescriptorHelper.getAssetCutoffDateField()
         };
         return fields;
     }

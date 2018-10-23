@@ -58,9 +58,7 @@ public class CommonMetaDataProcessor {
     }
 
     public void setAssetVulnerabilityData(final VulnerabilityLevels vulnerabilityLevels, final AssetWrapper assetWrapper) {
-        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.HIGH_VULNERABILITY, String.valueOf(vulnerabilityLevels.getHighVulnerabilityCount()));
-        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.MEDIUM_VULNERABILITY, String.valueOf(vulnerabilityLevels.getMediumVulnerabilityCount()));
-        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.LOW_VULNERABILITY, String.valueOf(vulnerabilityLevels.getLowVulnerabilityCount()));
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
     }
 
     public List<VersionBomComponentView> checkAssetVulnerabilities(final String name, final String version) throws IntegrationException {
@@ -103,9 +101,7 @@ public class CommonMetaDataProcessor {
     }
 
     public void removeAssetVulnerabilityData(final AssetWrapper assetWrapper) {
-        assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.HIGH_VULNERABILITY);
-        assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.MEDIUM_VULNERABILITY);
-        assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.LOW_VULNERABILITY);
+        assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES);
     }
 
     public void setAssetPolicyData(final VersionBomPolicyStatusView policyStatusView, final AssetWrapper assetWrapper) {

@@ -71,6 +71,7 @@ import com.synopsys.integration.exception.IntegrationException;
 @Named
 @Singleton
 public class CommonRepositoryTaskHelper {
+    public static final int DEFAULT_PAGE_SIZE = 100;
     public static final String VERIFICATION_ERROR = "Error retrieving URL: ";
     private final QueryManager queryManager;
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -120,13 +121,9 @@ public class CommonRepositoryTaskHelper {
         return taskConfiguration.getString(CommonTaskKeys.FILE_PATTERNS.getParameterKey());
     }
 
-    public DateTime getArtifactCutoffDateTime(final TaskConfiguration taskConfiguration) {
+    public DateTime getAssetCutoffDateTime(final TaskConfiguration taskConfiguration) {
         final String artifactCutoffString = taskConfiguration.getString(CommonTaskKeys.OLD_ARTIFACT_CUTOFF.getParameterKey());
         return dateTimeParser.convertFromStringToDate(artifactCutoffString);
-    }
-
-    public int getPagingSizeLimit(final TaskConfiguration taskConfiguration) {
-        return taskConfiguration.getInteger(CommonTaskKeys.PAGING_SIZE.getParameterKey(), CommonDescriptorHelper.DEFAULT_PAGE_SIZE);
     }
 
     public File getWorkingDirectory(final TaskConfiguration taskConfiguration) {
@@ -136,13 +133,17 @@ public class CommonRepositoryTaskHelper {
 
     public boolean skipAssetProcessing(final AssetWrapper assetWrapper, final TaskConfiguration taskConfiguration) {
         final DateTime lastModified = assetWrapper.getComponentLastUpdated();
-        final boolean doesRepositoryPathMatch = doesRepositoryPathMatch(assetWrapper.getName(), getRepositoryPath(taskConfiguration));
-        final boolean isArtifactTooOld = isArtifactTooOld(getArtifactCutoffDateTime(taskConfiguration), lastModified);
+        logger.debug("Last modified: {}", lastModified);
+        final String fullPathName = assetWrapper.getAsset().name();
+        logger.debug("Asset full path name: {}", fullPathName);
+        final boolean doesRepositoryPathMatch = doesRepositoryPathMatch(fullPathName, getRepositoryPath(taskConfiguration));
+        final boolean isAssetTooOld = isAssetTooOld(getAssetCutoffDateTime(taskConfiguration), lastModified);
         final boolean doesExtensionMatch = doesExtensionMatch(assetWrapper.getFilename(), getFileExtensionPatterns(taskConfiguration));
-        final DateTime lastUpdated = assetWrapper.getComponentLastUpdated();
         final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
+        logger.debug("Last processed: {}", lastProcessedString);
         final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
-        return isArtifactTooOld || !doesRepositoryPathMatch || !doesExtensionMatch || lastUpdated.isAfter(lastProcessed);
+        final boolean processAgain = lastProcessed != null && lastModified.isAfter(lastProcessed);
+        return isAssetTooOld || !doesRepositoryPathMatch || !doesExtensionMatch || processAgain;
     }
 
     public boolean doesExtensionMatch(final String filename, final String allowedExtensions) {
@@ -155,18 +156,20 @@ public class CommonRepositoryTaskHelper {
         return false;
     }
 
-    public boolean doesRepositoryPathMatch(final String artifactPath, final String regexPattern) {
+    public boolean doesRepositoryPathMatch(final String assetPath, final String regexPattern) {
         if (StringUtils.isBlank(regexPattern)) {
+            logger.debug("Repository path is blank.");
             return true;
         }
-        return Pattern.matches(regexPattern, artifactPath);
+        logger.debug("Artifact Path {} being checked against {}", assetPath, regexPattern);
+        return Pattern.matches(regexPattern, assetPath);
     }
 
-    public boolean isArtifactTooOld(final DateTime cutoffDate, final DateTime lastUpdated) {
+    public boolean isAssetTooOld(final DateTime cutoffDate, final DateTime lastUpdated) {
         return lastUpdated.isBefore(cutoffDate.getMillis());
     }
 
-    public String getBlackduckPanelPath(final AssetPanelLabel assetPanelLabel) {
+    public String getBlackDuckPanelPath(final AssetPanelLabel assetPanelLabel) {
         final String dbXmlPath = "attributes." + AssetPanel.BLACKDUCK_CATEGORY + ".";
         return dbXmlPath + assetPanelLabel.getLabel();
     }
@@ -216,14 +219,14 @@ public class CommonRepositoryTaskHelper {
         }
     }
 
-    public Query.Builder createPagedQuery(final Optional<String> lastNameUsed, final int limit) {
+    public Query.Builder createPagedQuery(final Optional<String> lastNameUsed) {
         final Query.Builder pagedQueryBuilder = Query.builder();
         pagedQueryBuilder.where("component").isNotNull();
         if (lastNameUsed.isPresent()) {
             pagedQueryBuilder.and("name > ").param(lastNameUsed.get());
         }
 
-        pagedQueryBuilder.suffix(String.format("ORDER BY name LIMIT %d", limit));
+        pagedQueryBuilder.suffix(String.format("ORDER BY name LIMIT %d", DEFAULT_PAGE_SIZE));
         return pagedQueryBuilder;
     }
 
@@ -239,8 +242,8 @@ public class CommonRepositoryTaskHelper {
     }
 
     // TODO Pull most query building code out of here and make query building easier
-    public Query createFilteredQueryBuilder(final boolean rescanFailures, final boolean alwaysScan, final Optional<String> lastNameUsed, final int limit) {
-        final Query.Builder baseQueryBuilder = createPagedQuery(lastNameUsed, limit);
+    public Query createFilteredQueryBuilder(final boolean rescanFailures, final boolean alwaysScan, final Optional<String> lastNameUsed) {
+        final Query.Builder baseQueryBuilder = createPagedQuery(lastNameUsed);
 
         final String statusSuccess = createSuccessWhereStatement(rescanFailures, alwaysScan);
         baseQueryBuilder.and(statusSuccess);
@@ -249,7 +252,7 @@ public class CommonRepositoryTaskHelper {
     }
 
     public String createSuccessWhereStatement(final boolean checkFailures, final boolean checkSuccessAndPending) {
-        final String statusPath = getBlackduckPanelPath(AssetPanelLabel.TASK_STATUS);
+        final String statusPath = getBlackDuckPanelPath(AssetPanelLabel.TASK_STATUS);
         final StringBuilder extensionsWhereBuilder = new StringBuilder();
         extensionsWhereBuilder.append("(");
         extensionsWhereBuilder.append(statusPath + " IS NULL");

@@ -27,8 +27,7 @@ public enum CommonTaskKeys {
     FILE_PATTERNS("blackduck.file.pattern.match.wildcards"),
     WORKING_DIRECTORY("blackduck.working.directory"),
     OLD_ARTIFACT_CUTOFF("blackduck.artifact.cutoff"),
-    REPOSITORY_PATH("blackduck.nexus.artifact.path"),
-    PAGING_SIZE("blackduck.paging.size");
+    REPOSITORY_PATH("blackduck.nexus.artifact.path");
 
     private final String parameterKey;
 
