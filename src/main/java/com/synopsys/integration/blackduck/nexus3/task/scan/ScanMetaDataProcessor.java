@@ -36,7 +36,6 @@ import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
-import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.metadata.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
@@ -69,7 +68,11 @@ public class ScanMetaDataProcessor {
         final VersionBomPolicyStatusView policyStatusView = commonMetaDataProcessor.checkAssetPolicy(name, version);
         commonMetaDataProcessor.setAssetPolicyData(policyStatusView, assetWrapper);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, uploadUrl);
-        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.SUCCESS.name());
+        assetWrapper.addSuccessToBlackDuckPanel("Scan results successfully retrieved from Black Duck.");
         assetWrapper.updateAsset();
+    }
+
+    public String createCodeLocationName(String repoName, String name, String version) {
+        return String.join("/", ScanTask.SCAN_CODE_LOCATION_NAME, repoName, name, version);
     }
 }

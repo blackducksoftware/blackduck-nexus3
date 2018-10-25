@@ -47,10 +47,10 @@ public class CommonDescriptorHelper {
     public static final String LABEL_ASSET_CUTOFF = "Black Duck - Asset Cutoff Date";
 
     public static final String DESCRIPTION_REPO_NAME = "Add the %s repository in which to run the task.";
-    public static final String DESCRIPTION_REPOSITORY_PATH = "Enter a repository path to run the task in recursively (ie. \"/\" for root or \"/org/apache\"). Blank will not filter based off path";
-    public static final String DESCRIPTION_FILE_PATTERN_MATCH = "The file pattern match wildcard to filter the artifacts for the task.";
+    public static final String DESCRIPTION_REPOSITORY_PATH = "Enter regex for a repository path to run the task in recursively (ie. \"org\\/apache\\/.*\" for \"org/apache/*\"). Blank will not filter based off path";
+    public static final String DESCRIPTION_FILE_PATTERN_MATCH = "The file patterns to filter the assets for the task.";
     public static final String DESCRIPTION_TASK_WORKING_DIRECTORY = "The parent directory where the Black Duck directory will be created to store data";
-    public static final String DESCRIPTION_ASSET_CUTOFF = "If this is set, only artifacts with a modified date later than specified will be retrieved for the task. To get only artifacts newer than January 01, 2016 you would use "
+    public static final String DESCRIPTION_ASSET_CUTOFF = "If this is set, only assets with a modified date later than specified will be retrieved for the task. To get only assets newer than January 01, 2016 you would use "
                                                               + "the cutoff format of \"2016-01-01T00:00:00.000\"";
 
     public static RepositoryCombobox getRepositoryField(final String... repoTypes) {
@@ -77,7 +77,7 @@ public class CommonDescriptorHelper {
     }
 
     public static StringTextFormField getAssetCutoffDateField() {
-        return new StringTextFormField(CommonTaskKeys.OLD_ARTIFACT_CUTOFF.getParameterKey(), CommonDescriptorHelper.LABEL_ASSET_CUTOFF, CommonDescriptorHelper.DESCRIPTION_ASSET_CUTOFF, FormField.OPTIONAL)
+        return new StringTextFormField(CommonTaskKeys.OLD_ASSET_CUTOFF.getParameterKey(), CommonDescriptorHelper.LABEL_ASSET_CUTOFF, CommonDescriptorHelper.DESCRIPTION_ASSET_CUTOFF, FormField.OPTIONAL)
                    .withInitialValue(CommonDescriptorHelper.DEFAULT_ARTIFACT_CUTOFF);
     }
 

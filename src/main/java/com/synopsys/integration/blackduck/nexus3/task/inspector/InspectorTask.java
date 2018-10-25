@@ -25,7 +25,7 @@ package com.synopsys.integration.blackduck.nexus3.task.inspector;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +47,7 @@ import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
+import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.nexus3.task.inspector.dependency.DependencyGenerator;
 import com.synopsys.integration.blackduck.nexus3.task.inspector.dependency.DependencyType;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
@@ -73,13 +74,16 @@ public class InspectorTask extends RepositoryTaskSupport {
     private final DateTimeParser dateTimeParser;
     private final DependencyGenerator dependencyGenerator;
     private final InspectorMetaDataProcessor inspectorMetaDataProcessor;
+    private final CommonTaskFilters commonTaskFilters;
 
     @Inject
-    public InspectorTask(final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final DateTimeParser dateTimeParser, final DependencyGenerator dependencyGenerator, final InspectorMetaDataProcessor inspectorMetaDataProcessor) {
+    public InspectorTask(final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final DateTimeParser dateTimeParser, final DependencyGenerator dependencyGenerator, final InspectorMetaDataProcessor inspectorMetaDataProcessor,
+        final CommonTaskFilters commonTaskFilters) {
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
         this.dateTimeParser = dateTimeParser;
         this.dependencyGenerator = dependencyGenerator;
         this.inspectorMetaDataProcessor = inspectorMetaDataProcessor;
+        this.commonTaskFilters = commonTaskFilters;
     }
 
     @Override
@@ -93,7 +97,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         final MutableDependencyGraph mutableDependencyGraph = simpleBdioFactory.createMutableDependencyGraph();
         final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
 
-        final Query pagedQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(true, true, Optional.empty());
+        final Query pagedQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
         PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, pagedQuery);
         final boolean resultsFound = filteredAssets.hasResults();
         while (filteredAssets.hasResults()) {
@@ -103,7 +107,7 @@ public class InspectorTask extends RepositoryTaskSupport {
                 processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
             }
 
-            final Query nextPage = commonRepositoryTaskHelper.createFilteredQueryBuilder(true, true, filteredAssets.getLastName());
+            final Query nextPage = commonRepositoryTaskHelper.createPagedQuery(filteredAssets.getLastName()).build();
             filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPage);
         }
 
@@ -119,7 +123,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         final String name = assetWrapper.getName();
         final String version = assetWrapper.getVersion();
 
-        if (commonRepositoryTaskHelper.skipAssetProcessing(assetWrapper, taskConfiguration())) {
+        if (commonTaskFilters.skipAssetProcessing(assetWrapper, taskConfiguration())) {
             logger.debug("Binary file did not meet requirements for inspection: {}", name);
             return;
         }
@@ -129,7 +133,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         mutableDependencyGraph.addChildToRoot(dependency);
 
         final String originId = dependency.externalId.createHubOriginId();
-        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.PENDING.name());
+        assetWrapper.addPendingToBlackDuckPanel("Asset waiting to be uploaded to Black Duck.");
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID, originId);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
         assetWrapper.updateAsset();
@@ -155,21 +159,26 @@ public class InspectorTask extends RepositoryTaskSupport {
             final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, projectName, INSPECTOR_CODE_LOCATION_NAME);
             final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, projectName, INSPECTOR_CODE_LOCATION_NAME, projectRoot, mutableDependencyGraph);
             sendInspectorData(simpleBdioDocument, simpleBdioFactory);
+            final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, projectVersionView);
+            final TaskStatus status = uploadUrl.startsWith(CommonRepositoryTaskHelper.VERIFICATION_ERROR) ? TaskStatus.FAILURE : TaskStatus.SUCCESS;
+            inspectorMetaDataProcessor.updateRepositoryMetaData(projectVersionView, assetWrapperMap, status);
         } catch (final IntegrationException e) {
             logger.debug("Issue communicating with BlackDuck: {}", e.getMessage());
+            updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Issue communicating with BlackDuck", true);
         } catch (final IOException e) {
             logger.error("Error writing to file: {}", e.getMessage());
+            updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Couldn't save inspection data", true);
         }
+    }
 
-        final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(Arrays.asList(codeLocationName), projectVersionView);
-        final TaskStatus status = uploadUrl.startsWith(CommonRepositoryTaskHelper.VERIFICATION_ERROR) ? TaskStatus.FAILURE : TaskStatus.SUCCESS;
-        try {
-            inspectorMetaDataProcessor.updateRepositoryMetaData(projectVersionView, assetWrapperMap, status);
-        } catch (final IntegrationException e) {
-            logger.debug("Error retrieving component data: {}", e.getMessage());
-            throw new TaskInterruptedException("Issue communicating with BlackDuck", true);
+    private void updateErrorStatus(final Collection<AssetWrapper> assetWrappers, final String error) {
+        for (final AssetWrapper assetWrapper : assetWrappers) {
+            assetWrapper.removeAllBlackDuckData();
+            assetWrapper.addFailureToBlackDuckPanel(error);
+            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+            assetWrapper.updateAsset();
         }
     }
 

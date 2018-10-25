@@ -5,14 +5,13 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
+import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 
-public class CommonRepositoryTaskHelperTest {
+public class CommonTaskFiltersTest {
 
     @Test
     public void doesExtensionMatchTest() {
-        final DateTimeParser dateTimeParser = new DateTimeParser();
-        final CommonRepositoryTaskHelper commonRepositoryTaskHelper = new CommonRepositoryTaskHelper(null, dateTimeParser, null);
+        final CommonTaskFilters commonRepositoryTaskHelper = new CommonTaskFilters(null);
 
         final String filenameSuccess1 = "test.zip";
         final String filenameSuccess2 = "test.brb";

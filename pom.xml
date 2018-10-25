@@ -14,7 +14,7 @@
     <packaging>bundle</packaging>
 
     <name>blackduck-nexus3</name>
-    <description>Nexus 3 plug-in to scan repository artifacts</description>
+    <description>Nexus 3 plug-in to scan repository assets</description>
     <url>https://github.com/blackducksoftware/hub-nexus3</url>
 
     <organization>

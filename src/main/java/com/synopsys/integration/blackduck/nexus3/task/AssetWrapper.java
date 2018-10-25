@@ -26,9 +26,11 @@ package com.synopsys.integration.blackduck.nexus3.task;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Date;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.sonatype.nexus.blobstore.api.Blob;
 import org.sonatype.nexus.blobstore.api.BlobStore;
@@ -104,8 +106,9 @@ public class AssetWrapper {
         return FilenameUtils.getExtension(getFilename());
     }
 
-    public DateTime getComponentLastUpdated() {
-        return getComponent().lastUpdated();
+    public DateTime getAssetLastUpdated() {
+        final Date date = (Date) getAsset().attributes().child("content").get("last_modified");
+        return new DateTime(date);
     }
 
     public void addToBlackDuckAssetPanel(final AssetPanelLabel label, final String value) {
@@ -122,5 +125,39 @@ public class AssetWrapper {
 
     public Asset getAsset() {
         return asset;
+    }
+
+    public void addPendingToBlackDuckPanel(final String pendingMessage) {
+        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.PENDING.name());
+        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, pendingMessage);
+    }
+
+    public void addSuccessToBlackDuckPanel(final String successMessage) {
+        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.SUCCESS.name());
+        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, successMessage);
+    }
+
+    public void addComponentNotFoundToBlackDuckPanel(final String componentNotFoundMessage) {
+        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.COMPONENT_NOT_FOUND.name());
+        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, componentNotFoundMessage);
+    }
+
+    public void addFailureToBlackDuckPanel(final String errorMessage) {
+        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.FAILURE.name());
+        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, errorMessage);
+    }
+
+    public void removeAllBlackDuckData() {
+        for (final AssetPanelLabel assetPanelLabel : AssetPanelLabel.values()) {
+            removeFromBlackDuckAssetPanel(assetPanelLabel);
+        }
+    }
+
+    public TaskStatus getBlackDuckStatus() {
+        final String status = getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS);
+        if (StringUtils.isBlank(status)) {
+            return null;
+        }
+        return Enum.valueOf(TaskStatus.class, status);
     }
 }

@@ -25,7 +25,6 @@ package com.synopsys.integration.blackduck.nexus3.task.inspector;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,6 +40,7 @@ import com.synopsys.integration.blackduck.api.generated.enumeration.PolicySummar
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
+import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
@@ -55,11 +55,13 @@ public class InspectorMetaDataProcessor {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final CommonMetaDataProcessor commonMetaDataProcessor;
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
+    private final DateTimeParser dateTimeParser;
 
     @Inject
-    public InspectorMetaDataProcessor(final CommonMetaDataProcessor commonMetaDataProcessor, final CommonRepositoryTaskHelper commonRepositoryTaskHelper) {
+    public InspectorMetaDataProcessor(final CommonMetaDataProcessor commonMetaDataProcessor, final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final DateTimeParser dateTimeParser) {
         this.commonMetaDataProcessor = commonMetaDataProcessor;
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
+        this.dateTimeParser = dateTimeParser;
     }
 
     public ProjectVersionWrapper getProjectVersionWrapper(final String name) throws IntegrationException {
@@ -74,28 +76,31 @@ public class InspectorMetaDataProcessor {
                                                 .map(versionBomOriginView -> versionBomOriginView.externalId)
                                                 .collect(Collectors.toSet());
             logger.debug("Found all externalIds ({}) for component: {}", externalIds, versionBomComponentView.componentName);
-            final Optional<AssetWrapper> assetWrapperOptional = findAssetWrapper(assetWrapperMap, externalIds);
-            if (assetWrapperOptional.isPresent()) {
-                final AssetWrapper assetWrapper = assetWrapperOptional.get();
+            for (final String externalId : externalIds) {
+                final AssetWrapper assetWrapper = assetWrapperMap.get(externalId);
 
                 final String componentUrl = versionBomComponentView.componentVersion;
                 final PolicySummaryStatusType policyStatus = versionBomComponentView.policyStatus;
 
                 logger.info("Found component and updating Asset: {}", assetWrapper.getName());
-                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, status.name());
-                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, componentUrl);
-                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, policyStatus.prettyPrint());
-                addVulnerabilityStatus(assetWrapper, versionBomComponentView);
+                if (TaskStatus.FAILURE.equals(status)) {
+                    assetWrapper.addFailureToBlackDuckPanel("Was not able to retrieve data from Black Duck.");
+                } else {
+                    assetWrapper.addSuccessToBlackDuckPanel("Successfully pulled inspection date from Black Duck.");
+                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, componentUrl);
+                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, policyStatus.prettyPrint());
+                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+                    addVulnerabilityStatus(assetWrapper, versionBomComponentView);
+                }
                 assetWrapper.updateAsset();
-                final String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
-                assetWrapperMap.remove(originId);
+                assetWrapperMap.remove(externalId);
             }
         }
 
         logger.debug("Currently have following items in asset map: {}", assetWrapperMap);
         for (final AssetWrapper assetWrapper : assetWrapperMap.values()) {
             logger.warn("Asset was not found in Black Duck, {}", assetWrapper.getName());
-            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.COMPONENT_NOT_FOUND.name());
+            assetWrapper.addComponentNotFoundToBlackDuckPanel("Black Duck was not able to find this component.");
             assetWrapper.updateAsset();
         }
     }
@@ -106,12 +111,5 @@ public class InspectorMetaDataProcessor {
         logger.info("Counting vulnerabilities");
         commonMetaDataProcessor.addAllAssetVulnerabilityCounts(riskCountViews, vulnerabilityLevels);
         commonMetaDataProcessor.setAssetVulnerabilityData(vulnerabilityLevels, assetWrapper);
-    }
-
-    private Optional<AssetWrapper> findAssetWrapper(final Map<String, AssetWrapper> assetWrapperMap, final Set<String> externalIds) {
-        return externalIds.stream()
-                   .filter(externalId -> assetWrapperMap.containsKey(externalId))
-                   .map(externalId -> assetWrapperMap.get(externalId))
-                   .findFirst();
     }
 }

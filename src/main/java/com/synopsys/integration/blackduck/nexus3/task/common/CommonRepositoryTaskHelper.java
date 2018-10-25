@@ -25,19 +25,14 @@ package com.synopsys.integration.blackduck.nexus3.task.common;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -55,9 +50,7 @@ import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.BlackDuckConnection;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
-import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
-import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanel;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.CodeLocationService;
@@ -122,51 +115,13 @@ public class CommonRepositoryTaskHelper {
     }
 
     public DateTime getAssetCutoffDateTime(final TaskConfiguration taskConfiguration) {
-        final String artifactCutoffString = taskConfiguration.getString(CommonTaskKeys.OLD_ARTIFACT_CUTOFF.getParameterKey());
-        return dateTimeParser.convertFromStringToDate(artifactCutoffString);
+        final String assetCutoffString = taskConfiguration.getString(CommonTaskKeys.OLD_ASSET_CUTOFF.getParameterKey());
+        return dateTimeParser.convertFromStringToDate(assetCutoffString);
     }
 
     public File getWorkingDirectory(final TaskConfiguration taskConfiguration) {
         final String directoryName = taskConfiguration.getString(CommonTaskKeys.WORKING_DIRECTORY.getParameterKey());
         return new File(directoryName);
-    }
-
-    public boolean skipAssetProcessing(final AssetWrapper assetWrapper, final TaskConfiguration taskConfiguration) {
-        final DateTime lastModified = assetWrapper.getComponentLastUpdated();
-        logger.debug("Last modified: {}", lastModified);
-        final String fullPathName = assetWrapper.getAsset().name();
-        logger.debug("Asset full path name: {}", fullPathName);
-        final boolean doesRepositoryPathMatch = doesRepositoryPathMatch(fullPathName, getRepositoryPath(taskConfiguration));
-        final boolean isAssetTooOld = isAssetTooOld(getAssetCutoffDateTime(taskConfiguration), lastModified);
-        final boolean doesExtensionMatch = doesExtensionMatch(assetWrapper.getFilename(), getFileExtensionPatterns(taskConfiguration));
-        final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
-        logger.debug("Last processed: {}", lastProcessedString);
-        final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
-        final boolean processAgain = lastProcessed != null && lastModified.isAfter(lastProcessed);
-        return isAssetTooOld || !doesRepositoryPathMatch || !doesExtensionMatch || processAgain;
-    }
-
-    public boolean doesExtensionMatch(final String filename, final String allowedExtensions) {
-        final Set<String> extensions = Arrays.stream(allowedExtensions.split(",")).map(String::trim).collect(Collectors.toSet());
-        for (final String extensionPattern : extensions) {
-            if (FilenameUtils.wildcardMatch(filename, extensionPattern)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public boolean doesRepositoryPathMatch(final String assetPath, final String regexPattern) {
-        if (StringUtils.isBlank(regexPattern)) {
-            logger.debug("Repository path is blank.");
-            return true;
-        }
-        logger.debug("Artifact Path {} being checked against {}", assetPath, regexPattern);
-        return Pattern.matches(regexPattern, assetPath);
-    }
-
-    public boolean isAssetTooOld(final DateTime cutoffDate, final DateTime lastUpdated) {
-        return lastUpdated.isBefore(cutoffDate.getMillis());
     }
 
     public String getBlackDuckPanelPath(final AssetPanelLabel assetPanelLabel) {
@@ -179,34 +134,28 @@ public class CommonRepositoryTaskHelper {
         return projectService.getProjectVersion(name, version);
     }
 
-    public String verifyUpload(final List<String> codeLocationNames, final String name, final String version) {
+    public String verifyUpload(final String codeLocationName, final String name, final String version) {
         try {
             final ProjectVersionWrapper projectVersionWrapper = getProjectVersionWrapper(name, version);
-            return verifyUpload(codeLocationNames, projectVersionWrapper.getProjectVersionView());
+            return verifyUpload(codeLocationName, projectVersionWrapper.getProjectVersionView());
         } catch (final IntegrationException e) {
             logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
             return VERIFICATION_ERROR + e.getMessage();
         }
     }
 
-    public String verifyUpload(final List<String> codeLocationNames, final ProjectVersionView projectVersionView) {
+    public String verifyUpload(final String codeLocationName, final ProjectVersionView projectVersionView) {
         logger.debug("Checking that project exists in BlackDuck.");
         try {
             final CodeLocationService codeLocationService = getHubServicesFactory().createCodeLocationService();
             final HubService hubService = getHubServicesFactory().createHubService();
 
-            final List<CodeLocationView> allCodeLocations = new ArrayList<>();
-            for (final String codeLocationName : codeLocationNames) {
-                final CodeLocationView codeLocationView = codeLocationService.getCodeLocationByName(codeLocationName);
-                allCodeLocations.add(codeLocationView);
-            }
+            final CodeLocationView codeLocationView = codeLocationService.getCodeLocationByName(codeLocationName);
             final List<ScanSummaryView> scanSummaryViews = new ArrayList<>();
-            for (final CodeLocationView codeLocationView : allCodeLocations) {
-                final String scansLink = hubService.getFirstLinkSafely(codeLocationView, CodeLocationView.SCANS_LINK);
-                if (StringUtils.isNotBlank(scansLink)) {
-                    final List<ScanSummaryView> codeLocationScanSummaryViews = hubService.getResponses(scansLink, ScanSummaryView.class, true);
-                    scanSummaryViews.addAll(codeLocationScanSummaryViews);
-                }
+            final String scansLink = hubService.getFirstLinkSafely(codeLocationView, CodeLocationView.SCANS_LINK);
+            if (StringUtils.isNotBlank(scansLink)) {
+                final List<ScanSummaryView> codeLocationScanSummaryViews = hubService.getResponses(scansLink, ScanSummaryView.class, true);
+                scanSummaryViews.addAll(codeLocationScanSummaryViews);
             }
 
             final ScanStatusService scanStatusService = getHubServicesFactory().createScanStatusService(ScanStatusService.DEFAULT_TIMEOUT);
@@ -239,45 +188,6 @@ public class CommonRepositoryTaskHelper {
             name = Optional.of(lastReturnedAsset.get().name());
         }
         return new PagedResult<>(filteredAssets, name);
-    }
-
-    // TODO Pull most query building code out of here and make query building easier
-    public Query createFilteredQueryBuilder(final boolean rescanFailures, final boolean alwaysScan, final Optional<String> lastNameUsed) {
-        final Query.Builder baseQueryBuilder = createPagedQuery(lastNameUsed);
-
-        final String statusSuccess = createSuccessWhereStatement(rescanFailures, alwaysScan);
-        baseQueryBuilder.and(statusSuccess);
-
-        return baseQueryBuilder.build();
-    }
-
-    public String createSuccessWhereStatement(final boolean checkFailures, final boolean checkSuccessAndPending) {
-        final String statusPath = getBlackDuckPanelPath(AssetPanelLabel.TASK_STATUS);
-        final StringBuilder extensionsWhereBuilder = new StringBuilder();
-        extensionsWhereBuilder.append("(");
-        extensionsWhereBuilder.append(statusPath + " IS NULL");
-        if (checkSuccessAndPending) {
-            extensionsWhereBuilder.append(" OR ");
-            extensionsWhereBuilder.append(statusPath);
-            extensionsWhereBuilder.append(" = '");
-            extensionsWhereBuilder.append(TaskStatus.SUCCESS.name());
-            extensionsWhereBuilder.append("'");
-            extensionsWhereBuilder.append(" OR ");
-            extensionsWhereBuilder.append(statusPath);
-            extensionsWhereBuilder.append(" = '");
-            extensionsWhereBuilder.append(TaskStatus.PENDING.name());
-            extensionsWhereBuilder.append("'");
-        }
-        if (checkFailures) {
-            extensionsWhereBuilder.append(" OR ");
-            extensionsWhereBuilder.append(statusPath);
-            extensionsWhereBuilder.append(" = '");
-            extensionsWhereBuilder.append(TaskStatus.FAILURE.name());
-            extensionsWhereBuilder.append("'");
-        }
-
-        extensionsWhereBuilder.append(")");
-        return extensionsWhereBuilder.toString();
     }
 
 }

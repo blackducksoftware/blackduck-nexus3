@@ -47,8 +47,8 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
     private static final String LABEL_ALWAYS_SCAN = "Black Duck - Scan Successful and Pending Assets";
     private static final String LABEL_RESCAN_FAILURE = "Black Duck - Scan Failed Assets";
     private static final String DESCRIPTION_SCAN_MEMORY = "Specify the memory, in megabytes, you would like to allocate for the Black Duck Scan. Default: 4096";
-    private static final String DESCRIPTION_ALWAYS_SCAN = "Scan Successful and Pending artifacts as long as they are not too old and match the file pattern";
-    private static final String DESCRIPTION_RESCAN_FAILURE = "Scan artifacts if the previous scan result was failed";
+    private static final String DESCRIPTION_ALWAYS_SCAN = "Scan Successful or Pending asset as long as they are not too old and match the specified patterns";
+    private static final String DESCRIPTION_RESCAN_FAILURE = "Scan asset if the previous scan result was failed";
     private static final NumberTextFormField FIELD_SCAN_MEMORY = new NumberTextFormField(KEY_SCAN_MEMORY, LABEL_SCAN_MEMORY, DESCRIPTION_SCAN_MEMORY, FormField.MANDATORY)
                                                                      .withInitialValue(DEFAULT_SCAN_MEMORY);
     private static final CheckboxFormField FIELD_ALWAYS_SCAN = new CheckboxFormField(KEY_ALWAYS_CHECK, LABEL_ALWAYS_SCAN, DESCRIPTION_ALWAYS_SCAN, FormField.OPTIONAL);

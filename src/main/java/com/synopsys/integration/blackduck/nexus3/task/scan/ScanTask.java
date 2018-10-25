@@ -26,7 +26,6 @@ package com.synopsys.integration.blackduck.nexus3.task.scan;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +35,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.apache.commons.io.FileUtils;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
@@ -50,8 +50,8 @@ import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
-import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
+import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJob;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJobBuilder;
@@ -75,16 +75,16 @@ public class ScanTask extends RepositoryTaskSupport {
     private final DateTimeParser dateTimeParser;
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
     private final ScanMetaDataProcessor scanMetaDataProcessor;
-    private final CommonMetaDataProcessor commonMetaDataProcessor;
+    private final CommonTaskFilters commonTaskFilters;
 
     @Inject
     public ScanTask(final QueryManager queryManager, final DateTimeParser dateTimeParser, final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final ScanMetaDataProcessor scanMetaDataProcessor,
-        final CommonMetaDataProcessor commonMetaDataProcessor) {
+        final CommonTaskFilters commonTaskFilters) {
         this.queryManager = queryManager;
         this.dateTimeParser = dateTimeParser;
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
         this.scanMetaDataProcessor = scanMetaDataProcessor;
-        this.commonMetaDataProcessor = commonMetaDataProcessor;
+        this.commonTaskFilters = commonTaskFilters;
     }
 
     @Override
@@ -124,7 +124,7 @@ public class ScanTask extends RepositoryTaskSupport {
         final boolean alwaysScan = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_ALWAYS_CHECK, false);
         final boolean redoFailures = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_REDO_FAILURES, false);
 
-        final Query filteredQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(alwaysScan, redoFailures, Optional.empty());
+        final Query filteredQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
         PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, filteredQuery);
         while (foundAssets.hasResults()) {
             logger.debug("Found results from DB");
@@ -134,9 +134,19 @@ public class ScanTask extends RepositoryTaskSupport {
                 final String name = assetWrapper.getName();
                 final String version = assetWrapper.getVersion();
                 final String repoName = repository.getName();
-                final String codeLocationName = String.join("/", SCAN_CODE_LOCATION_NAME, repoName, name, version);
+                final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
 
-                if (commonRepositoryTaskHelper.skipAssetProcessing(assetWrapper, taskConfiguration())) {
+                final TaskStatus status = assetWrapper.getBlackDuckStatus();
+                final boolean shouldScan = shouldScan(status, alwaysScan, redoFailures);
+                logger.debug("Status matches, {}", shouldScan);
+                final DateTime lastModified = assetWrapper.getAssetLastUpdated();
+                final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
+                final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
+                final boolean shouldScanAgain = commonTaskFilters.hasAssetBeenModified(lastModified, lastProcessed);
+                logger.debug("Process again, {}", shouldScanAgain);
+                final boolean scan = shouldScan || shouldScanAgain;
+                logger.debug("Scan without filter check, {}", scan);
+                if (commonTaskFilters.skipAssetProcessing(assetWrapper, taskConfiguration()) || !scan) {
                     logger.debug("Binary file did not meet requirements for scan: {}", name);
                     continue;
                 }
@@ -152,22 +162,38 @@ public class ScanTask extends RepositoryTaskSupport {
                 logger.warn("Problem cleaning scan directories {}", outputDirectory.getAbsolutePath());
             }
 
-            final Query nextPageQuery = commonRepositoryTaskHelper.createFilteredQueryBuilder(alwaysScan, redoFailures, foundAssets.getLastName());
+            final Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
             foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPageQuery);
 
-            for (final AssetWrapper assetWrapper : assetWrappers.values()) {
+            for (final Map.Entry<String, AssetWrapper> entry : assetWrappers.entrySet()) {
+                final AssetWrapper assetWrapper = entry.getValue();
+                final String codeLocationName = entry.getKey();
                 final String name = assetWrapper.getName();
                 final String version = assetWrapper.getVersion();
                 try {
-                    final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(new ArrayList<>(assetWrappers.keySet()), name, version);
+                    final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, name, version);
                     scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, uploadUrl);
                 } catch (final IntegrationException e) {
-                    commonMetaDataProcessor.removeAllMetaData(assetWrapper);
+                    assetWrapper.removeAllBlackDuckData();
+                    assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
+                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
                     assetWrapper.updateAsset();
                     logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
                 }
             }
         }
+    }
+
+    private boolean shouldScan(final TaskStatus status, final boolean alwaysScan, final boolean redoFailures) {
+        if (TaskStatus.PENDING.equals(status) || TaskStatus.SUCCESS.equals(status)) {
+            return alwaysScan;
+        }
+
+        if (TaskStatus.FAILURE.equals(status)) {
+            return redoFailures;
+        }
+
+        return true;
     }
 
     private void performScan(final HubServerConfig hubServerConfig, final File workingBlackDuckDirectory, final File outputDirectory, final File tempFileStorage, final String codeLocationName, final AssetWrapper assetWrapper,
@@ -184,24 +210,21 @@ public class ScanTask extends RepositoryTaskSupport {
             throw new TaskInterruptedException("Error saving blob binary to file", true);
         }
 
-        TaskStatus taskStatus = TaskStatus.FAILURE;
         try {
             final ScanJob scanJob = createScanJob(hubServerConfig, workingBlackDuckDirectory, outputDirectory, name, version, binaryFile.getAbsolutePath(), codeLocationName);
             final ScanJobOutput scanJobOutput = scanJobManager.executeScans(scanJob);
             final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
             final ScanCommandOutput scanCommandResult = scanOutputs.get(SCAN_OUTPUT_LOCATION);
             if (Result.SUCCESS == scanCommandResult.getResult()) {
-                taskStatus = TaskStatus.PENDING;
+                assetWrapper.addPendingToBlackDuckPanel("Component uploaded to BlackDuck, waiting for update.");
                 scannedAssets.put(codeLocationName, assetWrapper);
             }
         } catch (final IOException | IntegrationException e) {
-            commonMetaDataProcessor.removeAllMetaData(assetWrapper);
-            assetWrapper.updateAsset();
+            assetWrapper.removeAllBlackDuckData();
+            assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
             logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
         } finally {
-            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, taskStatus.name());
             assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
-            logger.debug("Updating asset panel");
         }
     }
 

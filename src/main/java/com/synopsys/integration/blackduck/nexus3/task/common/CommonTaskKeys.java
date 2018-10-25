@@ -26,8 +26,8 @@ package com.synopsys.integration.blackduck.nexus3.task.common;
 public enum CommonTaskKeys {
     FILE_PATTERNS("blackduck.file.pattern.match.wildcards"),
     WORKING_DIRECTORY("blackduck.working.directory"),
-    OLD_ARTIFACT_CUTOFF("blackduck.artifact.cutoff"),
-    REPOSITORY_PATH("blackduck.nexus.artifact.path");
+    OLD_ASSET_CUTOFF("blackduck.asset.cutoff"),
+    REPOSITORY_PATH("blackduck.nexus.asset.path");
 
     private final String parameterKey;
 
