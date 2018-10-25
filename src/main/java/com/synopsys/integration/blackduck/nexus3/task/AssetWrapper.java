@@ -26,10 +26,8 @@ package com.synopsys.integration.blackduck.nexus3.task;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Date;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.sonatype.nexus.blobstore.api.Blob;
@@ -46,7 +44,7 @@ public class AssetWrapper {
     private final Asset asset;
     private final Repository repository;
     private final QueryManager queryManager;
-
+    private final DateTimeParser dateTimeParser;
     private Component associatedComponent;
     private Blob associatedBlob;
     private AssetPanel associatedAssetPanel;
@@ -55,6 +53,7 @@ public class AssetWrapper {
         this.asset = asset;
         this.repository = repository;
         this.queryManager = queryManager;
+        dateTimeParser = new DateTimeParser();
     }
 
     public Component getComponent() {
@@ -102,13 +101,8 @@ public class AssetWrapper {
         return getBlob().getHeaders().get(BlobStore.BLOB_NAME_HEADER);
     }
 
-    public String getExtension() {
-        return FilenameUtils.getExtension(getFilename());
-    }
-
     public DateTime getAssetLastUpdated() {
-        final Date date = (Date) getAsset().attributes().child("content").get("last_modified");
-        return new DateTime(date);
+        return dateTimeParser.formatDateTime(asset.blobUpdated());
     }
 
     public void addToBlackDuckAssetPanel(final AssetPanelLabel label, final String value) {

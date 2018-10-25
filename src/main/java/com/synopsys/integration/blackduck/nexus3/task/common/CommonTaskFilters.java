@@ -17,16 +17,20 @@ import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.scheduling.TaskConfiguration;
 
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
+import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
+import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 
 @Named
 @Singleton
 public class CommonTaskFilters {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
+    private final DateTimeParser dateTimeParser;
 
     @Inject
-    public CommonTaskFilters(final CommonRepositoryTaskHelper commonRepositoryTaskHelper) {
+    public CommonTaskFilters(final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final DateTimeParser dateTimeParser) {
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
+        this.dateTimeParser = dateTimeParser;
     }
 
     public boolean skipAssetProcessing(final AssetWrapper assetWrapper, final TaskConfiguration taskConfiguration) {
@@ -68,9 +72,13 @@ public class CommonTaskFilters {
         return lastUpdated.isBefore(cutoffDate.getMillis());
     }
 
-    public boolean hasAssetBeenModified(final DateTime lastModified, final DateTime lastProcessed) {
+    public boolean hasAssetBeenModified(final AssetWrapper assetWrapper) {
+        final DateTime lastModified = assetWrapper.getAssetLastUpdated();
+        final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
+        final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
+        final boolean neverProcessed = lastProcessed == null;
         logger.debug("Last modified: {}", lastModified);
         logger.debug("Last processed: {}", lastProcessed);
-        return lastProcessed != null && lastModified.isAfter(lastProcessed);
+        return neverProcessed || lastModified.isAfter(lastProcessed);
     }
 }

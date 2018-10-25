@@ -35,7 +35,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.apache.commons.io.FileUtils;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
@@ -139,10 +138,7 @@ public class ScanTask extends RepositoryTaskSupport {
                 final TaskStatus status = assetWrapper.getBlackDuckStatus();
                 final boolean shouldScan = shouldScan(status, alwaysScan, redoFailures);
                 logger.debug("Status matches, {}", shouldScan);
-                final DateTime lastModified = assetWrapper.getAssetLastUpdated();
-                final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
-                final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
-                final boolean shouldScanAgain = commonTaskFilters.hasAssetBeenModified(lastModified, lastProcessed);
+                final boolean shouldScanAgain = commonTaskFilters.hasAssetBeenModified(assetWrapper);
                 logger.debug("Process again, {}", shouldScanAgain);
                 final boolean scan = shouldScan || shouldScanAgain;
                 logger.debug("Scan without filter check, {}", scan);

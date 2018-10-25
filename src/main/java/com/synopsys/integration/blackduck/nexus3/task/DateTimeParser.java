@@ -40,6 +40,11 @@ public class DateTimeParser {
         return new DateTime().toString(DATE_TIME_PATTERN);
     }
 
+    public DateTime formatDateTime(final DateTime dateTime) {
+        final String dateTimeString = convertFromDateToString(dateTime);
+        return convertFromStringToDate(dateTimeString);
+    }
+
     public String convertFromDateToString(final DateTime dateTime) {
         final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(DATE_TIME_PATTERN);
         return dateTimeFormatter.print(dateTime);

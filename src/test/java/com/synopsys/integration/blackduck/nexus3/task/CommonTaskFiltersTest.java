@@ -11,7 +11,7 @@ public class CommonTaskFiltersTest {
 
     @Test
     public void doesExtensionMatchTest() {
-        final CommonTaskFilters commonRepositoryTaskHelper = new CommonTaskFilters(null);
+        final CommonTaskFilters commonRepositoryTaskHelper = new CommonTaskFilters(null, null);
 
         final String filenameSuccess1 = "test.zip";
         final String filenameSuccess2 = "test.brb";

@@ -99,12 +99,15 @@ public class InspectorTask extends RepositoryTaskSupport {
 
         final Query pagedQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
         PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, pagedQuery);
-        final boolean resultsFound = filteredAssets.hasResults();
+        boolean resultsFound = false;
         while (filteredAssets.hasResults()) {
             logger.info("Found some items from the DB");
             for (final Asset asset : filteredAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, commonRepositoryTaskHelper.getQueryManager());
-                processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                resultsFound = resultsFound || processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                if (resultsFound) {
+                    logger.info("Found new item, adding items to Black Duck.");
+                }
             }
 
             final Query nextPage = commonRepositoryTaskHelper.createPagedQuery(filteredAssets.getLastName()).build();
@@ -115,23 +118,24 @@ public class InspectorTask extends RepositoryTaskSupport {
             logger.info("Creating Black Duck project.");
             uploadToBlackDuck(repository, mutableDependencyGraph, simpleBdioFactory, dependencyType.get(), assetWrapperMap);
         } else {
-            logger.warn("No assets found with set criteria.");
+            logger.warn("No new assets found with set criteria.");
         }
     }
 
-    private void processAsset(final AssetWrapper assetWrapper, final DependencyType dependencyType, final MutableDependencyGraph mutableDependencyGraph, final Map<String, AssetWrapper> assetWrapperMap) {
+    private boolean processAsset(final AssetWrapper assetWrapper, final DependencyType dependencyType, final MutableDependencyGraph mutableDependencyGraph, final Map<String, AssetWrapper> assetWrapperMap) {
         final String name = assetWrapper.getName();
         final String version = assetWrapper.getVersion();
 
         if (commonTaskFilters.skipAssetProcessing(assetWrapper, taskConfiguration())) {
             logger.debug("Binary file did not meet requirements for inspection: {}", name);
-            return;
+            return false;
         }
 
         final Dependency dependency = dependencyGenerator.createDependency(dependencyType, name, version, assetWrapper.getAsset().attributes());
         logger.debug("Created new dependency: {}", dependency);
         mutableDependencyGraph.addChildToRoot(dependency);
 
+        final boolean modified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
         final String originId = dependency.externalId.createHubOriginId();
         assetWrapper.addPendingToBlackDuckPanel("Asset waiting to be uploaded to Black Duck.");
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID, originId);
@@ -139,6 +143,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         assetWrapper.updateAsset();
         logger.debug("Adding asset to map with originId as key: {}", originId);
         assetWrapperMap.put(originId, assetWrapper);
+        return modified;
     }
 
     private void uploadToBlackDuck(final Repository repository, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory, final DependencyType dependencyType,
