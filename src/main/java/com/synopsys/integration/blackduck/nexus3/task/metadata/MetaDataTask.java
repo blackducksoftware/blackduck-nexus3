@@ -35,10 +35,8 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
-import org.sonatype.nexus.repository.Type;
 import org.sonatype.nexus.repository.storage.Asset;
 import org.sonatype.nexus.repository.storage.Query;
-import org.sonatype.nexus.repository.types.ProxyType;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
@@ -48,6 +46,7 @@ import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
+import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.nexus3.task.inspector.InspectorMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.scan.ScanMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
@@ -60,21 +59,21 @@ public class MetaDataTask extends RepositoryTaskSupport {
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
     private final QueryManager queryManager;
     private final CommonMetaDataProcessor commonMetaDataProcessor;
-    private final Type proxyType;
     private final InspectorMetaDataProcessor inspectorMetaDataProcessor;
     private final ScanMetaDataProcessor scanMetaDataProcessor;
     private final DateTimeParser dateTimeParser;
+    private final CommonTaskFilters commonTaskFilters;
 
     @Inject
     public MetaDataTask(final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final QueryManager queryManager, final CommonMetaDataProcessor commonMetaDataProcessor, final InspectorMetaDataProcessor inspectorMetaDataProcessor,
-        final ScanMetaDataProcessor scanMetaDataProcessor, final DateTimeParser dateTimeParser, @Named(ProxyType.NAME) final Type proxyType) {
+        final ScanMetaDataProcessor scanMetaDataProcessor, final DateTimeParser dateTimeParser, final CommonTaskFilters commonTaskFilters) {
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
         this.queryManager = queryManager;
         this.commonMetaDataProcessor = commonMetaDataProcessor;
         this.inspectorMetaDataProcessor = inspectorMetaDataProcessor;
         this.scanMetaDataProcessor = scanMetaDataProcessor;
         this.dateTimeParser = dateTimeParser;
-        this.proxyType = proxyType;
+        this.commonTaskFilters = commonTaskFilters;
     }
 
     @Override
@@ -82,7 +81,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
         final Query filteredAssets = createFilteredQuery(Optional.empty());
         PagedResult<Asset> pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, filteredAssets);
         final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
-        final boolean isProxyRepo = proxyType.equals(repository.getType());
+        final boolean isProxyRepo = commonTaskFilters.isProxyRepository(repository.getType());
         while (pagedAssets.hasResults()) {
             logger.debug("Found items in the DB.");
             for (final Asset asset : pagedAssets.getTypeList()) {

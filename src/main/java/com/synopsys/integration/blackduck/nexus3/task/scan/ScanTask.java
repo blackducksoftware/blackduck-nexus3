@@ -123,58 +123,62 @@ public class ScanTask extends RepositoryTaskSupport {
         final boolean alwaysScan = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_ALWAYS_CHECK, false);
         final boolean redoFailures = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_REDO_FAILURES, false);
 
-        final Query filteredQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
-        PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, filteredQuery);
-        while (foundAssets.hasResults()) {
-            logger.debug("Found results from DB");
-            final Map<String, AssetWrapper> scannedAssets = new HashMap<>();
-            for (final Asset asset : foundAssets.getTypeList()) {
-                final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
-                final String name = assetWrapper.getFullPath();
-                final String version = assetWrapper.getVersion();
-                final String repoName = repository.getName();
-                final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
+        for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
+            if (commonTaskFilters.isHostedRepository(foundRepository.getType())) {
+                final Query filteredQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
+                PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, filteredQuery);
+                while (foundAssets.hasResults()) {
+                    logger.debug("Found results from DB");
+                    final Map<String, AssetWrapper> scannedAssets = new HashMap<>();
+                    for (final Asset asset : foundAssets.getTypeList()) {
+                        final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, queryManager);
+                        final String name = assetWrapper.getFullPath();
+                        final String version = assetWrapper.getVersion();
+                        final String repoName = foundRepository.getName();
+                        final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
 
-                final TaskStatus status = assetWrapper.getBlackDuckStatus();
-                final boolean shouldScan = shouldScan(status, alwaysScan, redoFailures);
-                logger.debug("Status matches, {}", shouldScan);
-                final boolean shouldScanAgain = commonTaskFilters.hasAssetBeenModified(assetWrapper);
-                logger.debug("Process again, {}", shouldScanAgain);
-                final boolean scan = shouldScan || shouldScanAgain;
-                logger.debug("Scan without filter check, {}", scan);
-                if (commonTaskFilters.skipAssetProcessing(assetWrapper, taskConfiguration()) || !scan) {
-                    logger.debug("Binary file did not meet requirements for scan: {}", name);
-                    continue;
-                }
+                        final TaskStatus status = assetWrapper.getBlackDuckStatus();
+                        final boolean shouldScan = shouldScan(status, alwaysScan, redoFailures);
+                        logger.debug("Status matches, {}", shouldScan);
+                        final boolean shouldScanAgain = commonTaskFilters.hasAssetBeenModified(assetWrapper);
+                        logger.debug("Process again, {}", shouldScanAgain);
+                        final boolean scan = shouldScan || shouldScanAgain;
+                        logger.debug("Scan without filter check, {}", scan);
+                        if (commonTaskFilters.skipAssetProcessing(assetWrapper, taskConfiguration()) || !scan) {
+                            logger.debug("Binary file did not meet requirements for scan: {}", name);
+                            continue;
+                        }
 
-                performScan(hubServerConfig, workingBlackDuckDirectory, outputDirectory, tempFileStorage, codeLocationName, assetWrapper, scanJobManager, scannedAssets);
-                assetWrapper.updateAsset();
-            }
+                        performScan(hubServerConfig, workingBlackDuckDirectory, outputDirectory, tempFileStorage, codeLocationName, assetWrapper, scanJobManager, scannedAssets);
+                        assetWrapper.updateAsset();
+                    }
 
-            try {
-                FileUtils.cleanDirectory(tempFileStorage);
-                FileUtils.cleanDirectory(outputDirectory);
-            } catch (final IOException e) {
-                logger.warn("Problem cleaning scan directories {}", outputDirectory.getAbsolutePath());
-            }
+                    try {
+                        FileUtils.cleanDirectory(tempFileStorage);
+                        FileUtils.cleanDirectory(outputDirectory);
+                    } catch (final IOException e) {
+                        logger.warn("Problem cleaning scan directories {}", outputDirectory.getAbsolutePath());
+                    }
 
-            final Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
-            foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPageQuery);
+                    final Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
+                    foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPageQuery);
 
-            for (final Map.Entry<String, AssetWrapper> entry : scannedAssets.entrySet()) {
-                final AssetWrapper assetWrapper = entry.getValue();
-                final String codeLocationName = entry.getKey();
-                final String projectName = assetWrapper.getName();
-                final String version = assetWrapper.getVersion();
-                try {
-                    final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, projectName, version);
-                    scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, uploadUrl);
-                } catch (final IntegrationException e) {
-                    assetWrapper.removeAllBlackDuckData();
-                    assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
-                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
-                    assetWrapper.updateAsset();
-                    logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+                    for (final Map.Entry<String, AssetWrapper> entry : scannedAssets.entrySet()) {
+                        final AssetWrapper assetWrapper = entry.getValue();
+                        final String codeLocationName = entry.getKey();
+                        final String projectName = assetWrapper.getName();
+                        final String version = assetWrapper.getVersion();
+                        try {
+                            final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, projectName, version);
+                            scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, uploadUrl);
+                        } catch (final IntegrationException e) {
+                            assetWrapper.removeAllBlackDuckData();
+                            assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
+                            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+                            assetWrapper.updateAsset();
+                            logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+                        }
+                    }
                 }
             }
         }

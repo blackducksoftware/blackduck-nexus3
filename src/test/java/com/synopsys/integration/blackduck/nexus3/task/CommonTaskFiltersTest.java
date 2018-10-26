@@ -13,7 +13,7 @@ public class CommonTaskFiltersTest {
 
     @Test
     public void doesExtensionMatchTest() {
-        final CommonTaskFilters commonRepositoryTaskHelper = new CommonTaskFilters(null, null);
+        final CommonTaskFilters commonRepositoryTaskHelper = new CommonTaskFilters(null, null, null, null, null);
 
         final String filenameSuccess1 = "test.zip";
         final String filenameSuccess2 = "test.brb";
@@ -32,12 +32,12 @@ public class CommonTaskFiltersTest {
 
     @Test
     public void doesRepositoryPathMatchTest() {
-        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null);
+        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null, null, null, null);
 
-        String assetPath = "org/test/path/mything.jar";
-        String workingRegexPattern = "org\\/.*";
-        String brokenRegexPattern = "org\\/";
-        String emptyRegexPattern = "";
+        final String assetPath = "org/test/path/mything.jar";
+        final String workingRegexPattern = "org\\/.*";
+        final String brokenRegexPattern = "org\\/";
+        final String emptyRegexPattern = "";
 
         Assert.assertTrue(commonTaskFilters.doesRepositoryPathMatch(assetPath, workingRegexPattern));
         Assert.assertFalse(commonTaskFilters.doesRepositoryPathMatch(assetPath, brokenRegexPattern));
@@ -46,12 +46,12 @@ public class CommonTaskFiltersTest {
 
     @Test
     public void isAssetTooOldTest() {
-        DateTimeParser dateTimeParser = new DateTimeParser();
-        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, dateTimeParser);
+        final DateTimeParser dateTimeParser = new DateTimeParser();
+        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, dateTimeParser, null, null, null);
 
-        DateTime now = new DateTime();
-        DateTime dayOlder = now.minusDays(1);
-        DateTime dayNewer = now.plusDays(1);
+        final DateTime now = new DateTime();
+        final DateTime dayOlder = now.minusDays(1);
+        final DateTime dayNewer = now.plusDays(1);
 
         Assert.assertTrue(commonTaskFilters.isAssetTooOld(now, dayOlder));
         Assert.assertFalse(commonTaskFilters.isAssetTooOld(now, dayNewer));
@@ -59,7 +59,7 @@ public class CommonTaskFiltersTest {
 
     @Test
     public void hasAssetBeenModifiedTest() {
-        DateTimeParser dateTimeParser = new DateTimeParser();
-        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, dateTimeParser);
+        final DateTimeParser dateTimeParser = new DateTimeParser();
+        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, dateTimeParser, null, null, null);
     }
 }
