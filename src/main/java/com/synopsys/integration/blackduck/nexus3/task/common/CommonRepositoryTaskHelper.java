@@ -25,6 +25,7 @@ package com.synopsys.integration.blackduck.nexus3.task.common;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
@@ -38,8 +39,11 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
+import org.sonatype.nexus.repository.Type;
+import org.sonatype.nexus.repository.group.GroupFacet;
 import org.sonatype.nexus.repository.storage.Asset;
 import org.sonatype.nexus.repository.storage.Query;
+import org.sonatype.nexus.repository.types.GroupType;
 import org.sonatype.nexus.scheduling.TaskConfiguration;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
@@ -70,12 +74,23 @@ public class CommonRepositoryTaskHelper {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DateTimeParser dateTimeParser;
     private final BlackDuckConnection blackDuckConnection;
+    private final Type groupType;
 
     @Inject
-    public CommonRepositoryTaskHelper(final QueryManager queryManager, final DateTimeParser dateTimeParser, final BlackDuckConnection blackDuckConnection) {
+    public CommonRepositoryTaskHelper(final QueryManager queryManager, final DateTimeParser dateTimeParser, final BlackDuckConnection blackDuckConnection, @Named(GroupType.NAME) final Type groupType) {
         this.queryManager = queryManager;
         this.dateTimeParser = dateTimeParser;
         this.blackDuckConnection = blackDuckConnection;
+        this.groupType = groupType;
+    }
+
+    public List<Repository> getAllRepositories(final Repository repository) {
+        if (groupType.equals(repository.getType())) {
+            final GroupFacet groupFacet = repository.facet(GroupFacet.class);
+            return groupFacet.allMembers();
+        }
+
+        return Arrays.asList(repository);
     }
 
     public boolean doesRepositoryApply(final Repository repository, final String repositoryField) {

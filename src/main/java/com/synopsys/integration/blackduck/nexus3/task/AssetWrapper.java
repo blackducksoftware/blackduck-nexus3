@@ -93,6 +93,10 @@ public class AssetWrapper {
         return getComponent().name();
     }
 
+    public String getFullPath() {
+        return asset.name();
+    }
+
     public String getVersion() {
         return getComponent().version();
     }

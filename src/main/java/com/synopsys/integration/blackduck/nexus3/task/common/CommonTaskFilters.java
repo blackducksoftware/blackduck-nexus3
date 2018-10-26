@@ -35,7 +35,7 @@ public class CommonTaskFilters {
 
     public boolean skipAssetProcessing(final AssetWrapper assetWrapper, final TaskConfiguration taskConfiguration) {
         final DateTime lastModified = assetWrapper.getAssetLastUpdated();
-        final String fullPathName = assetWrapper.getAsset().name();
+        final String fullPathName = assetWrapper.getFullPath();
         final String repositoryRegexPath = commonRepositoryTaskHelper.getRepositoryPath(taskConfiguration);
         final String fileExtensionPatterns = commonRepositoryTaskHelper.getFileExtensionPatterns(taskConfiguration);
         final DateTime assetCutoffDate = commonRepositoryTaskHelper.getAssetCutoffDateTime(taskConfiguration);

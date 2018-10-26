@@ -130,7 +130,7 @@ public class ScanTask extends RepositoryTaskSupport {
             final Map<String, AssetWrapper> scannedAssets = new HashMap<>();
             for (final Asset asset : foundAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
-                final String name = assetWrapper.getName();
+                final String name = assetWrapper.getFullPath();
                 final String version = assetWrapper.getVersion();
                 final String repoName = repository.getName();
                 final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
@@ -164,7 +164,7 @@ public class ScanTask extends RepositoryTaskSupport {
             for (final Map.Entry<String, AssetWrapper> entry : scannedAssets.entrySet()) {
                 final AssetWrapper assetWrapper = entry.getValue();
                 final String codeLocationName = entry.getKey();
-                final String name = assetWrapper.getName();
+                final String name = assetWrapper.getFullPath();
                 final String version = assetWrapper.getVersion();
                 try {
                     final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, name, version);
@@ -194,7 +194,7 @@ public class ScanTask extends RepositoryTaskSupport {
 
     private void performScan(final HubServerConfig hubServerConfig, final File workingBlackDuckDirectory, final File outputDirectory, final File tempFileStorage, final String codeLocationName, final AssetWrapper assetWrapper,
         final ScanJobManager scanJobManager, final Map<String, AssetWrapper> scannedAssets) {
-        final String name = assetWrapper.getName();
+        final String name = assetWrapper.getFullPath();
         final String version = assetWrapper.getVersion();
 
         logger.info("Scanning item: {}", name);

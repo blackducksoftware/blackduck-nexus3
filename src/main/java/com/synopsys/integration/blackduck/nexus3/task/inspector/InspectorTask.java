@@ -104,9 +104,10 @@ public class InspectorTask extends RepositoryTaskSupport {
             logger.info("Found some items from the DB");
             for (final Asset asset : filteredAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, commonRepositoryTaskHelper.getQueryManager());
-                resultsFound = resultsFound || processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                final String name = assetWrapper.getName();
+                resultsFound = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap) || resultsFound;
                 if (resultsFound) {
-                    logger.info("Found new item, adding items to Black Duck.");
+                    logger.info("Found new item {}, adding to Black Duck.", name);
                 }
             }
 
@@ -132,7 +133,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         }
 
         final Dependency dependency = dependencyGenerator.createDependency(dependencyType, name, version, assetWrapper.getAsset().attributes());
-        logger.debug("Created new dependency: {}", dependency);
+        logger.info("Created new dependency: {}", dependency);
         mutableDependencyGraph.addChildToRoot(dependency);
 
         final boolean modified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
