@@ -97,30 +97,36 @@ public class InspectorTask extends RepositoryTaskSupport {
         final MutableDependencyGraph mutableDependencyGraph = simpleBdioFactory.createMutableDependencyGraph();
         final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
 
-        final Query pagedQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
-        PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, pagedQuery);
-        boolean resultsFound = false;
-        while (filteredAssets.hasResults()) {
-            logger.info("Found some items from the DB");
-            for (final Asset asset : filteredAssets.getTypeList()) {
-                final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, commonRepositoryTaskHelper.getQueryManager());
-                final String name = assetWrapper.getFullPath();
-                final boolean shouldAddAsset = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
-                resultsFound = resultsFound || shouldAddAsset;
+        for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
+            if (commonTaskFilters.isProxyRepository(foundRepository.getType())) {
+                final String repoName = foundRepository.getName();
+                logger.info("Checking repository for assets: {}", repoName);
+                final Query pagedQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
+                PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, pagedQuery);
+                boolean resultsFound = false;
+                while (filteredAssets.hasResults()) {
+                    logger.info("Found some items from the DB");
+                    for (final Asset asset : filteredAssets.getTypeList()) {
+                        final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, commonRepositoryTaskHelper.getQueryManager());
+                        final String name = assetWrapper.getFullPath();
+                        final boolean shouldAddAsset = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                        resultsFound = resultsFound || shouldAddAsset;
+                        if (resultsFound) {
+                            logger.info("Found new item {}, adding to Black Duck.", name);
+                        }
+                    }
+
+                    final Query nextPage = commonRepositoryTaskHelper.createPagedQuery(filteredAssets.getLastName()).build();
+                    filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPage);
+                }
+
                 if (resultsFound) {
-                    logger.info("Found new item {}, adding to Black Duck.", name);
+                    logger.info("Creating Black Duck project.");
+                    uploadToBlackDuck(repoName, mutableDependencyGraph, simpleBdioFactory, dependencyType.get(), assetWrapperMap);
+                } else {
+                    logger.warn("No new assets found with set criteria.");
                 }
             }
-
-            final Query nextPage = commonRepositoryTaskHelper.createPagedQuery(filteredAssets.getLastName()).build();
-            filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPage);
-        }
-
-        if (resultsFound) {
-            logger.info("Creating Black Duck project.");
-            uploadToBlackDuck(repository, mutableDependencyGraph, simpleBdioFactory, dependencyType.get(), assetWrapperMap);
-        } else {
-            logger.warn("No new assets found with set criteria.");
         }
     }
 
@@ -147,23 +153,22 @@ public class InspectorTask extends RepositoryTaskSupport {
         return true;
     }
 
-    private void uploadToBlackDuck(final Repository repository, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory, final DependencyType dependencyType,
+    private void uploadToBlackDuck(final String repositoryName, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory, final DependencyType dependencyType,
         final Map<String, AssetWrapper> assetWrapperMap) {
         final Forge nexusForge = new Forge("/", "/", "nexus");
-        final String projectName = repository.getName();
         final ProjectVersionView projectVersionView;
-        final String codeLocationName = String.join("/", INSPECTOR_CODE_LOCATION_NAME, projectName, dependencyType.getRepositoryType());
+        final String codeLocationName = String.join("/", INSPECTOR_CODE_LOCATION_NAME, repositoryName, dependencyType.getRepositoryType());
         try {
-            logger.debug("Creating project in Black Duck if needed: {}", projectName);
+            logger.debug("Creating project in Black Duck if needed: {}", repositoryName);
             final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
             final ProjectService projectService = hubServicesFactory.createProjectService();
             final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
-            projectRequestBuilder.setProjectName(projectName);
+            projectRequestBuilder.setProjectName(repositoryName);
             projectRequestBuilder.setVersionName(INSPECTOR_CODE_LOCATION_NAME);
             final ProjectVersionWrapper projectVersionWrapper = projectService.getProjectVersionAndCreateIfNeeded(projectRequestBuilder.buildObject());
             projectVersionView = projectVersionWrapper.getProjectVersionView();
-            final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, projectName, INSPECTOR_CODE_LOCATION_NAME);
-            final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, projectName, INSPECTOR_CODE_LOCATION_NAME, projectRoot, mutableDependencyGraph);
+            final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, repositoryName, INSPECTOR_CODE_LOCATION_NAME);
+            final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, repositoryName, INSPECTOR_CODE_LOCATION_NAME, projectRoot, mutableDependencyGraph);
             sendInspectorData(simpleBdioDocument, simpleBdioFactory);
             final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, projectVersionView);
             final TaskStatus status = uploadUrl.startsWith(CommonRepositoryTaskHelper.VERIFICATION_ERROR) ? TaskStatus.FAILURE : TaskStatus.SUCCESS;

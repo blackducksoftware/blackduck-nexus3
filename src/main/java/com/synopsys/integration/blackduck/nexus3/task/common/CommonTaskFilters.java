@@ -61,9 +61,9 @@ public class CommonTaskFilters {
     }
 
     public List<Repository> findRelevantRepositories(final Repository repository) {
-        if (groupType.equals(repository.getType())) {
+        if (isGroupRepository(repository.getType())) {
             final GroupFacet groupFacet = repository.facet(GroupFacet.class);
-            return groupFacet.allMembers();
+            return groupFacet.leafMembers();
         }
 
         return Arrays.asList(repository);

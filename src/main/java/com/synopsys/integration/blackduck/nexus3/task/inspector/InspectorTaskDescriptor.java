@@ -27,6 +27,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.sonatype.nexus.formfields.FormField;
+import org.sonatype.nexus.repository.types.GroupType;
 import org.sonatype.nexus.repository.types.ProxyType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
@@ -51,7 +52,7 @@ public class InspectorTaskDescriptor extends TaskDescriptorSupport {
 
     public static FormField[] getFields() {
         final FormField[] fields = {
-            CommonDescriptorHelper.getRepositoryField(ProxyType.NAME),
+            CommonDescriptorHelper.getRepositoryField(ProxyType.NAME, GroupType.NAME),
             CommonDescriptorHelper.getRepositoryPathField(),
             CommonDescriptorHelper.getFilePatternField().withInitialValue(DEFAULT_FILE_PATTERNS_MATCHES),
             CommonDescriptorHelper.getWorkingDirectoryField(),

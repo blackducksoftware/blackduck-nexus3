@@ -125,6 +125,8 @@ public class ScanTask extends RepositoryTaskSupport {
 
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             if (commonTaskFilters.isHostedRepository(foundRepository.getType())) {
+                final String repoName = foundRepository.getName();
+                logger.info("Checking repository for assets: {}", repoName);
                 final Query filteredQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
                 PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, filteredQuery);
                 while (foundAssets.hasResults()) {
@@ -134,7 +136,6 @@ public class ScanTask extends RepositoryTaskSupport {
                         final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, queryManager);
                         final String name = assetWrapper.getFullPath();
                         final String version = assetWrapper.getVersion();
-                        final String repoName = foundRepository.getName();
                         final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
 
                         final TaskStatus status = assetWrapper.getBlackDuckStatus();
