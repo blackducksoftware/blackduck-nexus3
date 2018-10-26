@@ -105,8 +105,8 @@ public class InspectorTask extends RepositoryTaskSupport {
             for (final Asset asset : filteredAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, commonRepositoryTaskHelper.getQueryManager());
                 final String name = assetWrapper.getFullPath();
-                final boolean hasBeenModified = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
-                resultsFound = resultsFound || hasBeenModified;
+                final boolean shouldAddAsset = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                resultsFound = resultsFound || shouldAddAsset;
                 if (resultsFound) {
                     logger.info("Found new item {}, adding to Black Duck.", name);
                 }
@@ -137,7 +137,6 @@ public class InspectorTask extends RepositoryTaskSupport {
         logger.info("Created new dependency: {}", dependency);
         mutableDependencyGraph.addChildToRoot(dependency);
 
-        final boolean modified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
         final String originId = dependency.externalId.createHubOriginId();
         assetWrapper.addPendingToBlackDuckPanel("Asset waiting to be uploaded to Black Duck.");
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID, originId);
@@ -145,7 +144,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         assetWrapper.updateAsset();
         logger.debug("Adding asset to map with originId as key: {}", originId);
         assetWrapperMap.put(originId, assetWrapper);
-        return modified;
+        return true;
     }
 
     private void uploadToBlackDuck(final Repository repository, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory, final DependencyType dependencyType,
