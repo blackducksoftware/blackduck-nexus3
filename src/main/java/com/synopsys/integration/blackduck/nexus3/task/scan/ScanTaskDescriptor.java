@@ -39,6 +39,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonDescriptorHel
 public class ScanTaskDescriptor extends TaskDescriptorSupport {
     public static final String BLACK_DUCK_SCAN_TASK_ID = "blackduck.scan";
     public static final String BLACK_DUCK_SCAN_TASK_NAME = "Black Duck - Hosted Repository Scan";
+    public static final String DEFAULT_FILE_PATTERNS_MATCHES = "*.war,*.zip,*.tar.gz,*.hpi";
     public static final int DEFAULT_SCAN_MEMORY = 4096;
     public static final String KEY_SCAN_MEMORY = "blackduck.memory";
     public static final String KEY_REDO_FAILURES = "blackduck.redo.failures";
@@ -69,7 +70,7 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
         final FormField[] fields = {
             CommonDescriptorHelper.getRepositoryField(repoTypes),
             CommonDescriptorHelper.getRepositoryPathField(),
-            CommonDescriptorHelper.getFilePatternField(),
+            CommonDescriptorHelper.getFilePatternField().withInitialValue(DEFAULT_FILE_PATTERNS_MATCHES),
             CommonDescriptorHelper.getWorkingDirectoryField(),
             FIELD_SCAN_MEMORY,
             FIELD_ALWAYS_SCAN,

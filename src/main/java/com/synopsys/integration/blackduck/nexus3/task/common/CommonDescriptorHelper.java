@@ -36,7 +36,6 @@ import org.sonatype.nexus.repository.types.HostedType;
 import org.sonatype.nexus.repository.types.ProxyType;
 
 public class CommonDescriptorHelper {
-    public static final String DEFAULT_FILE_PATTERNS_MATCHES = "*.war,*.zip,*.tar.gz,*.hpi";
     public static final String DEFAULT_WORKING_DIRECTORY = "../sonatype-work";
     public static final String DEFAULT_ARTIFACT_CUTOFF = "2016-01-01T00:00:00.000";
 
@@ -67,8 +66,7 @@ public class CommonDescriptorHelper {
     }
 
     public static StringTextFormField getFilePatternField() {
-        return new StringTextFormField(CommonTaskKeys.FILE_PATTERNS.getParameterKey(), CommonDescriptorHelper.LABEL_FILE_PATTERN_MATCHES, CommonDescriptorHelper.DESCRIPTION_FILE_PATTERN_MATCH, FormField.MANDATORY)
-                   .withInitialValue(CommonDescriptorHelper.DEFAULT_FILE_PATTERNS_MATCHES);
+        return new StringTextFormField(CommonTaskKeys.FILE_PATTERNS.getParameterKey(), CommonDescriptorHelper.LABEL_FILE_PATTERN_MATCHES, CommonDescriptorHelper.DESCRIPTION_FILE_PATTERN_MATCH, FormField.MANDATORY);
     }
 
     public static StringTextFormField getWorkingDirectoryField() {

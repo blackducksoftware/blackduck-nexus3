@@ -37,6 +37,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonDescriptorHel
 public class InspectorTaskDescriptor extends TaskDescriptorSupport {
     public static final String BLACK_DUCK_INSPECTOR_TASK_ID = "blackduck.inspector";
     public static final String BLACK_DUCK_INSPECTOR_TASK_NAME = "Black Duck - Proxy Repository Inspector";
+    public static final String DEFAULT_FILE_PATTERNS_MATCHES = "*.jar";
 
     public InspectorTaskDescriptor() {
         super(BLACK_DUCK_INSPECTOR_TASK_ID,
@@ -52,7 +53,7 @@ public class InspectorTaskDescriptor extends TaskDescriptorSupport {
         final FormField[] fields = {
             CommonDescriptorHelper.getRepositoryField(ProxyType.NAME),
             CommonDescriptorHelper.getRepositoryPathField(),
-            CommonDescriptorHelper.getFilePatternField(),
+            CommonDescriptorHelper.getFilePatternField().withInitialValue(DEFAULT_FILE_PATTERNS_MATCHES),
             CommonDescriptorHelper.getWorkingDirectoryField(),
             CommonDescriptorHelper.getAssetCutoffDateField()
         };
