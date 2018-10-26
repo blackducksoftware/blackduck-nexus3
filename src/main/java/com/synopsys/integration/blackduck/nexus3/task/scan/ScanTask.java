@@ -164,10 +164,10 @@ public class ScanTask extends RepositoryTaskSupport {
             for (final Map.Entry<String, AssetWrapper> entry : scannedAssets.entrySet()) {
                 final AssetWrapper assetWrapper = entry.getValue();
                 final String codeLocationName = entry.getKey();
-                final String name = assetWrapper.getFullPath();
+                final String projectName = assetWrapper.getName();
                 final String version = assetWrapper.getVersion();
                 try {
-                    final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, name, version);
+                    final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, projectName, version);
                     scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, uploadUrl);
                 } catch (final IntegrationException e) {
                     assetWrapper.removeAllBlackDuckData();
@@ -195,6 +195,7 @@ public class ScanTask extends RepositoryTaskSupport {
     private void performScan(final HubServerConfig hubServerConfig, final File workingBlackDuckDirectory, final File outputDirectory, final File tempFileStorage, final String codeLocationName, final AssetWrapper assetWrapper,
         final ScanJobManager scanJobManager, final Map<String, AssetWrapper> scannedAssets) {
         final String name = assetWrapper.getFullPath();
+        final String projectName = assetWrapper.getName();
         final String version = assetWrapper.getVersion();
 
         logger.info("Scanning item: {}", name);
@@ -207,7 +208,7 @@ public class ScanTask extends RepositoryTaskSupport {
         }
 
         try {
-            final ScanJob scanJob = createScanJob(hubServerConfig, workingBlackDuckDirectory, outputDirectory, name, version, binaryFile.getAbsolutePath(), codeLocationName);
+            final ScanJob scanJob = createScanJob(hubServerConfig, workingBlackDuckDirectory, outputDirectory, projectName, version, binaryFile.getAbsolutePath(), codeLocationName);
             final ScanJobOutput scanJobOutput = scanJobManager.executeScans(scanJob);
             final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
             final ScanCommandOutput scanCommandResult = scanOutputs.get(SCAN_OUTPUT_LOCATION);
