@@ -82,13 +82,13 @@ public class MetaDataTask extends RepositoryTaskSupport {
             final String repoName = foundRepository.getName();
             logger.info("Checking repository for assets: {}", repoName);
             final Query filteredAssets = createFilteredQuery(Optional.empty());
-            PagedResult<Asset> pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, filteredAssets);
+            PagedResult<Asset> pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, filteredAssets);
             final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
-            final boolean isProxyRepo = commonTaskFilters.isProxyRepository(repository.getType());
+            final boolean isProxyRepo = commonTaskFilters.isProxyRepository(foundRepository.getType());
             while (pagedAssets.hasResults()) {
                 logger.debug("Found items in the DB.");
                 for (final Asset asset : pagedAssets.getTypeList()) {
-                    final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
+                    final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, queryManager);
                     final String name = assetWrapper.getName();
                     logger.info("Updating metadata for {}", name);
                     try {
@@ -117,14 +117,13 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 }
 
                 final Query nextPage = createFilteredQuery(pagedAssets.getLastName());
-                pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPage);
+                pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
             }
 
             if (isProxyRepo) {
                 logger.info("Updating data of proxy repository.");
                 try {
-                    final String projectName = repository.getName();
-                    final ProjectVersionWrapper projectVersionWrapper = inspectorMetaDataProcessor.getProjectVersionWrapper(projectName);
+                    final ProjectVersionWrapper projectVersionWrapper = inspectorMetaDataProcessor.getProjectVersionWrapper(repoName);
                     inspectorMetaDataProcessor.updateRepositoryMetaData(projectVersionWrapper.getProjectVersionView(), assetWrapperMap, TaskStatus.SUCCESS);
                 } catch (final IntegrationException e) {
                     throw new TaskInterruptedException("Problem retrieving project from Hub: " + e.getMessage(), true);

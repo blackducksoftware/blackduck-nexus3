@@ -88,31 +88,31 @@ public class InspectorTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
-        final Optional<DependencyType> dependencyType = dependencyGenerator.findDependency(repository.getFormat());
-        if (!dependencyType.isPresent()) {
-            throw new TaskInterruptedException("Task being run on unsupported repository", true);
-        }
-
-        final SimpleBdioFactory simpleBdioFactory = new SimpleBdioFactory();
-        final MutableDependencyGraph mutableDependencyGraph = simpleBdioFactory.createMutableDependencyGraph();
-        final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
-
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             if (commonTaskFilters.isProxyRepository(foundRepository.getType())) {
+                final Optional<DependencyType> dependencyType = dependencyGenerator.findDependency(foundRepository.getFormat());
+                if (!dependencyType.isPresent()) {
+                    throw new TaskInterruptedException("Task being run on unsupported repository", true);
+                }
+
+                final SimpleBdioFactory simpleBdioFactory = new SimpleBdioFactory();
+                final MutableDependencyGraph mutableDependencyGraph = simpleBdioFactory.createMutableDependencyGraph();
+                final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
+
                 final String repoName = foundRepository.getName();
                 logger.info("Checking repository for assets: {}", repoName);
                 final Query pagedQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
-                PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, pagedQuery);
+                PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, pagedQuery);
                 boolean resultsFound = false;
                 while (filteredAssets.hasResults()) {
                     logger.info("Found some items from the DB");
                     for (final Asset asset : filteredAssets.getTypeList()) {
-                        final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, commonRepositoryTaskHelper.getQueryManager());
+                        final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, commonRepositoryTaskHelper.getQueryManager());
                         resultsFound = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
                     }
 
                     final Query nextPage = commonRepositoryTaskHelper.createPagedQuery(filteredAssets.getLastName()).build();
-                    filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPage);
+                    filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
                 }
 
                 if (resultsFound) {

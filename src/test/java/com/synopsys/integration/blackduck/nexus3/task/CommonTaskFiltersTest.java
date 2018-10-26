@@ -61,5 +61,9 @@ public class CommonTaskFiltersTest {
     public void hasAssetBeenModifiedTest() {
         final DateTimeParser dateTimeParser = new DateTimeParser();
         final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, dateTimeParser, null, null, null);
+
+        //        AssetWrapper assetWrapper = Mockito.mock(AssetWrapper.class);
+
+        //        commonTaskFilters.hasAssetBeenModified(assetWrapper);
     }
 }
