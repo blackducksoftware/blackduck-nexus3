@@ -104,8 +104,9 @@ public class InspectorTask extends RepositoryTaskSupport {
             logger.info("Found some items from the DB");
             for (final Asset asset : filteredAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, commonRepositoryTaskHelper.getQueryManager());
-                final String name = assetWrapper.getName();
-                resultsFound = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap) || resultsFound;
+                final String name = assetWrapper.getFullPath();
+                final boolean hasBeenModified = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                resultsFound = resultsFound || hasBeenModified;
                 if (resultsFound) {
                     logger.info("Found new item {}, adding to Black Duck.", name);
                 }
