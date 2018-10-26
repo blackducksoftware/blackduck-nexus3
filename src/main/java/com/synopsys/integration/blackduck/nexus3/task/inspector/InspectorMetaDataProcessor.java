@@ -86,7 +86,7 @@ public class InspectorMetaDataProcessor {
                 if (TaskStatus.FAILURE.equals(status)) {
                     assetWrapper.addFailureToBlackDuckPanel("Was not able to retrieve data from Black Duck.");
                 } else {
-                    assetWrapper.addSuccessToBlackDuckPanel("Successfully pulled inspection date from Black Duck.");
+                    assetWrapper.addSuccessToBlackDuckPanel("Successfully pulled inspection data from Black Duck.");
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, componentUrl);
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, policyStatus.prettyPrint());
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
