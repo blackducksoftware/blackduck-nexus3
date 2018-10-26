@@ -79,7 +79,7 @@ public class CommonTaskFilters {
         final boolean isAssetTooOld = isAssetTooOld(assetCutoffDate, lastModified);
         final boolean doesExtensionMatch = doesExtensionMatch(assetWrapper.getFilename(), fileExtensionPatterns);
 
-        logger.info("Checking if processing of {} should be skipped", fullPathName);
+        logger.debug("Checking if processing of {} should be skipped", fullPathName);
         logger.debug("Is asset to old, {}", isAssetTooOld);
         logger.debug("Does repository match, {}", doesRepositoryPathMatch);
         logger.debug("Does extension match, {}", doesExtensionMatch);

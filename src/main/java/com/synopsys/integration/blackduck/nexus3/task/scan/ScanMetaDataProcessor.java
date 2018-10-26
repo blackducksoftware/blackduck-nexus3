@@ -55,7 +55,7 @@ public class ScanMetaDataProcessor {
         this.dateTimeParser = dateTimeParser;
     }
 
-    public void updateRepositoryMetaData(final AssetWrapper assetWrapper, final String uploadUrl) throws IntegrationException {
+    public void updateRepositoryMetaData(final AssetWrapper assetWrapper, final String blackDuckUrl) throws IntegrationException {
         final String name = assetWrapper.getName();
         final String version = assetWrapper.getVersion();
 
@@ -70,7 +70,7 @@ public class ScanMetaDataProcessor {
         logger.info("Checking policies.");
         final VersionBomPolicyStatusView policyStatusView = commonMetaDataProcessor.checkAssetPolicy(name, version);
         commonMetaDataProcessor.setAssetPolicyData(policyStatusView, assetWrapper);
-        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, uploadUrl);
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, blackDuckUrl);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
         assetWrapper.addSuccessToBlackDuckPanel("Scan results successfully retrieved from Black Duck.");
         assetWrapper.updateAsset();

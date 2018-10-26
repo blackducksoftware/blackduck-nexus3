@@ -108,7 +108,11 @@ public class InspectorTask extends RepositoryTaskSupport {
                     logger.info("Found some items from the DB");
                     for (final Asset asset : filteredAssets.getTypeList()) {
                         final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, commonRepositoryTaskHelper.getQueryManager());
-                        resultsFound = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                        final boolean shouldProcessAsset = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                        if (shouldProcessAsset) {
+                            // Only set resultsFound to true, if you set it to false you risk falsely reporting that there are no new assets
+                            resultsFound = true;
+                        }
                     }
 
                     final Query nextPage = commonRepositoryTaskHelper.createPagedQuery(filteredAssets.getLastName()).build();

@@ -161,7 +161,7 @@ public class CommonRepositoryTaskHelper {
             final ScanStatusService scanStatusService = getHubServicesFactory().createScanStatusService(ScanStatusService.DEFAULT_TIMEOUT);
             scanStatusService.assertScansFinished(scanSummaryViews);
 
-            return hubService.getFirstLink(projectVersionView, ProjectVersionView.COMPONENTS_LINK);
+            return hubService.getHref(projectVersionView);
         } catch (final IntegrationException | InterruptedException e) {
             logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
             return VERIFICATION_ERROR + e.getMessage();
