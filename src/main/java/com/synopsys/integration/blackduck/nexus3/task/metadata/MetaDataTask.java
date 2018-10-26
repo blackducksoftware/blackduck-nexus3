@@ -31,6 +31,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
@@ -43,6 +44,7 @@ import org.sonatype.nexus.scheduling.TaskInterruptedException;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
+import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
@@ -61,15 +63,17 @@ public class MetaDataTask extends RepositoryTaskSupport {
     private final Type proxyType;
     private final InspectorMetaDataProcessor inspectorMetaDataProcessor;
     private final ScanMetaDataProcessor scanMetaDataProcessor;
+    private final DateTimeParser dateTimeParser;
 
     @Inject
     public MetaDataTask(final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final QueryManager queryManager, final CommonMetaDataProcessor commonMetaDataProcessor, final InspectorMetaDataProcessor inspectorMetaDataProcessor,
-        final ScanMetaDataProcessor scanMetaDataProcessor, @Named(ProxyType.NAME) final Type proxyType) {
+        final ScanMetaDataProcessor scanMetaDataProcessor, final DateTimeParser dateTimeParser, @Named(ProxyType.NAME) final Type proxyType) {
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
         this.queryManager = queryManager;
         this.commonMetaDataProcessor = commonMetaDataProcessor;
         this.inspectorMetaDataProcessor = inspectorMetaDataProcessor;
         this.scanMetaDataProcessor = scanMetaDataProcessor;
+        this.dateTimeParser = dateTimeParser;
         this.proxyType = proxyType;
     }
 
@@ -88,7 +92,10 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 try {
                     if (!isProxyRepo) {
                         String blackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
-                        if (StringUtils.isBlank(blackDuckUrl)) {
+                        final TaskStatus status = assetWrapper.getBlackDuckStatus();
+                        final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
+                        final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
+                        if (StringUtils.isBlank(blackDuckUrl) && isPendingOrComponentNotFoundForDay(status, lastProcessed)) {
                             final String version = assetWrapper.getVersion();
                             final String repoName = repository.getName();
                             final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
@@ -152,6 +159,16 @@ public class MetaDataTask extends RepositoryTaskSupport {
         equalsStatement.append(value);
         equalsStatement.append("'");
         return equalsStatement.toString();
+    }
+
+    private boolean isPendingOrComponentNotFoundForDay(final TaskStatus status, final DateTime lastProcessed) {
+        if (TaskStatus.PENDING.equals(status) || TaskStatus.COMPONENT_NOT_FOUND.equals(status)) {
+            final String timeNow = dateTimeParser.getCurrentDateTime();
+            final DateTime now = dateTimeParser.convertFromStringToDate(timeNow);
+            return now.isAfter(lastProcessed.plusDays(1));
+        }
+
+        return false;
     }
 
     @Override

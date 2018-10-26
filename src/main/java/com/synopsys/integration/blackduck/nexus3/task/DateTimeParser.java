@@ -36,6 +36,7 @@ import org.joda.time.format.DateTimeFormatter;
 public class DateTimeParser {
     public static final String DATE_TIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
+    // TODO have all methods return DateTime then one method to convert to String and one method to convert to millis.
     public String getCurrentDateTime() {
         return new DateTime().toString(DATE_TIME_PATTERN);
     }
