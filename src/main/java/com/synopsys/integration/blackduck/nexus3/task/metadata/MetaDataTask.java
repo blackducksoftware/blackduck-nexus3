@@ -30,6 +30,7 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
@@ -82,9 +83,19 @@ public class MetaDataTask extends RepositoryTaskSupport {
             logger.debug("Found items in the DB.");
             for (final Asset asset : pagedAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
+                final String name = assetWrapper.getName();
+                logger.info("Updating metadata for {}", name);
                 try {
                     if (!isProxyRepo) {
-                        final String blackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
+                        String blackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
+                        if (StringUtils.isBlank(blackDuckUrl)) {
+                            final String version = assetWrapper.getVersion();
+                            final String repoName = repository.getName();
+                            final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
+                            logger.info("Re-checking code location {}", codeLocationName);
+                            blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, name, version);
+                        }
+                        logger.info("Updating data of hosted repository.");
                         scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, blackDuckUrl);
                     } else {
                         final String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
@@ -102,6 +113,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
         }
 
         if (isProxyRepo) {
+            logger.info("Updating data of proxy repository.");
             try {
                 final String projectName = repository.getName();
                 final ProjectVersionWrapper projectVersionWrapper = inspectorMetaDataProcessor.getProjectVersionWrapper(projectName);
@@ -115,8 +127,31 @@ public class MetaDataTask extends RepositoryTaskSupport {
     private Query createFilteredQuery(final Optional<String> lastNameUsed) {
         final Query.Builder pagedQueryBuilder = commonRepositoryTaskHelper.createPagedQuery(lastNameUsed);
         final String blackDuckDbPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(AssetPanelLabel.TASK_STATUS);
-        pagedQueryBuilder.and(blackDuckDbPath).eq(TaskStatus.SUCCESS);
+        pagedQueryBuilder.and(statusWhereStatement(blackDuckDbPath));
         return pagedQueryBuilder.build();
+    }
+
+    private String statusWhereStatement(final String blackDuckDbPath) {
+        final StringBuilder statusWhere = new StringBuilder();
+
+        statusWhere.append("(");
+        statusWhere.append(createEqualsStatement(blackDuckDbPath, TaskStatus.SUCCESS.name()));
+        statusWhere.append(" OR ");
+        statusWhere.append(createEqualsStatement(blackDuckDbPath, TaskStatus.PENDING.name()));
+        statusWhere.append(" OR ");
+        statusWhere.append(createEqualsStatement(blackDuckDbPath, TaskStatus.COMPONENT_NOT_FOUND.name()));
+        statusWhere.append(")");
+
+        return statusWhere.toString();
+    }
+
+    private String createEqualsStatement(final String object, final String value) {
+        final StringBuilder equalsStatement = new StringBuilder();
+        equalsStatement.append(object);
+        equalsStatement.append(" = '");
+        equalsStatement.append(value);
+        equalsStatement.append("'");
+        return equalsStatement.toString();
     }
 
     @Override

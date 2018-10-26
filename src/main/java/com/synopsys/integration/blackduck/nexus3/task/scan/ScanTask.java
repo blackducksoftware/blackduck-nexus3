@@ -127,7 +127,7 @@ public class ScanTask extends RepositoryTaskSupport {
         PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, filteredQuery);
         while (foundAssets.hasResults()) {
             logger.debug("Found results from DB");
-            final Map<String, AssetWrapper> assetWrappers = new HashMap<>();
+            final Map<String, AssetWrapper> scannedAssets = new HashMap<>();
             for (final Asset asset : foundAssets.getTypeList()) {
                 final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
                 final String name = assetWrapper.getName();
@@ -147,7 +147,7 @@ public class ScanTask extends RepositoryTaskSupport {
                     continue;
                 }
 
-                performScan(hubServerConfig, workingBlackDuckDirectory, outputDirectory, tempFileStorage, codeLocationName, assetWrapper, scanJobManager, assetWrappers);
+                performScan(hubServerConfig, workingBlackDuckDirectory, outputDirectory, tempFileStorage, codeLocationName, assetWrapper, scanJobManager, scannedAssets);
                 assetWrapper.updateAsset();
             }
 
@@ -161,7 +161,7 @@ public class ScanTask extends RepositoryTaskSupport {
             final Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
             foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPageQuery);
 
-            for (final Map.Entry<String, AssetWrapper> entry : assetWrappers.entrySet()) {
+            for (final Map.Entry<String, AssetWrapper> entry : scannedAssets.entrySet()) {
                 final AssetWrapper assetWrapper = entry.getValue();
                 final String codeLocationName = entry.getKey();
                 final String name = assetWrapper.getName();

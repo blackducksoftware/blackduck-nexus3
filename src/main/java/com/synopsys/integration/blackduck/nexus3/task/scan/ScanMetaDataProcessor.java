@@ -36,6 +36,7 @@ import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
+import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.metadata.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
@@ -46,10 +47,12 @@ import com.synopsys.integration.exception.IntegrationException;
 public class ScanMetaDataProcessor {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final CommonMetaDataProcessor commonMetaDataProcessor;
+    private final DateTimeParser dateTimeParser;
 
     @Inject
-    public ScanMetaDataProcessor(final CommonMetaDataProcessor commonMetaDataProcessor) {
+    public ScanMetaDataProcessor(final CommonMetaDataProcessor commonMetaDataProcessor, final DateTimeParser dateTimeParser) {
         this.commonMetaDataProcessor = commonMetaDataProcessor;
+        this.dateTimeParser = dateTimeParser;
     }
 
     public void updateRepositoryMetaData(final AssetWrapper assetWrapper, final String uploadUrl) throws IntegrationException {
@@ -68,11 +71,12 @@ public class ScanMetaDataProcessor {
         final VersionBomPolicyStatusView policyStatusView = commonMetaDataProcessor.checkAssetPolicy(name, version);
         commonMetaDataProcessor.setAssetPolicyData(policyStatusView, assetWrapper);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, uploadUrl);
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
         assetWrapper.addSuccessToBlackDuckPanel("Scan results successfully retrieved from Black Duck.");
         assetWrapper.updateAsset();
     }
 
-    public String createCodeLocationName(String repoName, String name, String version) {
+    public String createCodeLocationName(final String repoName, final String name, final String version) {
         return String.join("/", ScanTask.SCAN_CODE_LOCATION_NAME, repoName, name, version);
     }
 }
