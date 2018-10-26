@@ -158,7 +158,7 @@ public class CommonRepositoryTaskHelper {
                 scanSummaryViews.addAll(codeLocationScanSummaryViews);
             }
 
-            final ScanStatusService scanStatusService = getHubServicesFactory().createScanStatusService(ScanStatusService.DEFAULT_TIMEOUT);
+            final ScanStatusService scanStatusService = getHubServicesFactory().createScanStatusService(ScanStatusService.DEFAULT_TIMEOUT * 4);
             scanStatusService.assertScansFinished(scanSummaryViews);
 
             return hubService.getHref(projectVersionView);
