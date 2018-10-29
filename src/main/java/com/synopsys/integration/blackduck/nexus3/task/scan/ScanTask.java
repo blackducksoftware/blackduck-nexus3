@@ -125,6 +125,8 @@ public class ScanTask extends RepositoryTaskSupport {
 
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             if (commonTaskFilters.isHostedRepository(foundRepository.getType())) {
+                final String repoName = foundRepository.getName();
+                logger.info("Checking repository for assets: {}", repoName);
                 final Query filteredQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
                 PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, filteredQuery);
                 while (foundAssets.hasResults()) {
@@ -134,7 +136,6 @@ public class ScanTask extends RepositoryTaskSupport {
                         final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, queryManager);
                         final String name = assetWrapper.getFullPath();
                         final String version = assetWrapper.getVersion();
-                        final String repoName = foundRepository.getName();
                         final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
 
                         final TaskStatus status = assetWrapper.getBlackDuckStatus();
@@ -169,8 +170,8 @@ public class ScanTask extends RepositoryTaskSupport {
                         final String projectName = assetWrapper.getName();
                         final String version = assetWrapper.getVersion();
                         try {
-                            final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, projectName, version);
-                            scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, uploadUrl);
+                            final String blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, projectName, version);
+                            scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, blackDuckUrl);
                         } catch (final IntegrationException e) {
                             assetWrapper.removeAllBlackDuckData();
                             assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
@@ -217,7 +218,7 @@ public class ScanTask extends RepositoryTaskSupport {
             final List<ScanCommandOutput> scanOutputs = scanJobOutput.getScanCommandOutputs();
             final ScanCommandOutput scanCommandResult = scanOutputs.get(SCAN_OUTPUT_LOCATION);
             if (Result.SUCCESS == scanCommandResult.getResult()) {
-                assetWrapper.addPendingToBlackDuckPanel("Component uploaded to BlackDuck, waiting for update.");
+                assetWrapper.addPendingToBlackDuckPanel("Scan uploaded to BlackDuck, waiting for update.");
                 scannedAssets.put(codeLocationName, assetWrapper);
             }
         } catch (final IOException | IntegrationException e) {

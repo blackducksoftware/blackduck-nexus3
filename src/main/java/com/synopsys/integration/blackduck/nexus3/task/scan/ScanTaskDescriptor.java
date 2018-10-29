@@ -29,6 +29,7 @@ import javax.inject.Singleton;
 import org.sonatype.nexus.formfields.CheckboxFormField;
 import org.sonatype.nexus.formfields.FormField;
 import org.sonatype.nexus.formfields.NumberTextFormField;
+import org.sonatype.nexus.repository.types.GroupType;
 import org.sonatype.nexus.repository.types.HostedType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
 
@@ -66,9 +67,8 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
     }
 
     public static FormField[] getFields() {
-        final String repoTypes = HostedType.NAME;
         final FormField[] fields = {
-            CommonDescriptorHelper.getRepositoryField(repoTypes),
+            CommonDescriptorHelper.getRepositoryField(HostedType.NAME, GroupType.NAME),
             CommonDescriptorHelper.getRepositoryPathField(),
             CommonDescriptorHelper.getFilePatternField().withInitialValue(DEFAULT_FILE_PATTERNS_MATCHES),
             CommonDescriptorHelper.getWorkingDirectoryField(),

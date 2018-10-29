@@ -78,54 +78,56 @@ public class MetaDataTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
-        final Query filteredAssets = createFilteredQuery(Optional.empty());
-        PagedResult<Asset> pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, filteredAssets);
-        final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
-        final boolean isProxyRepo = commonTaskFilters.isProxyRepository(repository.getType());
-        while (pagedAssets.hasResults()) {
-            logger.debug("Found items in the DB.");
-            for (final Asset asset : pagedAssets.getTypeList()) {
-                final AssetWrapper assetWrapper = new AssetWrapper(asset, repository, queryManager);
-                final String name = assetWrapper.getName();
-                logger.info("Updating metadata for {}", name);
-                try {
-                    if (!isProxyRepo) {
-                        String blackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
-                        final TaskStatus status = assetWrapper.getBlackDuckStatus();
-                        final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
-                        final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
-                        if (StringUtils.isBlank(blackDuckUrl) && isPendingOrComponentNotFoundForDay(status, lastProcessed)) {
-                            final String version = assetWrapper.getVersion();
-                            final String repoName = repository.getName();
-                            final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
-                            logger.info("Re-checking code location {}", codeLocationName);
-                            blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, name, version);
+        for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
+            final String repoName = foundRepository.getName();
+            logger.info("Checking repository for assets: {}", repoName);
+            final Query filteredAssets = createFilteredQuery(Optional.empty());
+            PagedResult<Asset> pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, filteredAssets);
+            final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
+            final boolean isProxyRepo = commonTaskFilters.isProxyRepository(foundRepository.getType());
+            while (pagedAssets.hasResults()) {
+                logger.debug("Found items in the DB.");
+                for (final Asset asset : pagedAssets.getTypeList()) {
+                    final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, queryManager);
+                    final String name = assetWrapper.getName();
+                    logger.info("Updating metadata for {}", name);
+                    try {
+                        if (!isProxyRepo) {
+                            String blackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
+                            final TaskStatus status = assetWrapper.getBlackDuckStatus();
+                            final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
+                            final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
+                            if (StringUtils.isBlank(blackDuckUrl) && isPendingOrComponentNotFoundForDay(status, lastProcessed)) {
+                                final String version = assetWrapper.getVersion();
+                                final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
+                                logger.info("Re-checking code location {}", codeLocationName);
+                                blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, name, version);
+                            }
+                            logger.info("Updating data of hosted repository.");
+                            scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, blackDuckUrl);
+                        } else {
+                            final String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
+                            assetWrapperMap.put(originId, assetWrapper);
                         }
-                        logger.info("Updating data of hosted repository.");
-                        scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, blackDuckUrl);
-                    } else {
-                        final String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
-                        assetWrapperMap.put(originId, assetWrapper);
+                    } catch (final IntegrationException e) {
+                        commonMetaDataProcessor.removeAllMetaData(assetWrapper);
+                        assetWrapper.updateAsset();
+                        throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
                     }
-                } catch (final IntegrationException e) {
-                    commonMetaDataProcessor.removeAllMetaData(assetWrapper);
-                    assetWrapper.updateAsset();
-                    throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
                 }
+
+                final Query nextPage = createFilteredQuery(pagedAssets.getLastName());
+                pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
             }
 
-            final Query nextPage = createFilteredQuery(pagedAssets.getLastName());
-            pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(repository, nextPage);
-        }
-
-        if (isProxyRepo) {
-            logger.info("Updating data of proxy repository.");
-            try {
-                final String projectName = repository.getName();
-                final ProjectVersionWrapper projectVersionWrapper = inspectorMetaDataProcessor.getProjectVersionWrapper(projectName);
-                inspectorMetaDataProcessor.updateRepositoryMetaData(projectVersionWrapper.getProjectVersionView(), assetWrapperMap, TaskStatus.SUCCESS);
-            } catch (final IntegrationException e) {
-                throw new TaskInterruptedException("Problem retrieving project from Hub: " + e.getMessage(), true);
+            if (isProxyRepo) {
+                logger.info("Updating data of proxy repository.");
+                try {
+                    final ProjectVersionWrapper projectVersionWrapper = inspectorMetaDataProcessor.getProjectVersionWrapper(repoName);
+                    inspectorMetaDataProcessor.updateRepositoryMetaData(projectVersionWrapper.getProjectVersionView(), assetWrapperMap, TaskStatus.SUCCESS);
+                } catch (final IntegrationException e) {
+                    throw new TaskInterruptedException("Problem retrieving project from Hub: " + e.getMessage(), true);
+                }
             }
         }
     }

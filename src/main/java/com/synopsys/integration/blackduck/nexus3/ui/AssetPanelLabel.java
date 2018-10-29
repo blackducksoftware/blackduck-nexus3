@@ -26,8 +26,8 @@ package com.synopsys.integration.blackduck.nexus3.ui;
 public enum AssetPanelLabel {
     TASK_STATUS("status"),
     TASK_STATUS_DESCRIPTION("status_description"),
-    BLACKDUCK_URL("upload_url"),
-    TASK_FINISHED_TIME("completed_by"),
+    BLACKDUCK_URL("blackduck_url"),
+    TASK_FINISHED_TIME("processed_on"),
     ASSET_ORIGIN_ID("origin_id"),
     OVERALL_POLICY_STATUS("policy_status_overall"),
     POLICY_STATUS("policy_status"),

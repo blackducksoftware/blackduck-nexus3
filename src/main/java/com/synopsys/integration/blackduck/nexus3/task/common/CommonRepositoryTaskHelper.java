@@ -158,10 +158,10 @@ public class CommonRepositoryTaskHelper {
                 scanSummaryViews.addAll(codeLocationScanSummaryViews);
             }
 
-            final ScanStatusService scanStatusService = getHubServicesFactory().createScanStatusService(ScanStatusService.DEFAULT_TIMEOUT);
+            final ScanStatusService scanStatusService = getHubServicesFactory().createScanStatusService(ScanStatusService.DEFAULT_TIMEOUT * 4);
             scanStatusService.assertScansFinished(scanSummaryViews);
 
-            return hubService.getFirstLink(projectVersionView, ProjectVersionView.COMPONENTS_LINK);
+            return hubService.getHref(projectVersionView);
         } catch (final IntegrationException | InterruptedException e) {
             logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
             return VERIFICATION_ERROR + e.getMessage();

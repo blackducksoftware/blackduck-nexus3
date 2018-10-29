@@ -39,6 +39,7 @@ import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
 import com.synopsys.integration.blackduck.api.generated.enumeration.PolicySummaryStatusType;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
+import com.synopsys.integration.blackduck.api.view.MetaHandler;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
@@ -48,6 +49,7 @@ import com.synopsys.integration.blackduck.nexus3.task.metadata.VulnerabilityLeve
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.log.Slf4jIntLogger;
 
 @Named
 @Singleton
@@ -79,7 +81,8 @@ public class InspectorMetaDataProcessor {
             for (final String externalId : externalIds) {
                 final AssetWrapper assetWrapper = assetWrapperMap.get(externalId);
 
-                final String componentUrl = versionBomComponentView.componentVersion;
+                final MetaHandler metaHandler = new MetaHandler(new Slf4jIntLogger(logger));
+                final String blackDuckUrl = metaHandler.getHref(projectVersionView);
                 final PolicySummaryStatusType policyStatus = versionBomComponentView.policyStatus;
 
                 logger.info("Found component and updating Asset: {}", assetWrapper.getName());
@@ -87,7 +90,7 @@ public class InspectorMetaDataProcessor {
                     assetWrapper.addFailureToBlackDuckPanel("Was not able to retrieve data from Black Duck.");
                 } else {
                     assetWrapper.addSuccessToBlackDuckPanel("Successfully pulled inspection data from Black Duck.");
-                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, componentUrl);
+                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, blackDuckUrl);
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, policyStatus.prettyPrint());
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
                     addVulnerabilityStatus(assetWrapper, versionBomComponentView);

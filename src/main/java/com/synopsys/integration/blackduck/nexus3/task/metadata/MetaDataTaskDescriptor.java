@@ -26,6 +26,7 @@ package com.synopsys.integration.blackduck.nexus3.task.metadata;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.sonatype.nexus.repository.types.GroupType;
 import org.sonatype.nexus.repository.types.HostedType;
 import org.sonatype.nexus.repository.types.ProxyType;
 import org.sonatype.nexus.scheduling.TaskDescriptorSupport;
@@ -44,7 +45,7 @@ public class MetaDataTaskDescriptor extends TaskDescriptorSupport {
             BLACK_DUCK_META_DATA_TASK_NAME,
             VISIBLE,
             EXPOSED,
-            CommonDescriptorHelper.getRepositoryField(ProxyType.NAME, HostedType.NAME)
+            CommonDescriptorHelper.getRepositoryField(ProxyType.NAME, HostedType.NAME, GroupType.NAME)
         );
     }
 
