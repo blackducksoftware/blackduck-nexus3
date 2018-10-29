@@ -1,55 +1,60 @@
 package com.synopsys.integration.blackduck.nexus3.ui;
 
-//@RunWith(MockitoJUnitRunner.class)
-public class AssetPanelTest {
+import java.util.HashMap;
 
-    //    @Mock
-    //    AssetPanelLabel testKey;
-    //
-    //    Asset asset;
-    //    NestedAttributesMap nestedAttributesMap;
-    //    String key = "testKey";
-    //
-    //    @Before
-    //    public void initKey() {
-    //        asset = new Asset();
-    //        final NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
-    //        asset.attributes(defaultAttributesMap);
-    //        nestedAttributesMap = asset.attributes().child(AssetPanel.BLACKDUCK_CATEGORY);
-    //        Mockito.when(testKey.getLabel()).thenReturn(key);
-    //    }
-    //
-    //    @Test
-    //    public void testAddToBlackDuckPanel() {
-    //        final AssetPanel assetPanel = new AssetPanel(asset);
-    //        assetPanel.addToBlackDuckPanel(testKey, true);
-    //
-    //        final Boolean foundKey = (Boolean) nestedAttributesMap.child(AssetPanel.BLACKDUCK_CATEGORY).get(testKey.getLabel());
-    //
-    //        Assert.assertTrue(foundKey);
-    //    }
-    //
-    //    @Test
-    //    public void testGetFromBlackDuckPanel() {
-    //        nestedAttributesMap.set(key, true);
-    //
-    //        final AssetPanel assetPanel = new AssetPanel(asset);
-    //        final Boolean keyIsFound = Boolean.valueOf(assetPanel.getFromBlackDuckPanel(testKey));
-    //
-    //        Assert.assertTrue(keyIsFound);
-    //    }
-    //
-    //    @Test
-    //    public void testRemoveFromBlackDuckPanel() {
-    //        nestedAttributesMap.set(key, true);
-    //
-    //        final AssetPanel assetPanel = new AssetPanel(asset);
-    //        assetPanel.removeFromBlackDuckPanel(testKey);
-    //
-    //        final String result = assetPanel.getFromBlackDuckPanel(testKey);
-    //        Assert.assertNotNull(result);
-    //
-    //        final String nullResult = assetPanel.getFromBlackDuckPanel(testKey);
-    //        Assert.assertNull(nullResult);
-    //    }
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.sonatype.goodies.testsupport.TestSupport;
+import org.sonatype.nexus.common.collect.NestedAttributesMap;
+import org.sonatype.nexus.repository.storage.Asset;
+import org.sonatype.nexus.repository.storage.MetadataNodeEntityAdapter;
+
+public class AssetPanelTest extends TestSupport {
+
+    Asset asset;
+    AssetPanelLabel testLabel = AssetPanelLabel.BLACKDUCK_URL;
+
+    @Before
+    public void initKey() {
+        asset = new Asset();
+        final NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
+        asset.attributes(defaultAttributesMap);
+    }
+
+    @Test
+    public void testAddToBlackDuckPanel() {
+        final AssetPanel assetPanel = new AssetPanel(asset);
+        assetPanel.addToBlackDuckPanel(testLabel, true);
+
+        final Boolean foundItem = (Boolean) asset.attributes().child(AssetPanel.BLACKDUCK_CATEGORY).get(testLabel.getLabel());
+        Assert.assertNotNull(foundItem);
+        Assert.assertTrue(foundItem);
+    }
+
+    @Test
+    public void testGetFromBlackDuckPanel() {
+        asset.attributes().child(AssetPanel.BLACKDUCK_CATEGORY).set(testLabel.getLabel(), "true");
+
+        final AssetPanel assetPanel = new AssetPanel(asset);
+        final String result = assetPanel.getFromBlackDuckPanel(testLabel);
+        final boolean keyIsFound = Boolean.parseBoolean(result);
+
+        Assert.assertTrue(keyIsFound);
+    }
+
+    @Test
+    public void testRemoveFromBlackDuckPanel() {
+        asset.attributes().child(AssetPanel.BLACKDUCK_CATEGORY).set(testLabel.getLabel(), "true");
+
+        final AssetPanel assetPanel = new AssetPanel(asset);
+
+        final String result = assetPanel.getFromBlackDuckPanel(testLabel);
+        Assert.assertNotNull(result);
+
+        assetPanel.removeFromBlackDuckPanel(testLabel);
+        
+        final String nullResult = assetPanel.getFromBlackDuckPanel(testLabel);
+        Assert.assertNull(nullResult);
+    }
 }

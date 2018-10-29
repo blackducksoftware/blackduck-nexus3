@@ -31,8 +31,7 @@ public enum AssetPanelLabel {
     ASSET_ORIGIN_ID("origin_id"),
     OVERALL_POLICY_STATUS("policy_status_overall"),
     POLICY_STATUS("policy_status"),
-    VULNERABILITIES("vulnerabilities"),
-    CUSTOM("custom");
+    VULNERABILITIES("vulnerabilities");
 
     private final String label;
 
