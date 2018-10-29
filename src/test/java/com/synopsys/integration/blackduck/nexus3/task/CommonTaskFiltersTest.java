@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 
@@ -61,5 +62,22 @@ public class CommonTaskFiltersTest {
     public void hasAssetBeenModifiedTest() {
         final DateTimeParser dateTimeParser = new DateTimeParser();
         final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, dateTimeParser, null, null, null);
+
+        final DateTime now = new DateTime();
+        final DateTime dayOlder = now.minusDays(1);
+        final DateTime dayNewer = now.plusDays(1);
+
+        final AssetWrapper assetWrapper = Mockito.mock(AssetWrapper.class);
+        Mockito.when(assetWrapper.getAssetLastUpdated()).thenReturn(dayOlder);
+        Mockito.when(assetWrapper.getFromBlackDuckAssetPanel(Mockito.any())).thenReturn(dateTimeParser.convertFromDateToString(dayNewer));
+
+        final boolean isNotModified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
+        Assert.assertFalse(isNotModified);
+
+        Mockito.when(assetWrapper.getAssetLastUpdated()).thenReturn(dayNewer);
+        Mockito.when(assetWrapper.getFromBlackDuckAssetPanel(Mockito.any())).thenReturn(dateTimeParser.convertFromDateToString(dayOlder));
+
+        final boolean isModified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
+        Assert.assertTrue(isModified);
     }
 }
