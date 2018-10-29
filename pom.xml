@@ -35,6 +35,41 @@
         <url>https://www.github.com/blackducksoftware/blackduck-nexus3</url>
     </scm>
 
+    <profiles>
+        <profile>
+            <id>deployment</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <distributionManagement>
+                <repository>
+                    <id>integration-release-repo</id>
+                    <url>https://prd-eng-repo02.dc2.lan/artifactory/bds-integrations-release/</url>
+                </repository>
+                <snapshotRepository>
+                    <id>integration-snapshot-repo</id>
+                    <url>https://prd-eng-repo02.dc2.lan/artifactory/bds-integrations-snapshot</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+        <profile>
+            <id>qa-deployment</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <distributionManagement>
+                <repository>
+                    <id>integration-release-repo</id>
+                    <url>https://prd-eng-repo02.dc2.lan/artifactory/bds-integrations-test/</url>
+                </repository>
+                <snapshotRepository>
+                    <id>integration-snapshot-repo</id>
+                    <url>https://prd-eng-repo02.dc2.lan/artifactory/bds-integrations-snapshot</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+    </profiles>
+
     <properties>
         <skipITTests>true</skipITTests>
     </properties>
