@@ -40,6 +40,7 @@ import org.sonatype.nexus.formfields.StringTextFormField;
 @Singleton
 @Named(BlackDuckCapabilityDescriptor.CAPABILITY_ID)
 public class BlackDuckCapabilityDescriptor extends CapabilityDescriptorSupport<BlackDuckCapabilityConfiguration> {
+    private final BlackDuckCapabilityValidator blackDuckCapabilityValidator;
     public static final String CAPABILITY_ID = "blackduck.capability";
     public static final String CAPABILITY_NAME = "Black Duck";
     public static final String CAPABILITY_DESCRIPTION = "Settings required to communicate with Black Duck.";
@@ -76,6 +77,10 @@ public class BlackDuckCapabilityDescriptor extends CapabilityDescriptorSupport<B
     private static final StringTextFormField proxyUsernameField = new StringTextFormField(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey(), LABEL_PROXY_USERNAME, DESCRIPTION_PROXY_USERNAME, FormField.OPTIONAL);
     private static final PasswordFormField proxyPasswordField = new PasswordFormField(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey(), LABEL_PROXY_PASSWORD, DESCRIPTION_PROXY_PASSWORD, FormField.OPTIONAL);
 
+    public BlackDuckCapabilityDescriptor() {
+        this.blackDuckCapabilityValidator = new BlackDuckCapabilityValidator();
+    }
+
     @Override
     public CapabilityType type() {
         return CapabilityType.capabilityType(CAPABILITY_ID);
@@ -108,5 +113,16 @@ public class BlackDuckCapabilityDescriptor extends CapabilityDescriptorSupport<B
     @Override
     protected BlackDuckCapabilityConfiguration createConfig(final Map<String, String> properties) {
         return new BlackDuckCapabilityConfiguration(properties);
+    }
+
+    @Override
+    protected void validateConfig(final Map<String, String> properties, final ValidationMode validationMode) {
+        log.debug("Validation Mode: {}", validationMode.name());
+        if (validationMode != ValidationMode.LOAD) {
+            log.info("Validating Black Duck capability");
+            blackDuckCapabilityValidator.validateCapability(properties);
+        }
+
+        super.validateConfig(properties, validationMode);
     }
 }
