@@ -2,15 +2,9 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.sonatype.nexus.plugins</groupId>
-        <artifactId>nexus-plugins</artifactId>
-        <version>3.13.0-01</version>
-    </parent>
-
     <groupId>com.blackducksoftware.integration</groupId>
     <artifactId>blackduck-nexus3</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-RC</version>
     <packaging>bundle</packaging>
 
     <name>blackduck-nexus3</name>
@@ -44,7 +38,7 @@
             <distributionManagement>
                 <repository>
                     <id>bds-artifactory</id>
-                    <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-release/</url>
+                    <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-release</url>
                 </repository>
                 <snapshotRepository>
                     <id>bds-artifactory</id>
@@ -60,7 +54,7 @@
             <distributionManagement>
                 <repository>
                     <id>bds-artifactory</id>
-                    <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-test/</url>
+                    <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-test</url>
                 </repository>
                 <snapshotRepository>
                     <id>bds-artifactory</id>
@@ -72,6 +66,9 @@
 
     <properties>
         <skipITTests>true</skipITTests>
+        <nexusVersion>3.13.0-01</nexusVersion>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -114,30 +111,35 @@
         <dependency>
             <groupId>org.sonatype.nexus</groupId>
             <artifactId>nexus-plugin-api</artifactId>
+            <version>${nexusVersion}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.sonatype.nexus</groupId>
             <artifactId>nexus-scheduling</artifactId>
+            <version>${nexusVersion}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.sonatype.nexus</groupId>
             <artifactId>nexus-repository</artifactId>
+            <version>${nexusVersion}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.sonatype.nexus</groupId>
             <artifactId>nexus-capability</artifactId>
+            <version>${nexusVersion}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.sonatype.goodies</groupId>
             <artifactId>goodies-testsupport</artifactId>
+            <version>2.2.5</version>
             <scope>test</scope>
         </dependency>
 
@@ -151,11 +153,9 @@
         <dependency>
             <groupId>org.sonatype.nexus</groupId>
             <artifactId>nexus-test-common</artifactId>
-            <version>3.13.0-01</version>
+            <version>${nexusVersion}</version>
             <scope>test</scope>
         </dependency>
-
-
     </dependencies>
 
     <build>
@@ -164,6 +164,15 @@
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <id>default-bundle</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>bundle</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <instructions>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
