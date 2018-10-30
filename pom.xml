@@ -40,6 +40,14 @@
                     <id>bds-artifactory</id>
                     <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-release</url>
                 </repository>
+            </distributionManagement>
+        </profile>
+        <profile>
+            <id>snapshot-deployment</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <distributionManagement>
                 <snapshotRepository>
                     <id>bds-artifactory</id>
                     <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-snapshot</url>
