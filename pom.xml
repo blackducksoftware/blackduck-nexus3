@@ -43,11 +43,11 @@
             </activation>
             <distributionManagement>
                 <repository>
-                    <id>integration-release-repo</id>
+                    <id>bds-artifactory</id>
                     <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-release/</url>
                 </repository>
                 <snapshotRepository>
-                    <id>integration-snapshot-repo</id>
+                    <id>bds-artifactory</id>
                     <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-snapshot</url>
                 </snapshotRepository>
             </distributionManagement>
@@ -59,11 +59,11 @@
             </activation>
             <distributionManagement>
                 <repository>
-                    <id>integration-release-repo</id>
+                    <id>bds-artifactory</id>
                     <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-test/</url>
                 </repository>
                 <snapshotRepository>
-                    <id>integration-snapshot-repo</id>
+                    <id>bds-artifactory</id>
                     <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-snapshot</url>
                 </snapshotRepository>
             </distributionManagement>
