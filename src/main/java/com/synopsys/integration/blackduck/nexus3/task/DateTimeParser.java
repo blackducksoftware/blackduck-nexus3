@@ -36,7 +36,7 @@ import org.joda.time.format.DateTimeFormatter;
 public class DateTimeParser {
     public static final String DATE_TIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
-    // TODO have all methods return DateTime then one method to convert to String and one method to convert to millis.
+    // TODO convert to using the new Java 8 time library that replaces Joda
     public String getCurrentDateTime() {
         return new DateTime().toString(DATE_TIME_PATTERN);
     }
@@ -56,13 +56,5 @@ public class DateTimeParser {
             return null;
         }
         return DateTime.parse(date, DateTimeFormat.forPattern(DATE_TIME_PATTERN).withZoneUTC());
-    }
-
-    public long convertFromStringToMillis(final String date) {
-        return convertFromDateTimeToMillis(convertFromStringToDate(date));
-    }
-
-    public long convertFromDateTimeToMillis(final DateTime dateTime) {
-        return dateTime.toDate().getTime();
     }
 }

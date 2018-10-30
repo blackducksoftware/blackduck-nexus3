@@ -69,6 +69,7 @@ public class CommonTaskFilters {
         return Arrays.asList(repository);
     }
 
+    // TODO pull out the dependency on commonRepositoryTaskHelper.
     public boolean skipAssetProcessing(final AssetWrapper assetWrapper, final TaskConfiguration taskConfiguration) {
         final DateTime lastModified = assetWrapper.getAssetLastUpdated();
         final String fullPathName = assetWrapper.getFullPath();
