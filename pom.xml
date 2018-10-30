@@ -105,6 +105,13 @@
         </dependency>
 
         <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.10</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.sonatype.nexus</groupId>
             <artifactId>nexus-plugin-api</artifactId>
             <scope>provided</scope>
@@ -178,7 +185,8 @@
                             javax.net,
                             javax.net.ssl,
                             org.slf4j,
-                            org.joda.time.*
+                            org.joda.time.*,
+                            org.apache.commons.codec.*
                         </Import-Package>
                         <Embed-Dependency>
                             *;scope=compile|runtime

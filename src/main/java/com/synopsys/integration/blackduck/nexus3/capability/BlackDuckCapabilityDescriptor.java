@@ -109,16 +109,4 @@ public class BlackDuckCapabilityDescriptor extends CapabilityDescriptorSupport<B
     protected BlackDuckCapabilityConfiguration createConfig(final Map<String, String> properties) {
         return new BlackDuckCapabilityConfiguration(properties);
     }
-
-    @Override
-    protected void validateConfig(final Map<String, String> properties, final ValidationMode validationMode) {
-        log.debug("Validation Mode: {}", validationMode.name());
-        if (validationMode != ValidationMode.LOAD) {
-            log.info("Validating Black Duck credentials");
-            final BlackDuckCapabilityConfiguration configuration = createConfig(properties);
-            configuration.createBlackDuckServerConfig();
-        }
-
-        super.validateConfig(properties, validationMode);
-    }
 }
