@@ -16,7 +16,7 @@ public class AssetPanelTest extends TestSupport {
     AssetPanelLabel testLabel = AssetPanelLabel.BLACKDUCK_URL;
 
     @Before
-    public void initKey() {
+    public void init() {
         asset = new Asset();
         final NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
         asset.attributes(defaultAttributesMap);
@@ -53,7 +53,7 @@ public class AssetPanelTest extends TestSupport {
         Assert.assertNotNull(result);
 
         assetPanel.removeFromBlackDuckPanel(testLabel);
-        
+
         final String nullResult = assetPanel.getFromBlackDuckPanel(testLabel);
         Assert.assertNull(nullResult);
     }
