@@ -145,6 +145,13 @@
         </dependency>
 
         <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>25.0-jre</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.sonatype.goodies</groupId>
             <artifactId>goodies-testsupport</artifactId>
             <version>2.2.5</version>
@@ -177,6 +184,7 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>3.3.0</version>
                 <extensions>true</extensions>
                 <executions>
                     <execution>
@@ -203,7 +211,7 @@
                             org.apache.commons.compress.*,
                             org.apache.http.*,
                             org.apache.commons.validator.routines.*,
-                            com.google.common.base,
+                            com.google.common.base.*,
                             javax.inject,
                             javax.net,
                             javax.net.ssl,
@@ -215,8 +223,23 @@
                             *;scope=compile|runtime
                         </Embed-Dependency>
                         <Embed-Transitive>true</Embed-Transitive>
+                        <Include-Resource>target/classes,{maven-resources}</Include-Resource>
+                        <Bundle-Description>${project.description}</Bundle-Description>
                     </instructions>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>sisu-maven-plugin</artifactId>
+                <version>1.4</version>
+                <executions>
+                    <execution>
+                        <id>generate-index</id>
+                        <goals>
+                            <goal>main-index</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
