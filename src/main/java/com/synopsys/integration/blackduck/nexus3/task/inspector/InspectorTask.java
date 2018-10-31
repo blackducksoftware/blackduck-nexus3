@@ -173,7 +173,7 @@ public class InspectorTask extends RepositoryTaskSupport {
             final TaskStatus status = uploadUrl.startsWith(CommonRepositoryTaskHelper.VERIFICATION_ERROR) ? TaskStatus.FAILURE : TaskStatus.SUCCESS;
             inspectorMetaDataProcessor.updateRepositoryMetaData(projectVersionView, assetWrapperMap, status);
         } catch (final IntegrationException e) {
-            logger.debug("Issue communicating with BlackDuck: {}", e.getMessage());
+            logger.error("Issue communicating with BlackDuck: " + e.getMessage(), e);
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Issue communicating with BlackDuck", true);
         } catch (final IOException e) {
