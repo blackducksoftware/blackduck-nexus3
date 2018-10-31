@@ -78,6 +78,7 @@ public class CommonRepositoryTaskHelper {
         this.blackDuckConnection = blackDuckConnection;
     }
 
+    // TODO move this to the filter class
     public boolean doesRepositoryApply(final Repository repository, final String repositoryField) {
         return repository.getName().equals(repositoryField);
     }
@@ -121,6 +122,9 @@ public class CommonRepositoryTaskHelper {
 
     public File getWorkingDirectory(final TaskConfiguration taskConfiguration) {
         final String directoryName = taskConfiguration.getString(CommonTaskKeys.WORKING_DIRECTORY.getParameterKey());
+        if (StringUtils.isBlank(directoryName)) {
+            return new File(CommonDescriptorHelper.DEFAULT_WORKING_DIRECTORY);
+        }
         return new File(directoryName);
     }
 

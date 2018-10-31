@@ -39,11 +39,11 @@ import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
-import com.synopsys.integration.blackduck.nexus3.task.metadata.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
+import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 
 @Named
@@ -119,10 +119,8 @@ public class CommonMetaDataProcessor {
     }
 
     public VersionBomPolicyStatusView checkAssetPolicy(final String name, final String version) throws IntegrationException {
-        logger.info("Checking metadata of {}", name);
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
-        final ProjectService projectService = hubServicesFactory.createProjectService();
-        return projectService.getPolicyStatusForProjectAndVersion(name, version);
+        final ProjectVersionWrapper projectVersionWrapper = commonRepositoryTaskHelper.getProjectVersionWrapper(name, version);
+        return checkAssetPolicy(projectVersionWrapper.getProjectVersionView());
     }
 
     public VersionBomPolicyStatusView checkAssetPolicy(final ProjectVersionView projectVersionView) throws IntegrationException {

@@ -164,6 +164,12 @@
             <version>${nexusVersion}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.blackducksoftware.integration</groupId>
+            <artifactId>integration-test-common</artifactId>
+            <version>4.0.5</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

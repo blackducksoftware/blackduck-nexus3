@@ -70,14 +70,6 @@ public class QueryManager {
         }
     }
 
-    public void updateComponent(final Repository repository, final Component component) {
-        try (final StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
-            storageTx.begin();
-            storageTx.saveComponent(component);
-            storageTx.commit();
-        }
-    }
-
     public Component getComponent(final Repository repository, final EntityId id) {
         try (final StorageTx storageTx = repository.facet(StorageFacet.class).txSupplier().get()) {
             storageTx.begin();

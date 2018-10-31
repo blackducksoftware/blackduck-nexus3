@@ -16,11 +16,6 @@ import org.sonatype.nexus.capability.CapabilitySupport;
 public class BlackDuckCapabilityFinderTest {
 
     @Test
-    public void retrieveBadCapabilityConfigurationTest() {
-
-    }
-
-    @Test
     public void retrieveFakeCapabilityConfigurationTest() {
         final CapabilityRegistry capabilityRegistry = Mockito.mock(CapabilityRegistry.class);
         final TestCapabilityReference testCapabilityReference = new TestCapabilityReference();

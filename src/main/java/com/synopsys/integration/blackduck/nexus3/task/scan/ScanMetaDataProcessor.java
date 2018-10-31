@@ -38,7 +38,7 @@ import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicySta
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
-import com.synopsys.integration.blackduck.nexus3.task.metadata.VulnerabilityLevels;
+import com.synopsys.integration.blackduck.nexus3.task.common.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.exception.IntegrationException;
 
