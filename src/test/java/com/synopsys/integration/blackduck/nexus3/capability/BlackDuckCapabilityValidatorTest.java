@@ -43,17 +43,8 @@ public class BlackDuckCapabilityValidatorTest {
     @Test
     public void missingBasicDataTest() {
         final Map<String, String> capabilitySettings = Collections.emptyMap();
-        List<String> errors = Collections.emptyList();
 
-        final BlackDuckCapabilityValidator blackDuckCapabilityValidator = new BlackDuckCapabilityValidator();
-        try {
-            blackDuckCapabilityValidator.validateCapability(capabilitySettings);
-            Assert.fail();
-        } catch (final IllegalArgumentException e) {
-            errors = parseErrors(e.getMessage());
-        }
-
-        Assert.assertFalse(errors.isEmpty());
+        final List<String> errors = failedValidation(capabilitySettings);
         Assert.assertEquals(3, errors.size());
 
         for (final String error : errors) {
@@ -65,13 +56,12 @@ public class BlackDuckCapabilityValidatorTest {
     }
 
     @Test
-    public void badProxyDataTest() {
+    public void badProxyUrlDataTest() {
         final Map<String, String> capabilitySettings = new HashMap<>();
 
         final String url = "http://google.com";
         final String timeout = "300";
         final String apiKey = "apiKey";
-        final String proxyHost = "http://proxyHost.com";
         final String proxyPort = "80";
         final String proxyUsername = "proxyUsername";
         final String proxyPassword = "proxyPassword";
@@ -83,24 +73,22 @@ public class BlackDuckCapabilityValidatorTest {
         capabilitySettings.put(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey(), proxyUsername);
         capabilitySettings.put(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey(), proxyPassword);
 
-        final BlackDuckCapabilityValidator blackDuckCapabilityValidator = new BlackDuckCapabilityValidator();
-        List<String> errors = Collections.emptyList();
+        final List<String> proxyHostErrors = failedValidation(capabilitySettings);
+        Assert.assertEquals(1, proxyHostErrors.size());
 
-        try {
-            blackDuckCapabilityValidator.validateCapability(capabilitySettings);
-            Assert.fail();
-        } catch (final IllegalArgumentException e) {
-            errors = parseErrors(e.getMessage());
-        }
+        final String proxyHostError = proxyHostErrors.get(0);
+        Assert.assertEquals("Proxy Host: The proxy host not specified.", proxyHostError);
 
-        Assert.assertFalse(errors.isEmpty());
-        Assert.assertEquals(1, errors.size());
-
-        final String error = errors.get(0);
-        Assert.assertEquals("Proxy Host: The proxy host not specified.", error);
+        final String proxyHost = "http://proxyHost.com";
 
         capabilitySettings.put(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_HOST.getKey(), proxyHost);
-        capabilitySettings.remove(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PORT);
+        capabilitySettings.remove(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PORT.getKey());
+
+        final List<String> proxyPortErrors = failedValidation(capabilitySettings);
+        Assert.assertEquals(1, proxyHostErrors.size());
+
+        final String proxyPortError = proxyPortErrors.get(0);
+        Assert.assertEquals("Proxy Port: The proxy port not specified.", proxyPortError);
     }
 
     private List<String> parseErrors(final String exceptionMessage) {
