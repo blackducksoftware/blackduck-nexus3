@@ -211,7 +211,8 @@
                             javax.net.ssl,
                             org.slf4j,
                             org.joda.time.*,
-                            org.apache.commons.codec.*
+                            org.apache.commons.codec.*,
+                            org.osgi.framework
                         </Import-Package>
                         <Embed-Dependency>
                             *;scope=compile|runtime

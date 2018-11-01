@@ -8,6 +8,11 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.Version;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
 import com.synopsys.integration.blackduck.nexus3.BlackDuckConnection;
 import com.synopsys.integration.blackduck.service.HubServicesFactory;
@@ -19,6 +24,7 @@ import com.synopsys.integration.phonehome.PhoneHomeService;
 @Named
 @Singleton
 public class PhoneHome {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final BlackDuckConnection blackDuckConnection;
 
     @Inject
@@ -28,10 +34,12 @@ public class PhoneHome {
 
     public PhoneHomeCallable createPhoneHomeCallable(final String taskName) throws IntegrationException {
         final PhoneHomeRequestBody.Builder phoneHomeRequestBody = new PhoneHomeRequestBody.Builder();
-        // TODO find a way to auto update this property
-        final String productVersion = "1.0.0";
-        final String artifactId = "blackduck-nexus3";
         phoneHomeRequestBody.addToMetaData("task.type", taskName);
+
+        final Version version = FrameworkUtil.getBundle(getClass()).getVersion();
+        final String productVersion = version.toString();
+        final String artifactId = FrameworkUtil.getBundle(getClass()).getSymbolicName();
+        logger.debug("Found {} version {}", artifactId, productVersion);
 
         final HubServerConfig hubServerConfig = blackDuckConnection.getHubServerConfig();
         final URL blackDuckUrl = hubServerConfig.getHubUrl();
