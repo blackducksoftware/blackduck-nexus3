@@ -32,7 +32,7 @@ public enum AssetPanelLabel {
     OVERALL_POLICY_STATUS("policy_status_overall"),
     POLICY_STATUS("policy_status"),
     VULNERABILITIES("vulnerabilities"),
-    VULNERABLE_COMPONENTS("component_vulnerabilities");
+    VULNERABLE_COMPONENTS("vulnerable_components");
 
     private final String label;
 
