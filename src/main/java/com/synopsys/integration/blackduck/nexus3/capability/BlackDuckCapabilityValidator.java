@@ -69,7 +69,7 @@ public class BlackDuckCapabilityValidator {
         final String configuredProxyUser = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey());
         final String configuredProxyPassword = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey());
 
-        if (StringUtils.isBlank(configuredProxyHost) && StringUtils.isNotBlank(configuredProxyPort) || StringUtils.isNotBlank(configuredProxyUser) || StringUtils.isNotBlank(configuredProxyPassword)) {
+        if (StringUtils.isBlank(configuredProxyHost) && (StringUtils.isNotBlank(configuredProxyPort) || StringUtils.isNotBlank(configuredProxyUser) || StringUtils.isNotBlank(configuredProxyPassword))) {
             return Optional.of("Proxy Host: The proxy host not specified.");
         } else {
             if (StringUtils.isNotBlank(configuredProxyHost) && StringUtils.isBlank(configuredProxyPort)) {
