@@ -102,6 +102,7 @@ public class CommonMetaDataProcessor {
 
     public void removeAssetVulnerabilityData(final AssetWrapper assetWrapper) {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES);
+        assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.VULNERABLE_COMPONENTS);
     }
 
     public void setAssetPolicyData(final VersionBomPolicyStatusView policyStatusView, final AssetWrapper assetWrapper) {
