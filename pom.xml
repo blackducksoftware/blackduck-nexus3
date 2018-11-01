@@ -95,6 +95,7 @@
             </exclusions>
         </dependency>
 
+        <!--This version was demanded specifically for a transitive library-->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
@@ -158,24 +159,25 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Added to include in bundle, will verify if needed -->
-        <dependency>
-            <groupId>javax.inject</groupId>
-            <artifactId>javax.inject</artifactId>
-            <version>1</version>
-        </dependency>
-
         <dependency>
             <groupId>org.sonatype.nexus</groupId>
             <artifactId>nexus-test-common</artifactId>
             <version>${nexusVersion}</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.blackducksoftware.integration</groupId>
             <artifactId>integration-test-common</artifactId>
             <version>4.0.5</version>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Added to include in bundle, will verify if needed -->
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>1</version>
         </dependency>
     </dependencies>
 

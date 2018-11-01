@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 
 public class BlackDuckCapabilityValidator {
+
     public void validateCapability(final Map<String, String> capabilitySettings) {
         final Optional<String> urlError = validateBlackDuckUrl(capabilitySettings);
         final Optional<String> timeoutError = validateBlackDuckTimeout(capabilitySettings);
@@ -69,7 +70,7 @@ public class BlackDuckCapabilityValidator {
         final String configuredProxyUser = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey());
         final String configuredProxyPassword = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey());
 
-        if (StringUtils.isBlank(configuredProxyHost) && StringUtils.isNotBlank(configuredProxyPort) || StringUtils.isNotBlank(configuredProxyUser) || StringUtils.isNotBlank(configuredProxyPassword)) {
+        if (StringUtils.isBlank(configuredProxyHost) && (StringUtils.isNotBlank(configuredProxyPort) || StringUtils.isNotBlank(configuredProxyUser) || StringUtils.isNotBlank(configuredProxyPassword))) {
             return Optional.of("Proxy Host: The proxy host not specified.");
         } else {
             if (StringUtils.isNotBlank(configuredProxyHost) && StringUtils.isBlank(configuredProxyPort)) {
