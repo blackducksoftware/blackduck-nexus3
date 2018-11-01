@@ -66,7 +66,7 @@ public class ScanMetaDataProcessor {
             final List<RiskCountView> vulnerabilities = versionBomComponentView.securityRiskProfile.counts;
             commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(vulnerabilities, vulnerabilityLevels);
         }
-        commonMetaDataProcessor.setAssetVulnerabilityData(vulnerabilityLevels, assetWrapper);
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABLE_COMPONENTS, vulnerabilityLevels.getAllCounts());
         logger.info("Checking policies.");
         final VersionBomPolicyStatusView policyStatusView = commonMetaDataProcessor.checkAssetPolicy(name, version);
         commonMetaDataProcessor.setAssetPolicyData(policyStatusView, assetWrapper);

@@ -88,6 +88,7 @@ public class InspectorTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
+        commonRepositoryTaskHelper.phoneHome(InspectorTaskDescriptor.BLACK_DUCK_INSPECTOR_TASK_ID);
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             if (commonTaskFilters.isProxyRepository(foundRepository.getType())) {
                 final Optional<DependencyType> dependencyType = dependencyGenerator.findDependency(foundRepository.getFormat());
@@ -127,6 +128,8 @@ public class InspectorTask extends RepositoryTaskSupport {
                 }
             }
         }
+
+        commonRepositoryTaskHelper.closeConnection();
     }
 
     private boolean processAsset(final AssetWrapper assetWrapper, final DependencyType dependencyType, final MutableDependencyGraph mutableDependencyGraph, final Map<String, AssetWrapper> assetWrapperMap) {

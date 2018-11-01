@@ -23,6 +23,8 @@
  */
 package com.synopsys.integration.blackduck.nexus3;
 
+import java.io.IOException;
+
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -47,6 +49,7 @@ public class BlackDuckConnection {
     private boolean needsUpdate;
     private HubServerConfig hubServerConfig;
     private HubServicesFactory hubServicesFactory;
+    private BlackduckRestConnection restConnection;
 
     @Inject
     public BlackDuckConnection(final BlackDuckCapabilityFinder blackDuckCapabilityFinder) {
@@ -85,10 +88,28 @@ public class BlackDuckConnection {
         if (needsUpdate || hubServicesFactory == null) {
             logger.debug("Getting updated hubServicesFactory");
             final IntLogger intLogger = new Slf4jIntLogger(logger);
-            final BlackduckRestConnection restConnection = getHubServerConfig().createRestConnection(intLogger);
+            final BlackduckRestConnection restConnection = getBlackDuckRestConnection(intLogger);
             hubServicesFactory = new HubServicesFactory(HubServicesFactory.createDefaultGson(), HubServicesFactory.createDefaultJsonParser(), restConnection, intLogger);
         }
 
         return hubServicesFactory;
+    }
+
+    public BlackduckRestConnection getBlackDuckRestConnection(final IntLogger intLogger) throws IntegrationException {
+        if (needsUpdate || restConnection == null) {
+            restConnection = getHubServerConfig().createRestConnection(intLogger);
+        }
+
+        return restConnection;
+    }
+
+    public void closeBlackDuckRestConnection() throws IOException {
+        if (restConnection != null) {
+            logger.info("Closing connection to BlackDuck.");
+            restConnection.close();
+            restConnection = null;
+            hubServicesFactory = null;
+            needsUpdate = true;
+        }
     }
 }

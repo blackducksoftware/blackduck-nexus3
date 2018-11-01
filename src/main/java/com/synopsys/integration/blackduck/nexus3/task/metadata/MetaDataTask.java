@@ -78,6 +78,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
+        commonRepositoryTaskHelper.phoneHome(MetaDataTaskDescriptor.BLACK_DUCK_META_DATA_TASK_ID);
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             final String repoName = foundRepository.getName();
             logger.info("Checking repository for assets: {}", repoName);
@@ -130,6 +131,8 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 }
             }
         }
+
+        commonRepositoryTaskHelper.closeConnection();
     }
 
     private Query createFilteredQuery(final Optional<String> lastNameUsed) {
