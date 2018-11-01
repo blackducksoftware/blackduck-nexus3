@@ -98,6 +98,7 @@ public class ScanTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
+        commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
         final HubServerConfig hubServerConfig = commonRepositoryTaskHelper.getHubServerConfig();
         final ScanJobManager scanJobManager;
         final IntLogger intLogger = new Slf4jIntLogger(logger);
@@ -183,6 +184,8 @@ public class ScanTask extends RepositoryTaskSupport {
                 }
             }
         }
+
+        commonRepositoryTaskHelper.closeConnection();
     }
 
     private boolean shouldScan(final TaskStatus status, final boolean alwaysScan, final boolean redoFailures) {

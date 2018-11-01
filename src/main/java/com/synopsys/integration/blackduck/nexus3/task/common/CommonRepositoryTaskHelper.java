@@ -24,6 +24,7 @@
 package com.synopsys.integration.blackduck.nexus3.task.common;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -60,6 +61,7 @@ import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.ScanStatusService;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.phonehome.PhoneHomeCallable;
 
 @Named
 @Singleton
@@ -104,6 +106,26 @@ public class CommonRepositoryTaskHelper {
         } catch (final IntegrationException e) {
             throw new TaskInterruptedException("BlackDuck hub server config not set.", true);
         }
+    }
+
+    public void closeConnection() {
+        try {
+            blackDuckConnection.closeBlackDuckRestConnection();
+        } catch (final IOException e) {
+            logger.error("Issue trying to close the connection to BlackDuck: {}", e.getMessage());
+        }
+    }
+
+    public void phoneHome(final String taskName) {
+        final PhoneHome phoneHome = new PhoneHome(blackDuckConnection);
+        try {
+            final PhoneHomeCallable phoneHomeCallable = phoneHome.createPhoneHomeCallable(taskName);
+            logger.debug("Sending phone home data.");
+            phoneHome.sendDataHome(phoneHomeCallable);
+        } catch (final IntegrationException e) {
+            logger.debug("There was an error communicating with BlackDuck while phoning home: {}", e.getMessage());
+        }
+
     }
 
     public String getRepositoryPath(final TaskConfiguration taskConfiguration) {
