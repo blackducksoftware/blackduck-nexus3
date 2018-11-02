@@ -91,7 +91,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         commonRepositoryTaskHelper.phoneHome(InspectorTaskDescriptor.BLACK_DUCK_INSPECTOR_TASK_ID);
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             if (commonTaskFilters.isProxyRepository(foundRepository.getType())) {
-                final Optional<DependencyType> dependencyType = dependencyGenerator.findDependency(foundRepository.getFormat());
+                final Optional<DependencyType> dependencyType = dependencyGenerator.findDependency(foundRepository.getFormat().getValue());
                 if (!dependencyType.isPresent()) {
                     throw new TaskInterruptedException("Task being run on unsupported repository", true);
                 }
