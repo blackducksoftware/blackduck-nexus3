@@ -9,4 +9,4 @@
 
 # Documentation
 
-All documentation is located on our public [Black Duck Confluence]()
+All documentation will be on our public [Confluence](https://synopsys.atlassian.net/wiki/spaces/INTDOCS)
