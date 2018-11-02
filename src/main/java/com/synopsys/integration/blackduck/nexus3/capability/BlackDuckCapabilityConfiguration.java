@@ -25,6 +25,7 @@ package com.synopsys.integration.blackduck.nexus3.capability;
 
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sonatype.nexus.capability.CapabilityConfigurationSupport;
 
 import com.synopsys.integration.blackduck.configuration.HubServerConfig;
@@ -43,6 +44,25 @@ public class BlackDuckCapabilityConfiguration extends CapabilityConfigurationSup
         hubServerConfigBuilder.setTimeout(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TIMEOUT.getKey()));
         hubServerConfigBuilder.setTrustCert(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TRUST_CERT.getKey()));
         hubServerConfigBuilder.setApiToken(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_API_KEY.getKey()));
+
+        String proxyHost = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_HOST.getKey());
+        String proxyPort = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PORT.getKey());
+        String proxyUsername = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey());
+        String proxyPassword = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey());
+
+        if (StringUtils.isNotBlank(proxyHost)) {
+            hubServerConfigBuilder.setProxyHost(proxyHost);
+        }
+        if (StringUtils.isNotBlank(proxyPort)) {
+            hubServerConfigBuilder.setProxyPort(proxyPort);
+        }
+        if (StringUtils.isNotBlank(proxyUsername)) {
+            hubServerConfigBuilder.setProxyUsername(proxyUsername);
+        }
+        if (StringUtils.isNotBlank(proxyPassword)) {
+            hubServerConfigBuilder.setProxyPassword(proxyPassword);
+        }
+
         return hubServerConfigBuilder.build();
     }
 
