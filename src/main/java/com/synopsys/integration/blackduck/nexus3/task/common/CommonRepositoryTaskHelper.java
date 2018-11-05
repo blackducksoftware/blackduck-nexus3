@@ -188,9 +188,11 @@ public class CommonRepositoryTaskHelper {
             scanStatusService.assertScansFinished(scanSummaryViews);
 
             return hubService.getHref(projectVersionView);
-        } catch (final IntegrationException | InterruptedException e) {
+        } catch (final IntegrationException e) {
             logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
             return VERIFICATION_ERROR + e.getMessage();
+        } catch (final InterruptedException e) {
+            throw new TaskInterruptedException("Waiting for the scans to finish was interrupted: " + e.getMessage(), true);
         }
     }
 
