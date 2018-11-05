@@ -1,5 +1,5 @@
 # Overview
-The Black Duck Nexus 3 plugin is a tool designed to uncover security and compliance risks associated with the open source artifacts stored in Nexus repositories.
+The Black Duck Nexus 3 plugin is designed to uncover security and compliance risks associated with the open source artifacts stored in Nexus repositories.
 
 # Build
 
