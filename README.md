@@ -4,7 +4,6 @@ The Black Duck Nexus 3 plugin is designed to uncover security and compliance ris
 # Build
 
 [![Build Status](https://travis-ci.org/blackducksoftware/blackduck-nexus3.svg?branch=master)](https://travis-ci.org/blackducksoftware/blackduck-nexus3)
-[![Coverage Status](https://coveralls.io/repos/github/blackducksoftware/blackduck-nexus3/badge.svg?branch=master)](https://coveralls.io/github/blackducksoftware/blackduck-nexus3?branch=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) 
 [![Black Duck Security Risk](https://copilot.blackducksoftware.com/github/repos/blackducksoftware/blackduck-nexus3/branches/master/badge-risk.svg)](https://copilot.blackducksoftware.com/github/repos/blackducksoftware/blackduck-nexus3/branches/master)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=com.blackducksoftware.integration%3Ablackduck-nexus3&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.blackducksoftware.integration%3Ablackduck-nexus3)

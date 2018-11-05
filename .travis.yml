@@ -17,7 +17,7 @@ notifications:
     - bdsoss@blackducksoftware.com
 
 script:
-- mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar org.codehaus.mojo:cobertura-maven-plugin:cobertura org.eluder.coveralls:coveralls-maven-plugin:report
+- mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar
 
 after_success:
 - export DETECT_MAVEN_SCOPE=runtime
