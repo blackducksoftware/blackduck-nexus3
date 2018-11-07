@@ -95,7 +95,7 @@ public class InspectorTask extends RepositoryTaskSupport {
             hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
             commonRepositoryTaskHelper.phoneHome(InspectorTaskDescriptor.BLACK_DUCK_INSPECTOR_TASK_ID);
         } catch (final IntegrationException | IllegalStateException e) {
-            logger.error(e.getMessage(), e);
+            logger.error("BlackDuck hub server config invalid. " + e.getMessage(), e);
             exceptionMessage = e.getMessage();
         }
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
