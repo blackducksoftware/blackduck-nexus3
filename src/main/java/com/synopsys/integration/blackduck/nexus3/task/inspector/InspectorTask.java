@@ -139,7 +139,7 @@ public class InspectorTask extends RepositoryTaskSupport {
                     logger.info("Creating Black Duck project.");
                     uploadToBlackDuck(hubServicesFactory, repoName, mutableDependencyGraph, simpleBdioFactory, dependencyType.get(), assetWrapperMap);
                 } else {
-                    logger.warn("Won't upload to BlackDuck as not items were processed.");
+                    logger.warn("Won't upload to BlackDuck as no items were processed.");
                 }
             }
         }
