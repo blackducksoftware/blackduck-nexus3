@@ -42,6 +42,7 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
     public static final String BLACK_DUCK_SCAN_TASK_NAME = "Black Duck - Hosted Repository Scan";
     public static final String DEFAULT_FILE_PATTERNS_MATCHES = "*.war,*.zip,*.tar.gz,*.hpi";
     public static final int DEFAULT_SCAN_MEMORY = 4096;
+    public static final int MIN_SCAN_MEMORY = 256;
     public static final String KEY_SCAN_MEMORY = "blackduck.memory";
     public static final String KEY_REDO_FAILURES = "blackduck.redo.failures";
     public static final String KEY_ALWAYS_CHECK = "blackduck.check.always";
@@ -52,7 +53,7 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
     private static final String DESCRIPTION_ALWAYS_SCAN = "Scan Successful or Pending asset as long as they are not too old and match the specified patterns";
     private static final String DESCRIPTION_RESCAN_FAILURE = "Scan asset if the previous scan result was failed";
     private static final NumberTextFormField FIELD_SCAN_MEMORY = new NumberTextFormField(KEY_SCAN_MEMORY, LABEL_SCAN_MEMORY, DESCRIPTION_SCAN_MEMORY, FormField.MANDATORY)
-                                                                     .withInitialValue(DEFAULT_SCAN_MEMORY);
+                                                                     .withInitialValue(DEFAULT_SCAN_MEMORY).withMinimumValue(MIN_SCAN_MEMORY);
     private static final CheckboxFormField FIELD_ALWAYS_SCAN = new CheckboxFormField(KEY_ALWAYS_CHECK, LABEL_ALWAYS_SCAN, DESCRIPTION_ALWAYS_SCAN, FormField.OPTIONAL);
     private static final CheckboxFormField FIELD_RESCAN_FAILURE = new CheckboxFormField(KEY_REDO_FAILURES, LABEL_RESCAN_FAILURE, DESCRIPTION_RESCAN_FAILURE, FormField.OPTIONAL);
 
