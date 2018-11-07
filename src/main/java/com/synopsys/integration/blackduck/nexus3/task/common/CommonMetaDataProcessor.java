@@ -61,14 +61,12 @@ public class CommonMetaDataProcessor {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
     }
 
-    public List<VersionBomComponentView> checkAssetVulnerabilities(final String name, final String version) throws IntegrationException {
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+    public List<VersionBomComponentView> checkAssetVulnerabilities(final HubServicesFactory hubServicesFactory, final String name, final String version) throws IntegrationException {
         final ProjectService projectService = hubServicesFactory.createProjectService();
         return projectService.getComponentsForProjectVersion(name, version);
     }
 
-    public List<VersionBomComponentView> checkAssetVulnerabilities(final ProjectVersionView projectVersionView) throws IntegrationException {
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+    public List<VersionBomComponentView> checkAssetVulnerabilities(final HubServicesFactory hubServicesFactory, final ProjectVersionView projectVersionView) throws IntegrationException {
         final ProjectService projectService = hubServicesFactory.createProjectService();
         return projectService.getComponentsForProjectVersion(projectVersionView);
     }
@@ -119,14 +117,13 @@ public class CommonMetaDataProcessor {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS);
     }
 
-    public VersionBomPolicyStatusView checkAssetPolicy(final String name, final String version) throws IntegrationException {
-        final ProjectVersionWrapper projectVersionWrapper = commonRepositoryTaskHelper.getProjectVersionWrapper(name, version);
-        return checkAssetPolicy(projectVersionWrapper.getProjectVersionView());
+    public VersionBomPolicyStatusView checkAssetPolicy(final HubServicesFactory hubServicesFactory, final String name, final String version) throws IntegrationException {
+        final ProjectVersionWrapper projectVersionWrapper = commonRepositoryTaskHelper.getProjectVersionWrapper(hubServicesFactory, name, version);
+        return checkAssetPolicy(hubServicesFactory, projectVersionWrapper.getProjectVersionView());
     }
 
-    public VersionBomPolicyStatusView checkAssetPolicy(final ProjectVersionView projectVersionView) throws IntegrationException {
+    public VersionBomPolicyStatusView checkAssetPolicy(final HubServicesFactory hubServicesFactory, final ProjectVersionView projectVersionView) throws IntegrationException {
         logger.info("Checking metadata of {}", projectVersionView.versionName);
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
         final ProjectService projectService = hubServicesFactory.createProjectService();
         return projectService.getPolicyStatusForVersion(projectVersionView);
     }

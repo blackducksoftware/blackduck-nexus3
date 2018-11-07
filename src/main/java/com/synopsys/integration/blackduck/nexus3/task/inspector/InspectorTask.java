@@ -88,7 +88,11 @@ public class InspectorTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
-        commonRepositoryTaskHelper.phoneHome(InspectorTaskDescriptor.BLACK_DUCK_INSPECTOR_TASK_ID);
+        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+        final boolean failedConnection = (hubServicesFactory == null);
+        if (!failedConnection) {
+            commonRepositoryTaskHelper.phoneHome(InspectorTaskDescriptor.BLACK_DUCK_INSPECTOR_TASK_ID);
+        }
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             if (commonTaskFilters.isProxyRepository(foundRepository.getType())) {
                 final Optional<DependencyType> dependencyType = dependencyGenerator.findDependency(foundRepository.getFormat().getValue());
@@ -104,15 +108,22 @@ public class InspectorTask extends RepositoryTaskSupport {
                 logger.info("Checking repository for assets: {}", repoName);
                 final Query pagedQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
                 PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, pagedQuery);
-                boolean resultsFound = false;
+                boolean uploadToBlackDuck = false;
                 while (filteredAssets.hasResults()) {
                     logger.info("Found some items from the DB");
                     for (final Asset asset : filteredAssets.getTypeList()) {
                         final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, commonRepositoryTaskHelper.getQueryManager());
+                        if (failedConnection) {
+                            commonRepositoryTaskHelper.failedConnection(assetWrapper);
+                            assetWrapper.updateAsset();
+                            continue;
+                        }
+
                         final boolean shouldProcessAsset = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
                         if (shouldProcessAsset) {
                             // Only set resultsFound to true, if you set it to false you risk falsely reporting that there are no new assets
-                            resultsFound = true;
+                            // I believe this can be improved upon... -BM
+                            uploadToBlackDuck = true;
                         }
                     }
 
@@ -120,11 +131,11 @@ public class InspectorTask extends RepositoryTaskSupport {
                     filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
                 }
 
-                if (resultsFound) {
+                if (uploadToBlackDuck) {
                     logger.info("Creating Black Duck project.");
-                    uploadToBlackDuck(repoName, mutableDependencyGraph, simpleBdioFactory, dependencyType.get(), assetWrapperMap);
+                    uploadToBlackDuck(hubServicesFactory, repoName, mutableDependencyGraph, simpleBdioFactory, dependencyType.get(), assetWrapperMap);
                 } else {
-                    logger.warn("No new assets found with set criteria.");
+                    logger.warn("Won't upload to BlackDuck as not items were processed.");
                 }
             }
         }
@@ -155,14 +166,14 @@ public class InspectorTask extends RepositoryTaskSupport {
         return true;
     }
 
-    private void uploadToBlackDuck(final String repositoryName, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory, final DependencyType dependencyType,
+    private void uploadToBlackDuck(final HubServicesFactory hubServicesFactory, final String repositoryName, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory,
+        final DependencyType dependencyType,
         final Map<String, AssetWrapper> assetWrapperMap) {
         final Forge nexusForge = new Forge("/", "/", "nexus");
         final ProjectVersionView projectVersionView;
         final String codeLocationName = String.join("/", INSPECTOR_CODE_LOCATION_NAME, repositoryName, dependencyType.getRepositoryType());
         try {
             logger.debug("Creating project in Black Duck if needed: {}", repositoryName);
-            final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
             final ProjectService projectService = hubServicesFactory.createProjectService();
             final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
             projectRequestBuilder.setProjectName(repositoryName);
@@ -171,10 +182,10 @@ public class InspectorTask extends RepositoryTaskSupport {
             projectVersionView = projectVersionWrapper.getProjectVersionView();
             final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, repositoryName, INSPECTOR_CODE_LOCATION_NAME);
             final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, repositoryName, INSPECTOR_CODE_LOCATION_NAME, projectRoot, mutableDependencyGraph);
-            sendInspectorData(simpleBdioDocument, simpleBdioFactory);
-            final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, projectVersionView);
+            sendInspectorData(hubServicesFactory, simpleBdioDocument, simpleBdioFactory);
+            final String uploadUrl = commonRepositoryTaskHelper.verifyUpload(hubServicesFactory, codeLocationName, projectVersionView);
             final TaskStatus status = uploadUrl.startsWith(CommonRepositoryTaskHelper.VERIFICATION_ERROR) ? TaskStatus.FAILURE : TaskStatus.SUCCESS;
-            inspectorMetaDataProcessor.updateRepositoryMetaData(projectVersionView, assetWrapperMap, status);
+            inspectorMetaDataProcessor.updateRepositoryMetaData(hubServicesFactory, projectVersionView, assetWrapperMap, status);
         } catch (final IntegrationException e) {
             logger.error("Issue communicating with BlackDuck: " + e.getMessage(), e);
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
@@ -195,8 +206,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         }
     }
 
-    private void sendInspectorData(final SimpleBdioDocument bdioDocument, final SimpleBdioFactory simpleBdioFactory) throws IntegrationException, IOException {
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+    private void sendInspectorData(final HubServicesFactory hubServicesFactory, final SimpleBdioDocument bdioDocument, final SimpleBdioFactory simpleBdioFactory) throws IntegrationException, IOException {
         final CodeLocationService codeLocationService = hubServicesFactory.createCodeLocationService();
 
         final IntegrationEscapeUtil integrationEscapeUtil = new IntegrationEscapeUtil();

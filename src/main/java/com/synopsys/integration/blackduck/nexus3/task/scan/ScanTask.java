@@ -52,6 +52,7 @@ import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJob;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJobBuilder;
 import com.synopsys.integration.blackduck.signaturescanner.ScanJobManager;
@@ -98,7 +99,12 @@ public class ScanTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
-        commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
+        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+        final boolean failedConnection = (hubServicesFactory == null);
+
+        if (!failedConnection) {
+            commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
+        }
         final HubServerConfig hubServerConfig = commonRepositoryTaskHelper.getHubServerConfig();
         final ScanJobManager scanJobManager;
         final IntLogger intLogger = new Slf4jIntLogger(logger);
@@ -151,6 +157,12 @@ public class ScanTask extends RepositoryTaskSupport {
                             continue;
                         }
 
+                        if (failedConnection) {
+                            commonRepositoryTaskHelper.failedConnection(assetWrapper);
+                            assetWrapper.updateAsset();
+                            continue;
+                        }
+
                         performScan(hubServerConfig, workingBlackDuckDirectory, outputDirectory, tempFileStorage, codeLocationName, assetWrapper, scanJobManager, scannedAssets);
                         assetWrapper.updateAsset();
                     }
@@ -171,8 +183,8 @@ public class ScanTask extends RepositoryTaskSupport {
                         final String projectName = assetWrapper.getName();
                         final String version = assetWrapper.getVersion();
                         try {
-                            final String blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, projectName, version);
-                            scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, blackDuckUrl);
+                            final String blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(hubServicesFactory, codeLocationName, projectName, version);
+                            scanMetaDataProcessor.updateRepositoryMetaData(hubServicesFactory, assetWrapper, blackDuckUrl);
                         } catch (final IntegrationException e) {
                             assetWrapper.removeAllBlackDuckData();
                             assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
