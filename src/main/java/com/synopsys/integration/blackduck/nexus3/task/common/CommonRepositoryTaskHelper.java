@@ -101,7 +101,6 @@ public class CommonRepositoryTaskHelper {
     }
 
     public void failedConnection(final AssetWrapper assetWrapper, final String exceptionMessage) {
-        logger.error("Failed to connect to Black Duck. Asset: {} {}", assetWrapper.getName(), assetWrapper.getVersion());
         assetWrapper.removeAllBlackDuckData();
         assetWrapper.addFailureToBlackDuckPanel("Error connecting to Black Duck. " + exceptionMessage);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());

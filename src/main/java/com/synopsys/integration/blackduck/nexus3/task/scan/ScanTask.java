@@ -175,17 +175,17 @@ public class ScanTask extends RepositoryTaskSupport {
                         }
                     }
 
+                    try {
+                        FileUtils.cleanDirectory(tempFileStorage);
+                        FileUtils.cleanDirectory(outputDirectory);
+                    } catch (final IOException e) {
+                        logger.warn("Problem cleaning scan directories {}", outputDirectory.getAbsolutePath());
+                    }
+
+                    final Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
+                    foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPageQuery);
+
                     if (null != hubServicesFactory) {
-                        try {
-                            FileUtils.cleanDirectory(tempFileStorage);
-                            FileUtils.cleanDirectory(outputDirectory);
-                        } catch (final IOException e) {
-                            logger.warn("Problem cleaning scan directories {}", outputDirectory.getAbsolutePath());
-                        }
-
-                        final Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
-                        foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPageQuery);
-
                         for (final Map.Entry<String, AssetWrapper> entry : scannedAssets.entrySet()) {
                             final AssetWrapper assetWrapper = entry.getValue();
                             final String codeLocationName = entry.getKey();
