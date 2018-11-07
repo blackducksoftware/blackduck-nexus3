@@ -40,6 +40,7 @@ import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.metadata.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.exception.IntegrationException;
 
 @Named
@@ -55,12 +56,12 @@ public class ScanMetaDataProcessor {
         this.dateTimeParser = dateTimeParser;
     }
 
-    public void updateRepositoryMetaData(final AssetWrapper assetWrapper, final String blackDuckUrl) throws IntegrationException {
+    public void updateRepositoryMetaData(final HubServicesFactory hubServicesFactory, final AssetWrapper assetWrapper, final String blackDuckUrl) throws IntegrationException {
         final String name = assetWrapper.getName();
         final String version = assetWrapper.getVersion();
 
         logger.info("Checking vulnerabilities.");
-        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(name, version);
+        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(hubServicesFactory, name, version);
         final VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
         for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
             final List<RiskCountView> vulnerabilities = versionBomComponentView.securityRiskProfile.counts;
@@ -68,7 +69,7 @@ public class ScanMetaDataProcessor {
         }
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABLE_COMPONENTS, vulnerabilityLevels.getAllCounts());
         logger.info("Checking policies.");
-        final VersionBomPolicyStatusView policyStatusView = commonMetaDataProcessor.checkAssetPolicy(name, version);
+        final VersionBomPolicyStatusView policyStatusView = commonMetaDataProcessor.checkAssetPolicy(hubServicesFactory, name, version);
         commonMetaDataProcessor.setAssetPolicyData(policyStatusView, assetWrapper);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, blackDuckUrl);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());

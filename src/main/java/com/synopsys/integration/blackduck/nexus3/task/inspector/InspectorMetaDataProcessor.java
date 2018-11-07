@@ -47,6 +47,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProce
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.task.metadata.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.Slf4jIntLogger;
@@ -66,13 +67,13 @@ public class InspectorMetaDataProcessor {
         this.dateTimeParser = dateTimeParser;
     }
 
-    public ProjectVersionWrapper getProjectVersionWrapper(final String name) throws IntegrationException {
-        return commonRepositoryTaskHelper.getProjectVersionWrapper(name, InspectorTask.INSPECTOR_CODE_LOCATION_NAME);
+    public ProjectVersionWrapper getProjectVersionWrapper(final HubServicesFactory hubServicesFactory, final String name) throws IntegrationException {
+        return commonRepositoryTaskHelper.getProjectVersionWrapper(hubServicesFactory, name, InspectorTask.INSPECTOR_CODE_LOCATION_NAME);
     }
 
-    public void updateRepositoryMetaData(final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap, final TaskStatus status) throws IntegrationException {
+    public void updateRepositoryMetaData(final HubServicesFactory hubServicesFactory, final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap, final TaskStatus status) throws IntegrationException {
         logger.debug("Currently have following items in asset map: {}", assetWrapperMap);
-        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(projectVersionView);
+        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(hubServicesFactory, projectVersionView);
         for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
             final Set<String> externalIds = versionBomComponentView.origins.stream()
                                                 .map(versionBomOriginView -> versionBomOriginView.externalId)

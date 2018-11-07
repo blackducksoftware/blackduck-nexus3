@@ -50,6 +50,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.nexus3.task.inspector.InspectorMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.scan.ScanMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 
@@ -78,7 +79,11 @@ public class MetaDataTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
-        commonRepositoryTaskHelper.phoneHome(MetaDataTaskDescriptor.BLACK_DUCK_META_DATA_TASK_ID);
+        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+        final boolean failedConnection = (hubServicesFactory == null);
+        if (!failedConnection) {
+            commonRepositoryTaskHelper.phoneHome(MetaDataTaskDescriptor.BLACK_DUCK_META_DATA_TASK_ID);
+        }
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             final String repoName = foundRepository.getName();
             logger.info("Checking repository for assets: {}", repoName);
@@ -90,6 +95,12 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 logger.debug("Found items in the DB.");
                 for (final Asset asset : pagedAssets.getTypeList()) {
                     final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, queryManager);
+                    if (failedConnection) {
+                        commonRepositoryTaskHelper.failedConnection(assetWrapper);
+                        assetWrapper.updateAsset();
+                        continue;
+                    }
+
                     final String name = assetWrapper.getName();
                     logger.info("Updating metadata for {}", name);
                     try {
@@ -102,10 +113,10 @@ public class MetaDataTask extends RepositoryTaskSupport {
                                 final String version = assetWrapper.getVersion();
                                 final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
                                 logger.info("Re-checking code location {}", codeLocationName);
-                                blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(codeLocationName, name, version);
+                                blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(hubServicesFactory, codeLocationName, name, version);
                             }
                             logger.info("Updating data of hosted repository.");
-                            scanMetaDataProcessor.updateRepositoryMetaData(assetWrapper, blackDuckUrl);
+                            scanMetaDataProcessor.updateRepositoryMetaData(hubServicesFactory, assetWrapper, blackDuckUrl);
                         } else {
                             final String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
                             assetWrapperMap.put(originId, assetWrapper);
@@ -121,11 +132,11 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
             }
 
-            if (isProxyRepo) {
+            if (isProxyRepo && !failedConnection) {
                 logger.info("Updating data of proxy repository.");
                 try {
-                    final ProjectVersionWrapper projectVersionWrapper = inspectorMetaDataProcessor.getProjectVersionWrapper(repoName);
-                    inspectorMetaDataProcessor.updateRepositoryMetaData(projectVersionWrapper.getProjectVersionView(), assetWrapperMap, TaskStatus.SUCCESS);
+                    final ProjectVersionWrapper projectVersionWrapper = inspectorMetaDataProcessor.getProjectVersionWrapper(hubServicesFactory, repoName);
+                    inspectorMetaDataProcessor.updateRepositoryMetaData(hubServicesFactory, projectVersionWrapper.getProjectVersionView(), assetWrapperMap, TaskStatus.SUCCESS);
                 } catch (final IntegrationException e) {
                     throw new TaskInterruptedException("Problem retrieving project from Hub: " + e.getMessage(), true);
                 }

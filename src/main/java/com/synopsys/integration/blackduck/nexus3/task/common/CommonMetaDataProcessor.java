@@ -25,7 +25,6 @@ package com.synopsys.integration.blackduck.nexus3.task.common;
 
 import java.util.List;
 
-import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -50,25 +49,17 @@ import com.synopsys.integration.exception.IntegrationException;
 @Singleton
 public class CommonMetaDataProcessor {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
-
-    @Inject
-    public CommonMetaDataProcessor(final CommonRepositoryTaskHelper commonRepositoryTaskHelper) {
-        this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
-    }
 
     public void setAssetVulnerabilityData(final VulnerabilityLevels vulnerabilityLevels, final AssetWrapper assetWrapper) {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
     }
 
-    public List<VersionBomComponentView> checkAssetVulnerabilities(final String name, final String version) throws IntegrationException {
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+    public List<VersionBomComponentView> checkAssetVulnerabilities(final HubServicesFactory hubServicesFactory, final String name, final String version) throws IntegrationException {
         final ProjectService projectService = hubServicesFactory.createProjectService();
         return projectService.getComponentsForProjectVersion(name, version);
     }
 
-    public List<VersionBomComponentView> checkAssetVulnerabilities(final ProjectVersionView projectVersionView) throws IntegrationException {
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+    public List<VersionBomComponentView> checkAssetVulnerabilities(final HubServicesFactory hubServicesFactory, final ProjectVersionView projectVersionView) throws IntegrationException {
         final ProjectService projectService = hubServicesFactory.createProjectService();
         return projectService.getComponentsForProjectVersion(projectVersionView);
     }
@@ -119,16 +110,14 @@ public class CommonMetaDataProcessor {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS);
     }
 
-    public VersionBomPolicyStatusView checkAssetPolicy(final String name, final String version) throws IntegrationException {
+    public VersionBomPolicyStatusView checkAssetPolicy(final HubServicesFactory hubServicesFactory, final String name, final String version) throws IntegrationException {
         logger.info("Checking metadata of {}", name);
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
         final ProjectService projectService = hubServicesFactory.createProjectService();
         return projectService.getPolicyStatusForProjectAndVersion(name, version);
     }
 
-    public VersionBomPolicyStatusView checkAssetPolicy(final ProjectVersionView projectVersionView) throws IntegrationException {
+    public VersionBomPolicyStatusView checkAssetPolicy(final HubServicesFactory hubServicesFactory, final ProjectVersionView projectVersionView) throws IntegrationException {
         logger.info("Checking metadata of {}", projectVersionView.versionName);
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
         final ProjectService projectService = hubServicesFactory.createProjectService();
         return projectService.getPolicyStatusForVersion(projectVersionView);
     }
