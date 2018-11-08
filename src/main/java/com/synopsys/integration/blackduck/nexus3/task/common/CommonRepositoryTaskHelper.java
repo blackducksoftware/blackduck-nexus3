@@ -94,22 +94,18 @@ public class CommonRepositoryTaskHelper {
         return queryManager;
     }
 
-    public HubServerConfig getHubServerConfig() {
-        try {
-            return blackDuckConnection.getHubServerConfig();
-        } catch (final IntegrationException | IllegalStateException e) {
-            logger.error("BlackDuck hub server config invalid. {}", e.getMessage());
-            return null;
-        }
+    public HubServerConfig getHubServerConfig() throws IntegrationException, IllegalStateException {
+        return blackDuckConnection.getHubServerConfig();
     }
 
-    public HubServicesFactory getHubServicesFactory() {
-        try {
-            return blackDuckConnection.getHubServicesFactory();
-        } catch (final IntegrationException | IllegalStateException e) {
-            logger.error("BlackDuck hub server config invalid. {}", e.getMessage());
-            return null;
-        }
+    public HubServicesFactory getHubServicesFactory() throws IntegrationException, IllegalStateException {
+        return blackDuckConnection.getHubServicesFactory();
+    }
+
+    public void failedConnection(final AssetWrapper assetWrapper, final String exceptionMessage) {
+        assetWrapper.removeAllBlackDuckData();
+        assetWrapper.addFailureToBlackDuckPanel("Error connecting to Black Duck. " + exceptionMessage);
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
     }
 
     public void failedConnection(final AssetWrapper assetWrapper) {

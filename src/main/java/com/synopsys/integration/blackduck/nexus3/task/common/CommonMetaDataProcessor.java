@@ -25,7 +25,6 @@ package com.synopsys.integration.blackduck.nexus3.task.common;
 
 import java.util.List;
 
-import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -43,19 +42,12 @@ import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
-import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 
 @Named
 @Singleton
 public class CommonMetaDataProcessor {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
-
-    @Inject
-    public CommonMetaDataProcessor(final CommonRepositoryTaskHelper commonRepositoryTaskHelper) {
-        this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
-    }
 
     public void setAssetVulnerabilityData(final VulnerabilityLevels vulnerabilityLevels, final AssetWrapper assetWrapper) {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
@@ -118,8 +110,9 @@ public class CommonMetaDataProcessor {
     }
 
     public VersionBomPolicyStatusView checkAssetPolicy(final HubServicesFactory hubServicesFactory, final String name, final String version) throws IntegrationException {
-        final ProjectVersionWrapper projectVersionWrapper = commonRepositoryTaskHelper.getProjectVersionWrapper(hubServicesFactory, name, version);
-        return checkAssetPolicy(hubServicesFactory, projectVersionWrapper.getProjectVersionView());
+        logger.info("Checking metadata of {}", name);
+        final ProjectService projectService = hubServicesFactory.createProjectService();
+        return projectService.getPolicyStatusForProjectAndVersion(name, version);
     }
 
     public VersionBomPolicyStatusView checkAssetPolicy(final HubServicesFactory hubServicesFactory, final ProjectVersionView projectVersionView) throws IntegrationException {

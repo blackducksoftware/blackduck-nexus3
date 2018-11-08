@@ -23,7 +23,7 @@ public class CommonMetaDataProcessorTest {
 
     @Test
     public void setAssetVulnerabilityDataTest() {
-        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor(null);
+        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor();
         final MockAsset mockAsset = new MockAsset();
         final AssetWrapper assetWrapper = new AssetWrapper(mockAsset, null, null);
 
@@ -51,7 +51,7 @@ public class CommonMetaDataProcessorTest {
 
     @Test
     public void addAllAssetVulnerabilityCountsTest() {
-        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor(null);
+        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor();
         final int expectedHigh = 3;
         final int expectedMedium = 2;
         final int expectedLow = 1;
@@ -89,7 +89,7 @@ public class CommonMetaDataProcessorTest {
 
     @Test
     public void addMaxAssetVulnerabilityCountsTest() {
-        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor(null);
+        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor();
         final int expectedHigh = 3;
         final int expectedMedium = 2;
         final int expectedLow = 1;
@@ -127,7 +127,7 @@ public class CommonMetaDataProcessorTest {
 
     @Test
     public void removeAssetVulnerabilityDataTest() {
-        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor(null);
+        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor();
         final VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
         vulnerabilityLevels.addXVulnerabilities(VulnerabilityLevels.LOW_VULNERABILITY, 4);
 
@@ -148,7 +148,7 @@ public class CommonMetaDataProcessorTest {
 
     @Test
     public void setAssetPolicyDataTest() {
-        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor(null);
+        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor();
         final MockAsset mockAsset = new MockAsset();
         final AssetWrapper assetWrapper = new AssetWrapper(mockAsset, null, null);
 
@@ -173,7 +173,7 @@ public class CommonMetaDataProcessorTest {
 
     @Test
     public void removePolicyDataTest() {
-        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor(null);
+        final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor();
         final MockAsset mockAsset = new MockAsset();
         final AssetWrapper assetWrapper = new AssetWrapper(mockAsset, null, null);
 

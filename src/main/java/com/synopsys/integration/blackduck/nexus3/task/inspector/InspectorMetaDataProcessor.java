@@ -72,7 +72,6 @@ public class InspectorMetaDataProcessor {
     }
 
     public void updateRepositoryMetaData(final HubServicesFactory hubServicesFactory, final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap, final TaskStatus status) throws IntegrationException {
-        logger.debug("Currently have following items in asset map: {}", assetWrapperMap);
         final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(hubServicesFactory, projectVersionView);
         for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
             final Set<String> externalIds = versionBomComponentView.origins.stream()
@@ -81,6 +80,11 @@ public class InspectorMetaDataProcessor {
             logger.debug("Found all externalIds ({}) for component: {}", externalIds, versionBomComponentView.componentName);
             for (final String externalId : externalIds) {
                 final AssetWrapper assetWrapper = assetWrapperMap.get(externalId);
+
+                if (null == assetWrapper) {
+                    logger.warn("{} uploaded to Black Duck, but has not been processed in nexus.", externalId);
+                    continue;
+                }
 
                 final MetaHandler metaHandler = new MetaHandler(new Slf4jIntLogger(logger));
                 final String blackDuckUrl = metaHandler.getHref(projectVersionView);

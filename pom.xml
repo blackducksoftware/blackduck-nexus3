@@ -223,6 +223,7 @@
                             org.apache.http.*,
                             org.apache.commons.validator.routines.*,
                             com.google.common.base.*,
+                            javax.crypto.*,
                             javax.inject,
                             javax.net,
                             javax.net.ssl,

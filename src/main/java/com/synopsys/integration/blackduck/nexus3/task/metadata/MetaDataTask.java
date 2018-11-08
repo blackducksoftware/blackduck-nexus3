@@ -79,10 +79,14 @@ public class MetaDataTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
-        final boolean failedConnection = (hubServicesFactory == null);
-        if (!failedConnection) {
+        String exceptionMessage = null;
+        HubServicesFactory hubServicesFactory = null;
+        try {
+            hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
             commonRepositoryTaskHelper.phoneHome(MetaDataTaskDescriptor.BLACK_DUCK_META_DATA_TASK_ID);
+        } catch (final IntegrationException | IllegalStateException e) {
+            logger.error("BlackDuck hub server config invalid. " + e.getMessage(), e);
+            exceptionMessage = e.getMessage();
         }
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             final String repoName = foundRepository.getName();
@@ -95,36 +99,35 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 logger.debug("Found items in the DB.");
                 for (final Asset asset : pagedAssets.getTypeList()) {
                     final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, queryManager);
-                    if (failedConnection) {
-                        commonRepositoryTaskHelper.failedConnection(assetWrapper);
+                    if (StringUtils.isNotBlank(exceptionMessage)) {
+                        commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
                         assetWrapper.updateAsset();
-                        continue;
-                    }
-
-                    final String name = assetWrapper.getName();
-                    logger.info("Updating metadata for {}", name);
-                    try {
-                        if (!isProxyRepo) {
-                            String blackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
-                            final TaskStatus status = assetWrapper.getBlackDuckStatus();
-                            final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
-                            final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
-                            if (StringUtils.isBlank(blackDuckUrl) && isPendingOrComponentNotFoundForDay(status, lastProcessed)) {
-                                final String version = assetWrapper.getVersion();
-                                final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
-                                logger.info("Re-checking code location {}", codeLocationName);
-                                blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(hubServicesFactory, codeLocationName, name, version);
+                    } else {
+                        final String name = assetWrapper.getName();
+                        logger.info("Updating metadata for {}", name);
+                        try {
+                            if (!isProxyRepo) {
+                                String blackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
+                                final TaskStatus status = assetWrapper.getBlackDuckStatus();
+                                final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
+                                final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
+                                if (StringUtils.isBlank(blackDuckUrl) && isPendingOrComponentNotFoundForDay(status, lastProcessed)) {
+                                    final String version = assetWrapper.getVersion();
+                                    final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
+                                    logger.info("Re-checking code location {}", codeLocationName);
+                                    blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(hubServicesFactory, codeLocationName, name, version);
+                                }
+                                logger.info("Updating data of hosted repository.");
+                                scanMetaDataProcessor.updateRepositoryMetaData(hubServicesFactory, assetWrapper, blackDuckUrl);
+                            } else {
+                                final String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
+                                assetWrapperMap.put(originId, assetWrapper);
                             }
-                            logger.info("Updating data of hosted repository.");
-                            scanMetaDataProcessor.updateRepositoryMetaData(hubServicesFactory, assetWrapper, blackDuckUrl);
-                        } else {
-                            final String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
-                            assetWrapperMap.put(originId, assetWrapper);
+                        } catch (final IntegrationException e) {
+                            commonMetaDataProcessor.removeAllMetaData(assetWrapper);
+                            assetWrapper.updateAsset();
+                            throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
                         }
-                    } catch (final IntegrationException e) {
-                        commonMetaDataProcessor.removeAllMetaData(assetWrapper);
-                        assetWrapper.updateAsset();
-                        throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
                     }
                 }
 
@@ -132,7 +135,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
             }
 
-            if (isProxyRepo && !failedConnection) {
+            if (isProxyRepo && null != hubServicesFactory) {
                 logger.info("Updating data of proxy repository.");
                 try {
                     final ProjectVersionWrapper projectVersionWrapper = inspectorMetaDataProcessor.getProjectVersionWrapper(hubServicesFactory, repoName);

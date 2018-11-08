@@ -35,6 +35,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
@@ -99,20 +100,28 @@ public class ScanTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
-        final boolean failedConnection = (hubServicesFactory == null);
-
-        if (!failedConnection) {
-            commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
-        }
-        final HubServerConfig hubServerConfig = commonRepositoryTaskHelper.getHubServerConfig();
-        final ScanJobManager scanJobManager;
         final IntLogger intLogger = new Slf4jIntLogger(logger);
+
+        String exceptionMessage = null;
+        HubServicesFactory hubServicesFactory = null;
+        HubServerConfig hubServerConfig = null;
         try {
-            scanJobManager = ScanJobManager.createDefaultScanManager(intLogger, hubServerConfig);
-        } catch (final EncryptionException e) {
-            intLogger.debug(e.getMessage(), e);
-            throw new TaskInterruptedException("Problem creating ScanJobManager: " + e.getMessage(), true);
+            hubServerConfig = commonRepositoryTaskHelper.getHubServerConfig();
+            hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
+            commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
+        } catch (final IntegrationException | IllegalStateException e) {
+            logger.error("BlackDuck hub server config invalid. " + e.getMessage(), e);
+            exceptionMessage = e.getMessage();
+        }
+
+        ScanJobManager scanJobManager = null;
+        if (null != hubServerConfig) {
+            try {
+                scanJobManager = ScanJobManager.createDefaultScanManager(intLogger, hubServerConfig);
+            } catch (final EncryptionException e) {
+                intLogger.debug(e.getMessage(), e);
+                throw new TaskInterruptedException("Problem creating ScanJobManager: " + e.getMessage(), true);
+            }
         }
 
         final File workingDirectory = commonRepositoryTaskHelper.getWorkingDirectory(taskConfiguration());
@@ -157,14 +166,13 @@ public class ScanTask extends RepositoryTaskSupport {
                             continue;
                         }
 
-                        if (failedConnection) {
-                            commonRepositoryTaskHelper.failedConnection(assetWrapper);
+                        if (StringUtils.isNotBlank(exceptionMessage)) {
+                            commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
                             assetWrapper.updateAsset();
-                            continue;
+                        } else if (null != hubServerConfig && null != scanJobManager) {
+                            performScan(hubServerConfig, workingBlackDuckDirectory, outputDirectory, tempFileStorage, codeLocationName, assetWrapper, scanJobManager, scannedAssets);
+                            assetWrapper.updateAsset();
                         }
-
-                        performScan(hubServerConfig, workingBlackDuckDirectory, outputDirectory, tempFileStorage, codeLocationName, assetWrapper, scanJobManager, scannedAssets);
-                        assetWrapper.updateAsset();
                     }
 
                     try {
@@ -177,20 +185,22 @@ public class ScanTask extends RepositoryTaskSupport {
                     final Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
                     foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPageQuery);
 
-                    for (final Map.Entry<String, AssetWrapper> entry : scannedAssets.entrySet()) {
-                        final AssetWrapper assetWrapper = entry.getValue();
-                        final String codeLocationName = entry.getKey();
-                        final String projectName = assetWrapper.getName();
-                        final String version = assetWrapper.getVersion();
-                        try {
-                            final String blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(hubServicesFactory, codeLocationName, projectName, version);
-                            scanMetaDataProcessor.updateRepositoryMetaData(hubServicesFactory, assetWrapper, blackDuckUrl);
-                        } catch (final IntegrationException e) {
-                            assetWrapper.removeAllBlackDuckData();
-                            assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
-                            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
-                            assetWrapper.updateAsset();
-                            logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+                    if (null != hubServicesFactory) {
+                        for (final Map.Entry<String, AssetWrapper> entry : scannedAssets.entrySet()) {
+                            final AssetWrapper assetWrapper = entry.getValue();
+                            final String codeLocationName = entry.getKey();
+                            final String projectName = assetWrapper.getName();
+                            final String version = assetWrapper.getVersion();
+                            try {
+                                final String blackDuckUrl = commonRepositoryTaskHelper.verifyUpload(hubServicesFactory, codeLocationName, projectName, version);
+                                scanMetaDataProcessor.updateRepositoryMetaData(hubServicesFactory, assetWrapper, blackDuckUrl);
+                            } catch (final IntegrationException e) {
+                                assetWrapper.removeAllBlackDuckData();
+                                assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
+                                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+                                assetWrapper.updateAsset();
+                                logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+                            }
                         }
                     }
                 }

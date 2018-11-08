@@ -33,6 +33,7 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
@@ -88,10 +89,14 @@ public class InspectorTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(final Repository repository) {
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
-        final boolean failedConnection = (hubServicesFactory == null);
-        if (!failedConnection) {
+        String exceptionMessage = null;
+        HubServicesFactory hubServicesFactory = null;
+        try {
+            hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
             commonRepositoryTaskHelper.phoneHome(InspectorTaskDescriptor.BLACK_DUCK_INSPECTOR_TASK_ID);
+        } catch (final IntegrationException | IllegalStateException e) {
+            logger.error("BlackDuck hub server config invalid. " + e.getMessage(), e);
+            exceptionMessage = e.getMessage();
         }
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             if (commonTaskFilters.isProxyRepository(foundRepository.getType())) {
@@ -113,17 +118,17 @@ public class InspectorTask extends RepositoryTaskSupport {
                     logger.info("Found some items from the DB");
                     for (final Asset asset : filteredAssets.getTypeList()) {
                         final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, commonRepositoryTaskHelper.getQueryManager());
-                        if (failedConnection) {
-                            commonRepositoryTaskHelper.failedConnection(assetWrapper);
-                            assetWrapper.updateAsset();
-                            continue;
-                        }
 
-                        final boolean shouldProcessAsset = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
-                        if (shouldProcessAsset) {
-                            // Only set resultsFound to true, if you set it to false you risk falsely reporting that there are no new assets
-                            // I believe this can be improved upon... -BM
-                            uploadToBlackDuck = true;
+                        if (StringUtils.isNotBlank(exceptionMessage)) {
+                            commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
+                            assetWrapper.updateAsset();
+                        } else {
+                            final boolean shouldProcessAsset = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                            if (shouldProcessAsset) {
+                                // Only set resultsFound to true, if you set it to false you risk falsely reporting that there are no new assets
+                                // I believe this can be improved upon... -BM
+                                uploadToBlackDuck = true;
+                            }
                         }
                     }
 
@@ -131,11 +136,11 @@ public class InspectorTask extends RepositoryTaskSupport {
                     filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
                 }
 
-                if (uploadToBlackDuck) {
+                if (uploadToBlackDuck && null != hubServicesFactory) {
                     logger.info("Creating Black Duck project.");
                     uploadToBlackDuck(hubServicesFactory, repoName, mutableDependencyGraph, simpleBdioFactory, dependencyType.get(), assetWrapperMap);
                 } else {
-                    logger.warn("Won't upload to BlackDuck as not items were processed.");
+                    logger.warn("Won't upload to BlackDuck as no items were processed.");
                 }
             }
         }
