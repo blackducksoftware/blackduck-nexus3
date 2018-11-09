@@ -15,4 +15,4 @@ Alternatively, you can download the latest from GitHub: https://github.com/black
 
 # Documentation
 
-All documentation will be on our public [Confluence](https://synopsys.atlassian.net/wiki/spaces/INTDOCS/)  
+All documentation will be on our public [Confluence](https://synopsys.atlassian.net/wiki/spaces/INTDOCS/pages/7372801/Black+Duck+Nexus)  
