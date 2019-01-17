@@ -160,8 +160,9 @@ public class MetaDataTask extends RepositoryTaskSupport {
 
     private Query createFilteredQuery(final AssetPanelLabel statusLabel, final Optional<String> lastNameUsed) {
         final Query.Builder pagedQueryBuilder = commonRepositoryTaskHelper.createPagedQuery(lastNameUsed);
-        final String blackDuckDbPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(statusLabel);
-        pagedQueryBuilder.and(statusWhereStatement(blackDuckDbPath));
+        final String statusPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(statusLabel);
+        final String oldStatusPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(AssetPanelLabel.OLD_STATUS);
+        pagedQueryBuilder.and(statusWhereStatement(statusPath)).or(statusWhereStatement(oldStatusPath));
         return pagedQueryBuilder.build();
     }
 
