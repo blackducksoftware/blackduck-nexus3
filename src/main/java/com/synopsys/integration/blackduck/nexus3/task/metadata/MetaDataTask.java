@@ -107,13 +107,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
             while (pagedAssets.hasResults()) {
                 logger.debug("Found items in the DB.");
                 for (final Asset asset : pagedAssets.getTypeList()) {
-                    final AssetWrapper assetWrapper;
-                    if (isProxyRepo) {
-                        assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, foundRepository, queryManager);
-                    } else {
-                        assetWrapper = AssetWrapper.createScanAssetWrapper(asset, foundRepository, queryManager);
-                    }
-
+                    final AssetWrapper assetWrapper = AssetWrapper.createAssetWrapper(asset, foundRepository, queryManager, assetStatusLabel);
                     if (StringUtils.isNotBlank(exceptionMessage)) {
                         commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
                         assetWrapper.updateAsset();

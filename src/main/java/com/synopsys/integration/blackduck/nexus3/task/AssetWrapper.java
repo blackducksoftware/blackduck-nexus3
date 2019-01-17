@@ -58,6 +58,10 @@ public class AssetWrapper {
         return new AssetWrapper(asset, repository, queryManager, AssetPanelLabel.SCAN_TASK_STATUS);
     }
 
+    public static AssetWrapper createAssetWrapper(final Asset asset, final Repository repository, final QueryManager queryManager, final AssetPanelLabel statusLabel) {
+        return new AssetWrapper(asset, repository, queryManager, statusLabel);
+    }
+
     private AssetWrapper(final Asset asset, final Repository repository, final QueryManager queryManager, final AssetPanelLabel statusLabel) {
         this.asset = asset;
         this.repository = repository;
