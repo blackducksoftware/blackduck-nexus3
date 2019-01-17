@@ -23,19 +23,6 @@
         </license>
     </licenses>
 
-    <repositories>
-        <repository>
-            <id>central</id>
-            <url>http://10.32.98.125:8081/repository/maven-central/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
     <scm>
         <connection>scm:git:git://github.com/blackducksoftware/blackduck-nexus3.git/</connection>
         <developerConnection>scm:git:git@github.com:blackducksoftware/blackduck-nexus3.git</developerConnection>
