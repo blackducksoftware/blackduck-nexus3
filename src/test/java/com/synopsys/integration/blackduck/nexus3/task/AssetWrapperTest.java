@@ -31,7 +31,7 @@ public class AssetWrapperTest extends TestSupport {
         final QueryManager queryManager = Mockito.mock(QueryManager.class);
         Mockito.when(queryManager.getComponent(Mockito.any(), Mockito.any())).thenReturn(component);
 
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, queryManager);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, queryManager);
         final Component foundComponent = assetWrapper.getComponent();
 
         Assert.assertNotNull(foundComponent);
@@ -43,7 +43,7 @@ public class AssetWrapperTest extends TestSupport {
         final QueryManager queryManager = Mockito.mock(QueryManager.class);
         Mockito.when(queryManager.getBlob(Mockito.any(), Mockito.any())).thenReturn(blob);
 
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, queryManager);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, queryManager);
         final Blob foundBlob = assetWrapper.getBlob();
 
         Assert.assertNotNull(foundBlob);
@@ -54,7 +54,7 @@ public class AssetWrapperTest extends TestSupport {
         final Asset asset = new Asset();
         final NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
         asset.attributes(defaultAttributesMap);
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, null);
         final AssetPanel assetPanel = assetWrapper.getAssetPanel();
 
         Assert.assertNotNull(assetPanel);
@@ -67,9 +67,9 @@ public class AssetWrapperTest extends TestSupport {
         asset.attributes(defaultAttributesMap);
 
         final TaskStatus success = TaskStatus.SUCCESS;
-        final AssetPanelLabel taskStatus = AssetPanelLabel.TASK_STATUS;
+        final AssetPanelLabel taskStatus = AssetPanelLabel.INSPECTION_TASK_STATUS;
 
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, null);
         assetWrapper.addToBlackDuckAssetPanel(taskStatus, success.name());
 
         final String found = getFromBlackDuckAttributes(asset, taskStatus.getLabel());
@@ -84,10 +84,10 @@ public class AssetWrapperTest extends TestSupport {
         asset.attributes(defaultAttributesMap);
 
         final TaskStatus success = TaskStatus.SUCCESS;
-        final AssetPanelLabel taskStatus = AssetPanelLabel.TASK_STATUS;
+        final AssetPanelLabel taskStatus = AssetPanelLabel.INSPECTION_TASK_STATUS;
         putToBlackDuckAttributes(asset, taskStatus.getLabel(), success.name());
 
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, null);
         final String found = assetWrapper.getFromBlackDuckAssetPanel(taskStatus);
 
         Assert.assertNotNull(found);
@@ -101,10 +101,10 @@ public class AssetWrapperTest extends TestSupport {
         asset.attributes(defaultAttributesMap);
 
         final TaskStatus success = TaskStatus.SUCCESS;
-        final AssetPanelLabel taskStatus = AssetPanelLabel.TASK_STATUS;
+        final AssetPanelLabel taskStatus = AssetPanelLabel.INSPECTION_TASK_STATUS;
         putToBlackDuckAttributes(asset, taskStatus.getLabel(), success.name());
 
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, null);
         assetWrapper.removeFromBlackDuckAssetPanel(taskStatus);
 
         final String found = (String) asset.attributes().child(AssetPanel.BLACKDUCK_CATEGORY).get(taskStatus.getLabel());
@@ -118,11 +118,11 @@ public class AssetWrapperTest extends TestSupport {
         final NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
         asset.attributes(defaultAttributesMap);
 
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, null);
         final String expectedPendingMessage = "pending message";
         assetWrapper.addPendingToBlackDuckPanel(expectedPendingMessage);
 
-        final String pendingStatus = getFromBlackDuckAttributes(asset, AssetPanelLabel.TASK_STATUS.getLabel());
+        final String pendingStatus = getFromBlackDuckAttributes(asset, AssetPanelLabel.INSPECTION_TASK_STATUS.getLabel());
         final String pendingDescription = getFromBlackDuckAttributes(asset, AssetPanelLabel.TASK_STATUS_DESCRIPTION.getLabel());
 
         Assert.assertEquals(TaskStatus.PENDING.name(), pendingStatus);
@@ -135,11 +135,11 @@ public class AssetWrapperTest extends TestSupport {
         final NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
         asset.attributes(defaultAttributesMap);
 
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, null);
         final String expectedSuccessMessage = "success message";
         assetWrapper.addSuccessToBlackDuckPanel(expectedSuccessMessage);
 
-        final String status = getFromBlackDuckAttributes(asset, AssetPanelLabel.TASK_STATUS.getLabel());
+        final String status = getFromBlackDuckAttributes(asset, AssetPanelLabel.INSPECTION_TASK_STATUS.getLabel());
         final String description = getFromBlackDuckAttributes(asset, AssetPanelLabel.TASK_STATUS_DESCRIPTION.getLabel());
 
         Assert.assertEquals(TaskStatus.SUCCESS.name(), status);
@@ -152,11 +152,11 @@ public class AssetWrapperTest extends TestSupport {
         final NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
         asset.attributes(defaultAttributesMap);
 
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, null);
         final String expectedMessage = "component not found message";
         assetWrapper.addComponentNotFoundToBlackDuckPanel(expectedMessage);
 
-        final String status = getFromBlackDuckAttributes(asset, AssetPanelLabel.TASK_STATUS.getLabel());
+        final String status = getFromBlackDuckAttributes(asset, AssetPanelLabel.INSPECTION_TASK_STATUS.getLabel());
         final String description = getFromBlackDuckAttributes(asset, AssetPanelLabel.TASK_STATUS_DESCRIPTION.getLabel());
 
         Assert.assertEquals(TaskStatus.COMPONENT_NOT_FOUND.name(), status);
@@ -169,11 +169,11 @@ public class AssetWrapperTest extends TestSupport {
         final NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
         asset.attributes(defaultAttributesMap);
 
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, null);
         final String expectedMessage = "failure message";
         assetWrapper.addFailureToBlackDuckPanel(expectedMessage);
 
-        final String status = getFromBlackDuckAttributes(asset, AssetPanelLabel.TASK_STATUS.getLabel());
+        final String status = getFromBlackDuckAttributes(asset, AssetPanelLabel.INSPECTION_TASK_STATUS.getLabel());
         final String description = getFromBlackDuckAttributes(asset, AssetPanelLabel.TASK_STATUS_DESCRIPTION.getLabel());
 
         Assert.assertEquals(TaskStatus.FAILURE.name(), status);
@@ -191,10 +191,10 @@ public class AssetWrapperTest extends TestSupport {
             putToBlackDuckAttributes(asset, assetPanelLabel.getLabel(), storedValue);
         }
 
-        final String found = getFromBlackDuckAttributes(asset, AssetPanelLabel.TASK_STATUS.getLabel());
+        final String found = getFromBlackDuckAttributes(asset, AssetPanelLabel.INSPECTION_TASK_STATUS.getLabel());
         Assert.assertEquals(storedValue, found);
 
-        final AssetWrapper assetWrapper = new AssetWrapper(asset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, null);
         assetWrapper.removeAllBlackDuckData();
 
         for (final AssetPanelLabel assetPanelLabel : AssetPanelLabel.values()) {
@@ -202,7 +202,7 @@ public class AssetWrapperTest extends TestSupport {
             Assert.assertNull(emptyItem);
         }
 
-        final String notFound = getFromBlackDuckAttributes(asset, AssetPanelLabel.TASK_STATUS.getLabel());
+        final String notFound = getFromBlackDuckAttributes(asset, AssetPanelLabel.INSPECTION_TASK_STATUS.getLabel());
         Assert.assertNotEquals(storedValue, notFound);
     }
 
@@ -211,23 +211,23 @@ public class AssetWrapperTest extends TestSupport {
         final Asset asset = new Asset();
         final NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
         asset.attributes(defaultAttributesMap);
-        TaskStatus expectedStatus = TaskStatus.SUCCESS;
-        AssetPanelLabel assetPanelLabel = AssetPanelLabel.TASK_STATUS;
-        AssetWrapper assetWrapper = new AssetWrapper(asset, null, null);
+        final TaskStatus expectedStatus = TaskStatus.SUCCESS;
+        final AssetPanelLabel assetPanelLabel = AssetPanelLabel.INSPECTION_TASK_STATUS;
+        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, null, null);
 
         putToBlackDuckAttributes(asset, assetPanelLabel.getLabel(), expectedStatus.name());
-        TaskStatus foundStatus = assetWrapper.getBlackDuckStatus();
+        final TaskStatus foundStatus = assetWrapper.getBlackDuckStatus();
         Assert.assertEquals(expectedStatus, foundStatus);
 
         putToBlackDuckAttributes(asset, assetPanelLabel.getLabel(), "");
-        TaskStatus nullStatus = assetWrapper.getBlackDuckStatus();
+        final TaskStatus nullStatus = assetWrapper.getBlackDuckStatus();
         Assert.assertNull(nullStatus);
 
         try {
             putToBlackDuckAttributes(asset, assetPanelLabel.getLabel(), "FAKE");
             assetWrapper.getBlackDuckStatus();
             Assert.fail();
-        } catch (RuntimeException e) {
+        } catch (final RuntimeException e) {
 
         }
     }

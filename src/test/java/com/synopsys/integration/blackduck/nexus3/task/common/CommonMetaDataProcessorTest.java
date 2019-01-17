@@ -25,7 +25,7 @@ public class CommonMetaDataProcessorTest {
     public void setAssetVulnerabilityDataTest() {
         final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor();
         final MockAsset mockAsset = new MockAsset();
-        final AssetWrapper assetWrapper = new AssetWrapper(mockAsset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createScanAssetWrapper(mockAsset, null, null);
 
         final String vulnerabilitiesContent = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES);
         Assert.assertTrue(StringUtils.isBlank(vulnerabilitiesContent));
@@ -132,7 +132,7 @@ public class CommonMetaDataProcessorTest {
         vulnerabilityLevels.addXVulnerabilities(VulnerabilityLevels.LOW_VULNERABILITY, 4);
 
         final MockAsset mockAsset = new MockAsset();
-        final AssetWrapper assetWrapper = new AssetWrapper(mockAsset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createScanAssetWrapper(mockAsset, null, null);
         commonMetaDataProcessor.setAssetVulnerabilityData(vulnerabilityLevels, assetWrapper);
 
         final String vulnerabilityContent = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES);
@@ -150,7 +150,7 @@ public class CommonMetaDataProcessorTest {
     public void setAssetPolicyDataTest() {
         final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor();
         final MockAsset mockAsset = new MockAsset();
-        final AssetWrapper assetWrapper = new AssetWrapper(mockAsset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createScanAssetWrapper(mockAsset, null, null);
 
         final String policyStatus = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.POLICY_STATUS);
         final String policyOverallStatus = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS);
@@ -175,7 +175,7 @@ public class CommonMetaDataProcessorTest {
     public void removePolicyDataTest() {
         final CommonMetaDataProcessor commonMetaDataProcessor = new CommonMetaDataProcessor();
         final MockAsset mockAsset = new MockAsset();
-        final AssetWrapper assetWrapper = new AssetWrapper(mockAsset, null, null);
+        final AssetWrapper assetWrapper = AssetWrapper.createScanAssetWrapper(mockAsset, null, null);
 
         final VersionBomPolicyStatusView versionBomPolicyStatusView = createVersionBomPolicyStatusView();
         commonMetaDataProcessor.setAssetPolicyData(versionBomPolicyStatusView, assetWrapper);

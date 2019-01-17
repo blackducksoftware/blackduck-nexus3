@@ -7,7 +7,8 @@ public class AssetPanelLabelTest {
 
     @Test
     public void importantAssetPanelLabelKeysTest() {
-        Assert.assertEquals("status", AssetPanelLabel.TASK_STATUS.getLabel());
+        Assert.assertEquals("inspection_status", AssetPanelLabel.INSPECTION_TASK_STATUS.getLabel());
+        Assert.assertEquals("scan_status", AssetPanelLabel.SCAN_TASK_STATUS.getLabel());
         Assert.assertEquals("blackduck_url", AssetPanelLabel.BLACKDUCK_URL.getLabel());
         Assert.assertEquals("processed_on", AssetPanelLabel.TASK_FINISHED_TIME.getLabel());
     }

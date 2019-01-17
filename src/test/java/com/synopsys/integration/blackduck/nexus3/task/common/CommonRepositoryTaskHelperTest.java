@@ -118,12 +118,12 @@ public class CommonRepositoryTaskHelperTest {
     @Test
     public void getBlackDuckPanelPathTest() {
         final CommonRepositoryTaskHelper commonRepositoryTaskHelper = new CommonRepositoryTaskHelper(null, null, null);
-        final String expected = "attributes.BlackDuck.status";
+        final String expected = "attributes.BlackDuck.scan_status";
 
-        final String statusPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(AssetPanelLabel.TASK_STATUS);
+        final String statusPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(AssetPanelLabel.SCAN_TASK_STATUS);
         Assert.assertEquals(expected, statusPath);
 
-        final String wrongValue = "attrbutes.something.BlackDuck.status";
+        final String wrongValue = "attrbutes.something.BlackDuck.scan_status";
         Assert.assertNotEquals(wrongValue, statusPath);
 
         final String expectedUrl = "attributes.BlackDuck.blackduck_url";

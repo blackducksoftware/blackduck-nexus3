@@ -90,15 +90,24 @@ public class MetaDataTask extends RepositoryTaskSupport {
         }
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             final String repoName = foundRepository.getName();
+            final boolean isProxyRepo = commonTaskFilters.isProxyRepository(foundRepository.getType());
             logger.info("Checking repository for assets: {}", repoName);
-            final Query filteredAssets = createFilteredQuery(Optional.empty());
+
+            final AssetPanelLabel assetStatusLabel;
+            if (isProxyRepo) {
+                assetStatusLabel = AssetPanelLabel.INSPECTION_TASK_STATUS;
+            } else {
+                assetStatusLabel = AssetPanelLabel.SCAN_TASK_STATUS;
+            }
+
+            final Query filteredAssets = createFilteredQuery(assetStatusLabel, Optional.empty());
             PagedResult<Asset> pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, filteredAssets);
             final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
-            final boolean isProxyRepo = commonTaskFilters.isProxyRepository(foundRepository.getType());
+
             while (pagedAssets.hasResults()) {
                 logger.debug("Found items in the DB.");
                 for (final Asset asset : pagedAssets.getTypeList()) {
-                    final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, queryManager);
+                    final AssetWrapper assetWrapper = AssetWrapper.createAssetWrapper(asset, foundRepository, queryManager, assetStatusLabel);
                     if (StringUtils.isNotBlank(exceptionMessage)) {
                         commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
                         assetWrapper.updateAsset();
@@ -131,7 +140,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
                     }
                 }
 
-                final Query nextPage = createFilteredQuery(pagedAssets.getLastName());
+                final Query nextPage = createFilteredQuery(assetStatusLabel, pagedAssets.getLastName());
                 pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
             }
 
@@ -149,9 +158,9 @@ public class MetaDataTask extends RepositoryTaskSupport {
         commonRepositoryTaskHelper.closeConnection();
     }
 
-    private Query createFilteredQuery(final Optional<String> lastNameUsed) {
+    private Query createFilteredQuery(final AssetPanelLabel statusLabel, final Optional<String> lastNameUsed) {
         final Query.Builder pagedQueryBuilder = commonRepositoryTaskHelper.createPagedQuery(lastNameUsed);
-        final String blackDuckDbPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(AssetPanelLabel.TASK_STATUS);
+        final String blackDuckDbPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(statusLabel);
         pagedQueryBuilder.and(statusWhereStatement(blackDuckDbPath));
         return pagedQueryBuilder.build();
     }

@@ -149,7 +149,7 @@ public class ScanTask extends RepositoryTaskSupport {
                     logger.debug("Found results from DB");
                     final Map<String, AssetWrapper> scannedAssets = new HashMap<>();
                     for (final Asset asset : foundAssets.getTypeList()) {
-                        final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, queryManager);
+                        final AssetWrapper assetWrapper = AssetWrapper.createScanAssetWrapper(asset, foundRepository, queryManager);
                         final String name = assetWrapper.getFullPath();
                         final String version = assetWrapper.getVersion();
                         final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);

@@ -117,7 +117,7 @@ public class InspectorTask extends RepositoryTaskSupport {
                 while (filteredAssets.hasResults()) {
                     logger.info("Found some items from the DB");
                     for (final Asset asset : filteredAssets.getTypeList()) {
-                        final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, commonRepositoryTaskHelper.getQueryManager());
+                        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, foundRepository, commonRepositoryTaskHelper.getQueryManager());
 
                         if (StringUtils.isNotBlank(exceptionMessage)) {
                             commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
@@ -172,8 +172,7 @@ public class InspectorTask extends RepositoryTaskSupport {
     }
 
     private void uploadToBlackDuck(final HubServicesFactory hubServicesFactory, final String repositoryName, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory,
-        final DependencyType dependencyType,
-        final Map<String, AssetWrapper> assetWrapperMap) {
+        final DependencyType dependencyType, final Map<String, AssetWrapper> assetWrapperMap) {
         final Forge nexusForge = new Forge("/", "/", "nexus");
         final ProjectVersionView projectVersionView;
         final String codeLocationName = String.join("/", INSPECTOR_CODE_LOCATION_NAME, repositoryName, dependencyType.getRepositoryType());
