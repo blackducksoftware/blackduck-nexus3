@@ -45,15 +45,25 @@ public class AssetWrapper {
     private final Repository repository;
     private final QueryManager queryManager;
     private final DateTimeParser dateTimeParser;
+    private final AssetPanelLabel statusLabel;
     private Component associatedComponent;
     private Blob associatedBlob;
     private AssetPanel associatedAssetPanel;
 
-    public AssetWrapper(final Asset asset, final Repository repository, final QueryManager queryManager) {
+    public static AssetWrapper createInspectionAssetWrapper(final Asset asset, final Repository repository, final QueryManager queryManager) {
+        return new AssetWrapper(asset, repository, queryManager, AssetPanelLabel.INSPECTION_TASK_STATUS);
+    }
+
+    public static AssetWrapper createScanAssetWrapper(final Asset asset, final Repository repository, final QueryManager queryManager) {
+        return new AssetWrapper(asset, repository, queryManager, AssetPanelLabel.SCAN_TASK_STATUS);
+    }
+
+    private AssetWrapper(final Asset asset, final Repository repository, final QueryManager queryManager, final AssetPanelLabel statusLabel) {
         this.asset = asset;
         this.repository = repository;
         this.queryManager = queryManager;
         dateTimeParser = new DateTimeParser();
+        this.statusLabel = statusLabel;
     }
 
     public Component getComponent() {
@@ -126,22 +136,22 @@ public class AssetWrapper {
     }
 
     public void addPendingToBlackDuckPanel(final String pendingMessage) {
-        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.PENDING.name());
+        addToBlackDuckAssetPanel(statusLabel, TaskStatus.PENDING.name());
         addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, pendingMessage);
     }
 
     public void addSuccessToBlackDuckPanel(final String successMessage) {
-        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.SUCCESS.name());
+        addToBlackDuckAssetPanel(statusLabel, TaskStatus.SUCCESS.name());
         addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, successMessage);
     }
 
     public void addComponentNotFoundToBlackDuckPanel(final String componentNotFoundMessage) {
-        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.COMPONENT_NOT_FOUND.name());
+        addToBlackDuckAssetPanel(statusLabel, TaskStatus.COMPONENT_NOT_FOUND.name());
         addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, componentNotFoundMessage);
     }
 
     public void addFailureToBlackDuckPanel(final String errorMessage) {
-        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS, TaskStatus.FAILURE.name());
+        addToBlackDuckAssetPanel(statusLabel, TaskStatus.FAILURE.name());
         addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, errorMessage);
     }
 
@@ -152,7 +162,7 @@ public class AssetWrapper {
     }
 
     public TaskStatus getBlackDuckStatus() {
-        final String status = getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS);
+        final String status = getFromBlackDuckAssetPanel(statusLabel);
         if (StringUtils.isBlank(status)) {
             return null;
         }

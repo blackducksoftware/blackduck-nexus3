@@ -117,7 +117,7 @@ public class InspectorTask extends RepositoryTaskSupport {
                 while (filteredAssets.hasResults()) {
                     logger.info("Found some items from the DB");
                     for (final Asset asset : filteredAssets.getTypeList()) {
-                        final AssetWrapper assetWrapper = new AssetWrapper(asset, foundRepository, commonRepositoryTaskHelper.getQueryManager());
+                        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, foundRepository, commonRepositoryTaskHelper.getQueryManager());
 
                         if (StringUtils.isNotBlank(exceptionMessage)) {
                             commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
