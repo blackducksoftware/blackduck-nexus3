@@ -140,23 +140,25 @@ public class AssetWrapper {
     }
 
     public void addPendingToBlackDuckPanel(final String pendingMessage) {
-        addToBlackDuckAssetPanel(statusLabel, TaskStatus.PENDING.name());
-        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, pendingMessage);
+        updateStatus(TaskStatus.PENDING, pendingMessage);
     }
 
     public void addSuccessToBlackDuckPanel(final String successMessage) {
-        addToBlackDuckAssetPanel(statusLabel, TaskStatus.SUCCESS.name());
-        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, successMessage);
+        updateStatus(TaskStatus.SUCCESS, successMessage);
     }
 
     public void addComponentNotFoundToBlackDuckPanel(final String componentNotFoundMessage) {
-        addToBlackDuckAssetPanel(statusLabel, TaskStatus.COMPONENT_NOT_FOUND.name());
-        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, componentNotFoundMessage);
+        updateStatus(TaskStatus.COMPONENT_NOT_FOUND, componentNotFoundMessage);
     }
 
     public void addFailureToBlackDuckPanel(final String errorMessage) {
-        addToBlackDuckAssetPanel(statusLabel, TaskStatus.FAILURE.name());
-        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, errorMessage);
+        updateStatus(TaskStatus.FAILURE, errorMessage);
+    }
+
+    private void updateStatus(final TaskStatus taskStatus, final String message) {
+        removeFromBlackDuckAssetPanel(AssetPanelLabel.OLD_STATUS);
+        addToBlackDuckAssetPanel(statusLabel, taskStatus.name());
+        addToBlackDuckAssetPanel(AssetPanelLabel.TASK_STATUS_DESCRIPTION, message);
     }
 
     public void removeAllBlackDuckData() {

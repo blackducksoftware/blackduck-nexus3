@@ -24,6 +24,7 @@
 package com.synopsys.integration.blackduck.nexus3.ui;
 
 public enum AssetPanelLabel {
+    OLD_STATUS("status"),
     SCAN_TASK_STATUS("scan_status"),
     INSPECTION_TASK_STATUS("inspection_status"),
     TASK_STATUS_DESCRIPTION("status_description"),

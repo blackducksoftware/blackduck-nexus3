@@ -172,8 +172,7 @@ public class InspectorTask extends RepositoryTaskSupport {
     }
 
     private void uploadToBlackDuck(final HubServicesFactory hubServicesFactory, final String repositoryName, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory,
-        final DependencyType dependencyType,
-        final Map<String, AssetWrapper> assetWrapperMap) {
+        final DependencyType dependencyType, final Map<String, AssetWrapper> assetWrapperMap) {
         final Forge nexusForge = new Forge("/", "/", "nexus");
         final ProjectVersionView projectVersionView;
         final String codeLocationName = String.join("/", INSPECTOR_CODE_LOCATION_NAME, repositoryName, dependencyType.getRepositoryType());
