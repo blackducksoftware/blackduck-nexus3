@@ -24,10 +24,9 @@
 package com.synopsys.integration.blackduck.nexus3.task.common;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.StreamSupport;
 
 import javax.inject.Inject;
@@ -42,12 +41,8 @@ import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.storage.Asset;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskConfiguration;
-import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
-import com.synopsys.integration.blackduck.api.generated.view.CodeLocationView;
-import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
-import com.synopsys.integration.blackduck.api.view.ScanSummaryView;
-import com.synopsys.integration.blackduck.configuration.HubServerConfig;
+import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.blackduck.nexus3.BlackDuckConnection;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
@@ -55,14 +50,12 @@ import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanel;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
-import com.synopsys.integration.blackduck.service.CodeLocationService;
-import com.synopsys.integration.blackduck.service.HubService;
-import com.synopsys.integration.blackduck.service.HubServicesFactory;
+import com.synopsys.integration.blackduck.phonehome.BlackDuckPhoneHomeHelper;
+import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
-import com.synopsys.integration.blackduck.service.ScanStatusService;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
-import com.synopsys.integration.phonehome.PhoneHomeCallable;
+import com.synopsys.integration.phonehome.PhoneHomeResponse;
 
 @Named
 @Singleton
@@ -94,12 +87,12 @@ public class CommonRepositoryTaskHelper {
         return queryManager;
     }
 
-    public HubServerConfig getHubServerConfig() throws IntegrationException, IllegalStateException {
-        return blackDuckConnection.getHubServerConfig();
+    public BlackDuckServerConfig getBlackDuckServerConfig() throws IntegrationException, IllegalStateException {
+        return blackDuckConnection.getBlackDuckServerConfig();
     }
 
-    public HubServicesFactory getHubServicesFactory() throws IntegrationException, IllegalStateException {
-        return blackDuckConnection.getHubServicesFactory();
+    public BlackDuckServicesFactory getBlackDuckServicesFactory() throws IntegrationException, IllegalStateException {
+        return blackDuckConnection.getBlackDuckServicesFactory();
     }
 
     public void failedConnection(final AssetWrapper assetWrapper, final String exceptionMessage) {
@@ -116,23 +109,22 @@ public class CommonRepositoryTaskHelper {
     }
 
     public void closeConnection() {
-        try {
-            blackDuckConnection.closeBlackDuckRestConnection();
-        } catch (final IOException e) {
-            logger.error("Issue trying to close the connection to BlackDuck: {}", e.getMessage());
-        }
+        blackDuckConnection.closeBlackDuckRestConnection();
     }
 
     public void phoneHome(final String taskName) {
         final PhoneHome phoneHome = new PhoneHome(blackDuckConnection);
+        final ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
-            final PhoneHomeCallable phoneHomeCallable = phoneHome.createPhoneHomeCallable(taskName);
+            final BlackDuckPhoneHomeHelper blackDuckPhoneHomeHelper = phoneHome.createBlackDuckPhoneHomeHelper(executorService);
             logger.debug("Sending phone home data.");
-            phoneHome.sendDataHome(phoneHomeCallable);
+            final PhoneHomeResponse response = phoneHome.sendDataHome(taskName, blackDuckPhoneHomeHelper);
+            response.awaitResult();
         } catch (final IntegrationException e) {
             logger.debug("There was an error communicating with BlackDuck while phoning home: {}", e.getMessage());
+        } finally {
+            executorService.shutdownNow();
         }
-
     }
 
     public String getRepositoryPath(final TaskConfiguration taskConfiguration) {
@@ -161,46 +153,50 @@ public class CommonRepositoryTaskHelper {
         return dbXmlPath + assetPanelLabel.getLabel();
     }
 
-    public ProjectVersionWrapper getProjectVersionWrapper(final HubServicesFactory hubServicesFactory, final String name, final String version) throws IntegrationException {
-        final ProjectService projectService = hubServicesFactory.createProjectService();
+    public Optional<ProjectVersionWrapper> getProjectVersionWrapper(final BlackDuckServicesFactory blackDuckServicesFactory, final String name, final String version) throws IntegrationException {
+        final ProjectService projectService = blackDuckServicesFactory.createProjectService();
         return projectService.getProjectVersion(name, version);
     }
 
-    public String verifyUpload(final HubServicesFactory hubServicesFactory, final String codeLocationName, final String name, final String version) {
-        try {
-            final ProjectVersionWrapper projectVersionWrapper = getProjectVersionWrapper(hubServicesFactory, name, version);
-            return verifyUpload(hubServicesFactory, codeLocationName, projectVersionWrapper.getProjectVersionView());
-        } catch (final IntegrationException e) {
-            logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
-            return VERIFICATION_ERROR + e.getMessage();
-        }
-    }
-
-    public String verifyUpload(final HubServicesFactory hubServicesFactory, final String codeLocationName, final ProjectVersionView projectVersionView) {
-        logger.debug("Checking that project exists in BlackDuck.");
-        try {
-            final CodeLocationService codeLocationService = hubServicesFactory.createCodeLocationService();
-            final HubService hubService = hubServicesFactory.createHubService();
-
-            final CodeLocationView codeLocationView = codeLocationService.getCodeLocationByName(codeLocationName);
-            final List<ScanSummaryView> scanSummaryViews = new ArrayList<>();
-            final String scansLink = hubService.getFirstLinkSafely(codeLocationView, CodeLocationView.SCANS_LINK);
-            if (StringUtils.isNotBlank(scansLink)) {
-                final List<ScanSummaryView> codeLocationScanSummaryViews = hubService.getResponses(scansLink, ScanSummaryView.class, true);
-                scanSummaryViews.addAll(codeLocationScanSummaryViews);
-            }
-
-            final ScanStatusService scanStatusService = hubServicesFactory.createScanStatusService(ScanStatusService.DEFAULT_TIMEOUT * 4);
-            scanStatusService.assertScansFinished(scanSummaryViews);
-
-            return hubService.getHref(projectVersionView);
-        } catch (final IntegrationException e) {
-            logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
-            return VERIFICATION_ERROR + e.getMessage();
-        } catch (final InterruptedException e) {
-            throw new TaskInterruptedException("Waiting for the scans to finish was interrupted: " + e.getMessage(), true);
-        }
-    }
+    //    public String verifyUpload(final BlackDuckServicesFactory blackDuckServicesFactory, final String codeLocationName, final String name, final String version) {
+    //        try {
+    //            final ProjectVersionWrapper projectVersionWrapper = getProjectVersionWrapper(blackDuckServicesFactory, name, version);
+    //            return verifyUpload(blackDuckServicesFactory, codeLocationName, projectVersionWrapper.getProjectVersionView());
+    //        } catch (final IntegrationException e) {
+    //            logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+    //            return VERIFICATION_ERROR + e.getMessage();
+    //        }
+    //    }
+    //
+    //    public String verifyUpload(final BlackDuckServicesFactory blackDuckServicesFactory, final String codeLocationName, final ProjectVersionView projectVersionView) {
+    //        logger.debug("Checking that project exists in BlackDuck.");
+    //        try {
+    //            final CodeLocationService codeLocationService = blackDuckServicesFactory.createCodeLocationService();
+    //            final BlackDuckService blackDuckService = blackDuckServicesFactory.createBlackDuckService();
+    //
+    //            final Optional<CodeLocationView> codeLocationViewOptional = codeLocationService.getCodeLocationByName(codeLocationName);
+    //            final List<ScanSummaryView> scanSummaryViews = new ArrayList<>();
+    //            if (codeLocationViewOptional.isPresent()) {
+    //                final CodeLocationView codeLocationView = codeLocationViewOptional.get();
+    //                codeLocationView.getFirstLink(CodeLocationView.SCANS_LINK);
+    //                final Optional<String> scansLinkOptional = codeLocationView.getFirstLink(CodeLocationView.SCANS_LINK);
+    //                if (scansLinkOptional.isPresent()) {
+    //                    final List<ScanSummaryView> codeLocationScanSummaryViews = blackDuckService.getResponses(scansLinkOptional.get(), ScanSummaryView.class, true);
+    //                    scanSummaryViews.addAll(codeLocationScanSummaryViews);
+    //                }
+    //
+    //                final CodeLocationService scanStatusService = blackDuckServicesFactory.createCodeLocationService(ScanStatusService.DEFAULT_TIMEOUT * 4);
+    //                scanStatusService.assertScansFinished(scanSummaryViews);
+    //
+    //                return blackDuckService.getHref(projectVersionView);
+    //            }
+    //        } catch (final IntegrationException e) {
+    //            logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+    //            return VERIFICATION_ERROR + e.getMessage();
+    //        } catch (final InterruptedException e) {
+    //            throw new TaskInterruptedException("Waiting for the scans to finish was interrupted: " + e.getMessage(), true);
+    //        }
+    //    }
 
     public Query.Builder createPagedQuery(final Optional<String> lastNameUsed) {
         final Query.Builder pagedQueryBuilder = Query.builder();
