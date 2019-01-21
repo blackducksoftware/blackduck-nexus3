@@ -211,7 +211,7 @@ public class ScanTask extends RepositoryTaskSupport {
                                 if (projectVersionWrapper.isPresent()) {
                                     final ProjectVersionView projectVersionView = projectVersionWrapper.get().getProjectVersionView();
                                     scanMetaDataProcessor
-                                        .updateRepositoryMetaData(blackDuckServicesFactory, assetWrapper, projectVersionView.getHref().orElse(blackDuckServerConfig.getBlackDuckUrl().toString()));
+                                        .updateRepositoryMetaData(blackDuckServicesFactory, assetWrapper, projectVersionView.getHref().orElse(blackDuckServerConfig.getBlackDuckUrl().toString()), projectVersionView);
                                 } else {
                                     updateAssetWrapperWithError(assetWrapper, String.format("Could not find project %s and version %s after the scan completed.", projectName, version));
                                 }
