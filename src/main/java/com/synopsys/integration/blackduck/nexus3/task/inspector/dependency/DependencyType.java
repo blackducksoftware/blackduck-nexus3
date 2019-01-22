@@ -23,7 +23,7 @@
  */
 package com.synopsys.integration.blackduck.nexus3.task.inspector.dependency;
 
-import com.synopsys.integration.hub.bdio.model.Forge;
+import com.synopsys.integration.bdio.model.Forge;
 
 public enum DependencyType {
     bower(Forge.BOWER, "bower"),

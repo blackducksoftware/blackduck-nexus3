@@ -3,7 +3,7 @@ package com.synopsys.integration.blackduck.nexus3.task.inspector.dependency;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.synopsys.integration.hub.bdio.model.Forge;
+import com.synopsys.integration.bdio.model.Forge;
 
 public class DependencyTypeTest {
 

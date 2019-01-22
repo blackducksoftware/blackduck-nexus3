@@ -9,6 +9,7 @@
 
     <name>blackduck-nexus3</name>
     <description>Nexus 3 plug-in to scan repository assets</description>
+
     <url>https://github.com/blackducksoftware/hub-nexus3</url>
 
     <organization>
@@ -83,8 +84,8 @@
     <dependencies>
         <dependency>
             <groupId>com.blackducksoftware.integration</groupId>
-            <artifactId>hub-common</artifactId>
-            <version>38.3.3</version>
+            <artifactId>blackduck-common</artifactId>
+            <version>41.0.0-SNAPSHOT</version>
             <scope>compile</scope>
             <exclusions>
                 <!-- Commons logging is a transitive dependency from a dependency in hub-common-reporting
@@ -94,6 +95,69 @@
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.blackducksoftware.integration</groupId>
+            <artifactId>blackduck-common-api</artifactId>
+            <version>2018.12.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.blackducksoftware.integration</groupId>
+            <artifactId>integration-rest</artifactId>
+            <version>0.7.0</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.blackducksoftware.integration</groupId>
+            <artifactId>integration-bdio</artifactId>
+            <version>16.3.3</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.blackducksoftware.integration</groupId>
+            <artifactId>integration-common</artifactId>
+            <version>15.3.1</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.blackducksoftware.integration</groupId>
+            <artifactId>phone-home-client</artifactId>
+            <version>0.19.3</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.25</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.4</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.9.2</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.6</version>
+            <scope>compile</scope>
         </dependency>
 
         <!--This version was demanded specifically for a transitive library-->

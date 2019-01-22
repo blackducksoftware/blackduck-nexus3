@@ -24,6 +24,7 @@
 package com.synopsys.integration.blackduck.nexus3.task.scan;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -33,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
+import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
@@ -40,7 +42,7 @@ import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.common.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
-import com.synopsys.integration.blackduck.service.HubServicesFactory;
+import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.exception.IntegrationException;
 
 @Named
@@ -56,24 +58,26 @@ public class ScanMetaDataProcessor {
         this.dateTimeParser = dateTimeParser;
     }
 
-    public void updateRepositoryMetaData(final HubServicesFactory hubServicesFactory, final AssetWrapper assetWrapper, final String blackDuckUrl) throws IntegrationException {
-        final String name = assetWrapper.getName();
-        final String version = assetWrapper.getVersion();
-
+    public void updateRepositoryMetaData(final ProjectService projectService, final AssetWrapper assetWrapper, final String blackDuckUrl, final ProjectVersionView projectVersionView)
+        throws IntegrationException {
         logger.info("Checking vulnerabilities.");
-        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(hubServicesFactory, name, version);
+        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(projectService, projectVersionView);
         final VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
         for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
-            final List<RiskCountView> vulnerabilities = versionBomComponentView.securityRiskProfile.counts;
+            final List<RiskCountView> vulnerabilities = versionBomComponentView.getSecurityRiskProfile().getCounts();
             commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(vulnerabilities, vulnerabilityLevels);
         }
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABLE_COMPONENTS, vulnerabilityLevels.getAllCounts());
         logger.info("Checking policies.");
-        final VersionBomPolicyStatusView policyStatusView = commonMetaDataProcessor.checkAssetPolicy(hubServicesFactory, name, version);
-        commonMetaDataProcessor.setAssetPolicyData(policyStatusView, assetWrapper);
+        final Optional<VersionBomPolicyStatusView> policyStatusView = commonMetaDataProcessor.checkAssetPolicy(projectService, projectVersionView);
+        if (policyStatusView.isPresent()) {
+            commonMetaDataProcessor.setAssetPolicyData(policyStatusView.get(), assetWrapper);
+            assetWrapper.addSuccessToBlackDuckPanel("Scan results successfully retrieved from Black Duck.");
+        } else {
+            assetWrapper.addFailureToBlackDuckPanel("Could not get the policy information for this asset.");
+        }
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, blackDuckUrl);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
-        assetWrapper.addSuccessToBlackDuckPanel("Scan results successfully retrieved from Black Duck.");
         assetWrapper.updateAsset();
     }
 

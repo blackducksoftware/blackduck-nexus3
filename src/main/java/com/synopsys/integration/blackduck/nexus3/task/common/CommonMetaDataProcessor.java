@@ -24,6 +24,7 @@
 package com.synopsys.integration.blackduck.nexus3.task.common;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -39,7 +40,6 @@ import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponent
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
-import com.synopsys.integration.blackduck.service.HubServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
 import com.synopsys.integration.exception.IntegrationException;
@@ -53,20 +53,14 @@ public class CommonMetaDataProcessor {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
     }
 
-    public List<VersionBomComponentView> checkAssetVulnerabilities(final HubServicesFactory hubServicesFactory, final String name, final String version) throws IntegrationException {
-        final ProjectService projectService = hubServicesFactory.createProjectService();
-        return projectService.getComponentsForProjectVersion(name, version);
-    }
-
-    public List<VersionBomComponentView> checkAssetVulnerabilities(final HubServicesFactory hubServicesFactory, final ProjectVersionView projectVersionView) throws IntegrationException {
-        final ProjectService projectService = hubServicesFactory.createProjectService();
+    public List<VersionBomComponentView> checkAssetVulnerabilities(final ProjectService projectService, final ProjectVersionView projectVersionView) throws IntegrationException {
         return projectService.getComponentsForProjectVersion(projectVersionView);
     }
 
     public void addAllAssetVulnerabilityCounts(final List<RiskCountView> vulnerabilities, final VulnerabilityLevels vulnerabilityLevels) {
         for (final RiskCountView riskCountView : vulnerabilities) {
-            final String riskCountType = riskCountView.countType.name();
-            final int riskCount = riskCountView.count;
+            final String riskCountType = riskCountView.getCountType().name();
+            final int riskCount = riskCountView.getCount();
             vulnerabilityLevels.addXVulnerabilities(riskCountType, riskCount);
         }
     }
@@ -74,8 +68,8 @@ public class CommonMetaDataProcessor {
     public void addMaxAssetVulnerabilityCounts(final List<RiskCountView> vulnerabilities, final VulnerabilityLevels vulnerabilityLevels) {
         String highestSeverity = "";
         for (final RiskCountView vulnerability : vulnerabilities) {
-            final RiskCountType severity = vulnerability.countType;
-            final int severityCount = vulnerability.count;
+            final RiskCountType severity = vulnerability.getCountType();
+            final int severityCount = vulnerability.getCount();
             if (RiskCountType.HIGH.equals(severity) && severityCount > 0) {
                 highestSeverity = VulnerabilityLevels.HIGH_VULNERABILITY;
                 break;
@@ -98,7 +92,7 @@ public class CommonMetaDataProcessor {
     public void setAssetPolicyData(final VersionBomPolicyStatusView policyStatusView, final AssetWrapper assetWrapper) {
         final PolicyStatusDescription policyStatusDescription = new PolicyStatusDescription(policyStatusView);
         final String policyStatus = policyStatusDescription.getPolicyStatusMessage();
-        final String overallStatus = policyStatusView.overallStatus.prettyPrint();
+        final String overallStatus = policyStatusView.getOverallStatus().prettyPrint();
 
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.POLICY_STATUS, policyStatus);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, overallStatus);
@@ -109,15 +103,8 @@ public class CommonMetaDataProcessor {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS);
     }
 
-    public VersionBomPolicyStatusView checkAssetPolicy(final HubServicesFactory hubServicesFactory, final String name, final String version) throws IntegrationException {
-        logger.info("Checking metadata of {}", name);
-        final ProjectService projectService = hubServicesFactory.createProjectService();
-        return projectService.getPolicyStatusForProjectAndVersion(name, version);
-    }
-
-    public VersionBomPolicyStatusView checkAssetPolicy(final HubServicesFactory hubServicesFactory, final ProjectVersionView projectVersionView) throws IntegrationException {
-        logger.info("Checking metadata of {}", projectVersionView.versionName);
-        final ProjectService projectService = hubServicesFactory.createProjectService();
+    public Optional<VersionBomPolicyStatusView> checkAssetPolicy(final ProjectService projectService, final ProjectVersionView projectVersionView) throws IntegrationException {
+        logger.info("Checking metadata of {}", projectVersionView.getVersionName());
         return projectService.getPolicyStatusForVersion(projectVersionView);
     }
 

@@ -8,8 +8,8 @@ import org.junit.Test;
 import org.sonatype.nexus.common.collect.NestedAttributesMap;
 import org.sonatype.nexus.repository.storage.MetadataNodeEntityAdapter;
 
-import com.synopsys.integration.hub.bdio.model.Forge;
-import com.synopsys.integration.hub.bdio.model.dependency.Dependency;
+import com.synopsys.integration.bdio.model.Forge;
+import com.synopsys.integration.bdio.model.dependency.Dependency;
 
 public class DependencyGeneratorTest {
 
@@ -45,11 +45,11 @@ public class DependencyGeneratorTest {
         final Dependency mavenDependency = dependencyGenerator.createDependency(DependencyType.maven, "maven", "Test", defaultAttributesMap);
 
         final String originId = "testGroup:maven:Test";
-        Assert.assertEquals(originId, mavenDependency.externalId.createHubOriginId());
+        Assert.assertEquals(originId, mavenDependency.externalId.createBlackDuckOriginId());
 
         final Dependency nugetDependency = dependencyGenerator.createDependency(DependencyType.nuget, "nugetTest", "test1", defaultAttributesMap);
 
         final String nugetOriginId = "nugetTest/test1";
-        Assert.assertEquals(nugetOriginId, nugetDependency.externalId.createHubOriginId());
+        Assert.assertEquals(nugetOriginId, nugetDependency.externalId.createBlackDuckOriginId());
     }
 }

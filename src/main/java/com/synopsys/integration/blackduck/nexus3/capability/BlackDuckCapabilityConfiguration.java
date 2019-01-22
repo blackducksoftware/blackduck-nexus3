@@ -28,8 +28,8 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.sonatype.nexus.capability.CapabilityConfigurationSupport;
 
-import com.synopsys.integration.blackduck.configuration.HubServerConfig;
-import com.synopsys.integration.blackduck.configuration.HubServerConfigBuilder;
+import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
+import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfigBuilder;
 
 public class BlackDuckCapabilityConfiguration extends CapabilityConfigurationSupport {
     private final Map<String, String> capabilitySettings;
@@ -38,32 +38,32 @@ public class BlackDuckCapabilityConfiguration extends CapabilityConfigurationSup
         this.capabilitySettings = capabilitySettings;
     }
 
-    public HubServerConfig createBlackDuckServerConfig() {
-        final HubServerConfigBuilder hubServerConfigBuilder = new HubServerConfigBuilder();
-        hubServerConfigBuilder.setUrl(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_URL.getKey()));
-        hubServerConfigBuilder.setTimeout(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TIMEOUT.getKey()));
-        hubServerConfigBuilder.setTrustCert(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TRUST_CERT.getKey()));
-        hubServerConfigBuilder.setApiToken(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_API_KEY.getKey()));
+    public BlackDuckServerConfig createBlackDuckServerConfig() {
+        final BlackDuckServerConfigBuilder blackDuckServerConfigBuilder = new BlackDuckServerConfigBuilder();
+        blackDuckServerConfigBuilder.setUrl(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_URL.getKey()));
+        blackDuckServerConfigBuilder.setTimeout(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TIMEOUT.getKey()));
+        blackDuckServerConfigBuilder.setTrustCert(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TRUST_CERT.getKey()));
+        blackDuckServerConfigBuilder.setApiToken(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_API_KEY.getKey()));
 
-        String proxyHost = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_HOST.getKey());
-        String proxyPort = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PORT.getKey());
-        String proxyUsername = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey());
-        String proxyPassword = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey());
+        final String proxyHost = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_HOST.getKey());
+        final String proxyPort = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PORT.getKey());
+        final String proxyUsername = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey());
+        final String proxyPassword = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey());
 
         if (StringUtils.isNotBlank(proxyHost)) {
-            hubServerConfigBuilder.setProxyHost(proxyHost);
+            blackDuckServerConfigBuilder.setProxyHost(proxyHost);
         }
         if (StringUtils.isNotBlank(proxyPort)) {
-            hubServerConfigBuilder.setProxyPort(proxyPort);
+            blackDuckServerConfigBuilder.setProxyPort(proxyPort);
         }
         if (StringUtils.isNotBlank(proxyUsername)) {
-            hubServerConfigBuilder.setProxyUsername(proxyUsername);
+            blackDuckServerConfigBuilder.setProxyUsername(proxyUsername);
         }
         if (StringUtils.isNotBlank(proxyPassword)) {
-            hubServerConfigBuilder.setProxyPassword(proxyPassword);
+            blackDuckServerConfigBuilder.setProxyPassword(proxyPassword);
         }
 
-        return hubServerConfigBuilder.build();
+        return blackDuckServerConfigBuilder.build();
     }
 
 }

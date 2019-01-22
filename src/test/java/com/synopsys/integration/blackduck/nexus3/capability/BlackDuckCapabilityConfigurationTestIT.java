@@ -6,7 +6,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.synopsys.integration.blackduck.configuration.HubServerConfig;
+import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.test.TestProperties;
 import com.synopsys.integration.test.TestPropertyKey;
 
@@ -26,9 +26,9 @@ public class BlackDuckCapabilityConfigurationTestIT {
         capabilitySettings.put(BlackDuckCapabilityConfigKeys.BLACKDUCK_TRUST_CERT.getKey(), "true");
 
         final BlackDuckCapabilityConfiguration blackDuckCapabilityConfiguration = new BlackDuckCapabilityConfiguration(capabilitySettings);
-        final HubServerConfig hubServerConfig = blackDuckCapabilityConfiguration.createBlackDuckServerConfig();
+        final BlackDuckServerConfig blackDuckServerConfig = blackDuckCapabilityConfiguration.createBlackDuckServerConfig();
 
-        Assert.assertTrue(hubServerConfig.usingApiToken());
-        Assert.assertEquals(blackDuckUrl, hubServerConfig.getHubUrl().toString());
+        Assert.assertTrue(blackDuckServerConfig.usingApiToken());
+        Assert.assertEquals(blackDuckUrl, blackDuckServerConfig.getBlackDuckUrl().toString());
     }
 }
