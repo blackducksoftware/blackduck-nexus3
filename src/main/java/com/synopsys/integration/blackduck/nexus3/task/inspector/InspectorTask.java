@@ -26,7 +26,6 @@ package com.synopsys.integration.blackduck.nexus3.task.inspector;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -211,7 +210,7 @@ public class InspectorTask extends RepositoryTaskSupport {
 
             final Set<String> successfulCodeLocationNames = uploadData.getOutput().getSuccessfulCodeLocationNames();
             if (successfulCodeLocationNames.contains(codeLocationName)) {
-                codeLocationCreationService.waitForCodeLocations(uploadData.getNotificationTaskRange(), Collections.singleton(codeLocationName), blackDuckServicesFactory.getBlackDuckHttpClient().getTimeoutInSeconds() * 5);
+                codeLocationCreationService.waitForCodeLocations(uploadData.getNotificationTaskRange(), successfulCodeLocationNames, blackDuckServicesFactory.getBlackDuckHttpClient().getTimeoutInSeconds() * 5);
                 inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckServicesFactory, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
             } else {
                 inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckServicesFactory, projectVersionView, assetWrapperMap, TaskStatus.FAILURE);
