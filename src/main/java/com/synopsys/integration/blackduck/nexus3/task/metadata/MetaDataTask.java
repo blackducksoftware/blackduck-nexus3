@@ -56,7 +56,6 @@ import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.NotificationTaskRange;
-import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.phonehome.PhoneHomeResponse;
 
@@ -134,7 +133,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
                                 final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
                                 final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
                                 final String version = assetWrapper.getVersion();
-                                Optional<ProjectVersionWrapper> projectVersionWrapper = Optional.empty();
+                                ProjectVersionView projectVersionView = null;
 
                                 if (StringUtils.isBlank(assetBlackDuckUrl) && isPendingOrComponentNotFoundForDay(status, lastProcessed)) {
                                     final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
@@ -145,15 +144,14 @@ public class MetaDataTask extends RepositoryTaskSupport {
                                         }
                                         codeLocationCreationService
                                             .waitForCodeLocations(notificationTaskRange, Collections.singleton(codeLocationName), commonRepositoryTaskHelper.getBlackDuckServerConfig().getTimeout() * 5);
-                                        projectVersionWrapper = projectService.getProjectVersion(name, version);
+                                        projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(projectService, name, version);
                                     }
                                 } else {
                                     if (null != projectService) {
-                                        projectVersionWrapper = projectService.getProjectVersion(name, version);
+                                        projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(projectService, name, version);
                                     }
                                 }
-                                if (projectVersionWrapper.isPresent()) {
-                                    final ProjectVersionView projectVersionView = projectVersionWrapper.get().getProjectVersionView();
+                                if (null != projectVersionView) {
                                     logger.info("Updating data of hosted repository.");
                                     scanMetaDataProcessor.updateRepositoryMetaData(projectService, assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
 

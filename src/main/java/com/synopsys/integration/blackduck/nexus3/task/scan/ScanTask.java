@@ -62,7 +62,6 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
-import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.log.Slf4jIntLogger;
@@ -191,9 +190,8 @@ public class ScanTask extends RepositoryTaskSupport {
                                 if (!scanData.getOutput().getSuccessfulCodeLocationNames().isEmpty()) {
                                     signatureScannerService.waitForSignatureScan(scanData.getNotificationTaskRange(), scanData.getOutput().getSuccessfulCodeLocationNames(), blackDuckServerConfig.getTimeout() * 5);
 
-                                    final Optional<ProjectVersionWrapper> projectVersionWrapper = projectService.getProjectVersion(projectName, version);
-                                    if (projectVersionWrapper.isPresent()) {
-                                        final ProjectVersionView projectVersionView = projectVersionWrapper.get().getProjectVersionView();
+                                    final ProjectVersionView projectVersionView = scanMetaDataProcessor.getOrCreateProjectVersion(projectService, projectName, version);
+                                    if (null != projectVersionView) {
                                         scanMetaDataProcessor
                                             .updateRepositoryMetaData(projectService, assetWrapper, projectVersionView.getHref().orElse(blackDuckServerConfig.getBlackDuckUrl().toString()), projectVersionView);
                                     } else {

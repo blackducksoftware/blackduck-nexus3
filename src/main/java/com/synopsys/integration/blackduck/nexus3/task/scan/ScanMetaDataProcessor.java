@@ -81,6 +81,10 @@ public class ScanMetaDataProcessor {
         assetWrapper.updateAsset();
     }
 
+    public ProjectVersionView getOrCreateProjectVersion(final ProjectService projectService, final String repoName, final String version) throws IntegrationException {
+        return commonMetaDataProcessor.getOrCreateProjectVersion(projectService, repoName, version);
+    }
+
     public String createCodeLocationName(final String repoName, final String name, final String version) {
         return String.join("/", ScanTask.SCAN_CODE_LOCATION_NAME, repoName, name, version);
     }
