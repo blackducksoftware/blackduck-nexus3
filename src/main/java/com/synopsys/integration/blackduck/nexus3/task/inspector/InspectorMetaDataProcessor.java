@@ -23,6 +23,8 @@
  */
 package com.synopsys.integration.blackduck.nexus3.task.inspector;
 
+import static com.synopsys.integration.blackduck.nexus3.task.inspector.InspectorTask.INSPECTOR_VERSION_NAME;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +38,7 @@ import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.synopsys.integration.blackduck.api.core.ProjectRequestBuilder;
 import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
 import com.synopsys.integration.blackduck.api.generated.enumeration.PolicySummaryStatusType;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
@@ -47,7 +50,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProce
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.task.common.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
-import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
+import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 
@@ -66,13 +69,13 @@ public class InspectorMetaDataProcessor {
         this.dateTimeParser = dateTimeParser;
     }
 
-    public Optional<ProjectVersionWrapper> getProjectVersionWrapper(final BlackDuckServicesFactory blackDuckServicesFactory, final String name) throws IntegrationException {
-        return commonRepositoryTaskHelper.getProjectVersionWrapper(blackDuckServicesFactory, name, InspectorTask.INSPECTOR_CODE_LOCATION_NAME);
+    public Optional<ProjectVersionWrapper> getProjectVersionWrapper(final ProjectService projectService, final String name) throws IntegrationException {
+        return projectService.getProjectVersion(name, InspectorTask.INSPECTOR_VERSION_NAME);
     }
 
-    public void updateRepositoryMetaData(final BlackDuckServicesFactory blackDuckServicesFactory, final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap, final TaskStatus status)
-        throws IntegrationException {
-        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(blackDuckServicesFactory, projectVersionView);
+    public void updateRepositoryMetaData(final ProjectService projectService, final String blackDuckServerUrl, final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap,
+        final TaskStatus status) throws IntegrationException {
+        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(projectService, projectVersionView);
         for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
             final Set<String> externalIds = versionBomComponentView.getOrigins().stream()
                                                 .map(versionBomOriginView -> versionBomOriginView.getExternalId())
@@ -85,7 +88,7 @@ public class InspectorMetaDataProcessor {
                     logger.warn("{} uploaded to Black Duck, but has not been processed in nexus.", externalId);
                     continue;
                 }
-                final String blackDuckUrl = projectVersionView.getHref().orElse(blackDuckServicesFactory.getBlackDuckHttpClient().getBaseUrl());
+                final String blackDuckUrl = projectVersionView.getHref().orElse(blackDuckServerUrl);
                 final PolicySummaryStatusType policyStatus = versionBomComponentView.getPolicyStatus();
 
                 logger.info("Found component and updating Asset: {}", assetWrapper.getName());
@@ -108,6 +111,21 @@ public class InspectorMetaDataProcessor {
             logger.warn("Asset was not found in Black Duck, {}", assetWrapper.getName());
             assetWrapper.addComponentNotFoundToBlackDuckPanel("Black Duck was not able to find this component.");
             assetWrapper.updateAsset();
+        }
+    }
+
+    public ProjectVersionView getOrCreateProjectVersion(final ProjectService projectService, final String repoName) throws IntegrationException {
+        final Optional<ProjectVersionWrapper> projectVersionWrapperOptional = getProjectVersionWrapper(projectService, repoName);
+        if (projectVersionWrapperOptional.isPresent()) {
+            final ProjectVersionView projectVersionView = projectVersionWrapperOptional.get().getProjectVersionView();
+            return projectVersionView;
+        } else {
+            logger.debug("Creating project in Black Duck : {}", repoName);
+            final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
+            projectRequestBuilder.setProjectName(repoName);
+            projectRequestBuilder.setVersionName(INSPECTOR_VERSION_NAME);
+            final ProjectVersionWrapper projectVersionWrapper = projectService.createProject(projectRequestBuilder.build());
+            return projectVersionWrapper.getProjectVersionView();
         }
     }
 

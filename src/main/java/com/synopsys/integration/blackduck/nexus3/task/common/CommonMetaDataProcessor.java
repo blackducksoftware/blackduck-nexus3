@@ -40,7 +40,6 @@ import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponent
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
-import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
 import com.synopsys.integration.exception.IntegrationException;
@@ -54,8 +53,7 @@ public class CommonMetaDataProcessor {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
     }
 
-    public List<VersionBomComponentView> checkAssetVulnerabilities(final BlackDuckServicesFactory blackDuckServicesFactory, final ProjectVersionView projectVersionView) throws IntegrationException {
-        final ProjectService projectService = blackDuckServicesFactory.createProjectService();
+    public List<VersionBomComponentView> checkAssetVulnerabilities(final ProjectService projectService, final ProjectVersionView projectVersionView) throws IntegrationException {
         return projectService.getComponentsForProjectVersion(projectVersionView);
     }
 
@@ -105,9 +103,8 @@ public class CommonMetaDataProcessor {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS);
     }
 
-    public Optional<VersionBomPolicyStatusView> checkAssetPolicy(final BlackDuckServicesFactory blackDuckServicesFactory, final ProjectVersionView projectVersionView) throws IntegrationException {
+    public Optional<VersionBomPolicyStatusView> checkAssetPolicy(final ProjectService projectService, final ProjectVersionView projectVersionView) throws IntegrationException {
         logger.info("Checking metadata of {}", projectVersionView.getVersionName());
-        final ProjectService projectService = blackDuckServicesFactory.createProjectService();
         return projectService.getPolicyStatusForVersion(projectVersionView);
     }
 

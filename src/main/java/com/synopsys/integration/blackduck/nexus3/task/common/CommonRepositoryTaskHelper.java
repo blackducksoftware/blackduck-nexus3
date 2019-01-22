@@ -150,11 +150,6 @@ public class CommonRepositoryTaskHelper {
         return dbXmlPath + assetPanelLabel.getLabel();
     }
 
-    public Optional<ProjectVersionWrapper> getProjectVersionWrapper(final BlackDuckServicesFactory blackDuckServicesFactory, final String name, final String version) throws IntegrationException {
-        final ProjectService projectService = blackDuckServicesFactory.createProjectService();
-        return projectService.getProjectVersion(name, version);
-    }
-
     public Query.Builder createPagedQuery(final Optional<String> lastNameUsed) {
         final Query.Builder pagedQueryBuilder = Query.builder();
         pagedQueryBuilder.where("component").isNotNull();

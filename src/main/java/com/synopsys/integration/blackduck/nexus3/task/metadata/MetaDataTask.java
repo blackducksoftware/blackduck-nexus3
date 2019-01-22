@@ -23,8 +23,6 @@
  */
 package com.synopsys.integration.blackduck.nexus3.task.metadata;
 
-import static com.synopsys.integration.blackduck.nexus3.task.inspector.InspectorTask.INSPECTOR_CODE_LOCATION_NAME;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +40,6 @@ import org.sonatype.nexus.repository.storage.Asset;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
-import com.synopsys.integration.blackduck.api.core.ProjectRequestBuilder;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.codelocation.CodeLocationCreationService;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
@@ -89,14 +86,16 @@ public class MetaDataTask extends RepositoryTaskSupport {
     @Override
     protected void execute(final Repository repository) {
         String exceptionMessage = null;
-        BlackDuckServicesFactory blackDuckServicesFactory = null;
+        String blackDuckUrl = null;
         CodeLocationCreationService codeLocationCreationService = null;
         NotificationTaskRange notificationTaskRange = null;
-
+        ProjectService projectService = null;
         Optional<PhoneHomeResponse> phoneHomeResponse = Optional.empty();
         try {
-            blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
+            blackDuckUrl = commonRepositoryTaskHelper.getBlackDuckServerConfig().getBlackDuckUrl().toString();
+            final BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
             codeLocationCreationService = blackDuckServicesFactory.createCodeLocationCreationService();
+            projectService = blackDuckServicesFactory.createProjectService();
             phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(MetaDataTaskDescriptor.BLACK_DUCK_META_DATA_TASK_ID);
         } catch (final IntegrationException | IllegalStateException e) {
             logger.error("Black Duck hub server config invalid. " + e.getMessage(), e);
@@ -130,32 +129,33 @@ public class MetaDataTask extends RepositoryTaskSupport {
                         logger.info("Updating metadata for {}", name);
                         try {
                             if (!isProxyRepo) {
-                                final String blackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
+                                final String assetBlackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
                                 final TaskStatus status = assetWrapper.getBlackDuckStatus();
                                 final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
                                 final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
                                 final String version = assetWrapper.getVersion();
-                                Optional<ProjectVersionWrapper> projectVersionWrapper = null;
+                                Optional<ProjectVersionWrapper> projectVersionWrapper = Optional.empty();
 
-                                if (StringUtils.isBlank(blackDuckUrl) && isPendingOrComponentNotFoundForDay(status, lastProcessed)) {
+                                if (StringUtils.isBlank(assetBlackDuckUrl) && isPendingOrComponentNotFoundForDay(status, lastProcessed)) {
                                     final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
                                     logger.info("Re-checking code location {}", codeLocationName);
-                                    if (null != blackDuckServicesFactory) {
+                                    if (null != codeLocationCreationService && null != projectService) {
                                         if (null == notificationTaskRange) {
                                             notificationTaskRange = codeLocationCreationService.calculateCodeLocationRange();
                                         }
                                         codeLocationCreationService
                                             .waitForCodeLocations(notificationTaskRange, Collections.singleton(codeLocationName), commonRepositoryTaskHelper.getBlackDuckServerConfig().getTimeout() * 5);
-                                        projectVersionWrapper = commonRepositoryTaskHelper.getProjectVersionWrapper(blackDuckServicesFactory, name, version);
-
+                                        projectVersionWrapper = projectService.getProjectVersion(name, version);
                                     }
                                 } else {
-                                    projectVersionWrapper = commonRepositoryTaskHelper.getProjectVersionWrapper(blackDuckServicesFactory, name, version);
+                                    if (null != projectService) {
+                                        projectVersionWrapper = projectService.getProjectVersion(name, version);
+                                    }
                                 }
                                 if (projectVersionWrapper.isPresent()) {
                                     final ProjectVersionView projectVersionView = projectVersionWrapper.get().getProjectVersionView();
                                     logger.info("Updating data of hosted repository.");
-                                    scanMetaDataProcessor.updateRepositoryMetaData(blackDuckServicesFactory, assetWrapper, projectVersionView.getHref().orElse(blackDuckUrl), projectVersionView);
+                                    scanMetaDataProcessor.updateRepositoryMetaData(projectService, assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
 
                                 } else {
                                     updateAssetWrapperWithError(assetWrapper, String.format("Could not find project %s and version %s after the scan completed.", name, version));
@@ -178,24 +178,11 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
             }
 
-            if (isProxyRepo && null != blackDuckServicesFactory) {
+            if (isProxyRepo && null != projectService) {
                 logger.info("Updating data of proxy repository.");
                 try {
-                    final Optional<ProjectVersionWrapper> projectVersionWrapperOptional = inspectorMetaDataProcessor.getProjectVersionWrapper(blackDuckServicesFactory, repoName);
-                    if (projectVersionWrapperOptional.isPresent()) {
-                        final ProjectVersionView projectVersionView = projectVersionWrapperOptional.get().getProjectVersionView();
-                        inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckServicesFactory, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
-                    } else {
-                        logger.debug("Creating project in Black Duck : {}", repoName);
-                        final ProjectService projectService = blackDuckServicesFactory.createProjectService();
-
-                        final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
-                        projectRequestBuilder.setProjectName(repoName);
-                        projectRequestBuilder.setVersionName(INSPECTOR_CODE_LOCATION_NAME);
-                        final ProjectVersionWrapper projectVersionWrapper = projectService.createProject(projectRequestBuilder.build());
-                        inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckServicesFactory, projectVersionWrapper.getProjectVersionView(), assetWrapperMap, TaskStatus.SUCCESS);
-                    }
-
+                    final ProjectVersionView projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(projectService, repoName);
+                    inspectorMetaDataProcessor.updateRepositoryMetaData(projectService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
                 } catch (final IntegrationException e) {
                     for (final Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
                         updateAssetWrapperWithError(entry.getValue(), String.format("Problem retrieving the project %s from Hub: %s", repoName, e.getMessage()));

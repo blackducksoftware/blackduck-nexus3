@@ -61,6 +61,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTas
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
+import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
@@ -103,14 +104,15 @@ public class ScanTask extends RepositoryTaskSupport {
         final IntLogger intLogger = new Slf4jIntLogger(logger);
 
         String exceptionMessage = null;
-        BlackDuckServicesFactory blackDuckServicesFactory = null;
         BlackDuckServerConfig blackDuckServerConfig = null;
         SignatureScannerService signatureScannerService = null;
+        ProjectService projectService = null;
         Optional<PhoneHomeResponse> phoneHomeResponse = Optional.empty();
         try {
             blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
-            blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
+            final BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
             signatureScannerService = blackDuckServicesFactory.createSignatureScannerService(ScanBatchRunner.createDefault(intLogger, blackDuckServerConfig));
+            projectService = blackDuckServicesFactory.createProjectService();
             phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
         } catch (final IntegrationException | IllegalStateException e) {
             logger.error("Black Duck hub server config invalid. " + e.getMessage(), e);
@@ -179,7 +181,7 @@ public class ScanTask extends RepositoryTaskSupport {
                     final Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
                     foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPageQuery);
 
-                    if (null != blackDuckServicesFactory) {
+                    if (null != signatureScannerService && null != projectService) {
                         for (final Map.Entry<CodeLocationCreationData<ScanBatchOutput>, AssetWrapper> entry : scannedAssets.entrySet()) {
                             final AssetWrapper assetWrapper = entry.getValue();
                             final CodeLocationCreationData<ScanBatchOutput> scanData = entry.getKey();
@@ -189,11 +191,11 @@ public class ScanTask extends RepositoryTaskSupport {
                                 if (!scanData.getOutput().getSuccessfulCodeLocationNames().isEmpty()) {
                                     signatureScannerService.waitForSignatureScan(scanData.getNotificationTaskRange(), scanData.getOutput().getSuccessfulCodeLocationNames(), blackDuckServerConfig.getTimeout() * 5);
 
-                                    final Optional<ProjectVersionWrapper> projectVersionWrapper = commonRepositoryTaskHelper.getProjectVersionWrapper(blackDuckServicesFactory, projectName, version);
+                                    final Optional<ProjectVersionWrapper> projectVersionWrapper = projectService.getProjectVersion(projectName, version);
                                     if (projectVersionWrapper.isPresent()) {
                                         final ProjectVersionView projectVersionView = projectVersionWrapper.get().getProjectVersionView();
                                         scanMetaDataProcessor
-                                            .updateRepositoryMetaData(blackDuckServicesFactory, assetWrapper, projectVersionView.getHref().orElse(blackDuckServerConfig.getBlackDuckUrl().toString()), projectVersionView);
+                                            .updateRepositoryMetaData(projectService, assetWrapper, projectVersionView.getHref().orElse(blackDuckServerConfig.getBlackDuckUrl().toString()), projectVersionView);
                                     } else {
                                         updateAssetWrapperWithError(assetWrapper, String.format("Could not find project %s and version %s after the scan completed.", projectName, version));
                                     }
