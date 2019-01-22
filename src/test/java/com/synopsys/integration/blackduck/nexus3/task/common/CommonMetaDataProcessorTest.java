@@ -56,14 +56,14 @@ public class CommonMetaDataProcessorTest {
         final int expectedMedium = 2;
         final int expectedLow = 1;
         final RiskCountView highRiskCountView = new RiskCountView();
-        highRiskCountView.count = expectedHigh;
-        highRiskCountView.countType = RiskCountType.HIGH;
+        highRiskCountView.setCount(expectedHigh);
+        highRiskCountView.setCountType(RiskCountType.HIGH);
         final RiskCountView mediumRiskCountView = new RiskCountView();
-        mediumRiskCountView.count = expectedMedium;
-        mediumRiskCountView.countType = RiskCountType.MEDIUM;
+        mediumRiskCountView.setCount(expectedMedium);
+        mediumRiskCountView.setCountType(RiskCountType.MEDIUM);
         final RiskCountView lowRiskCountView = new RiskCountView();
-        lowRiskCountView.count = expectedLow;
-        lowRiskCountView.countType = RiskCountType.LOW;
+        lowRiskCountView.setCount(expectedLow);
+        lowRiskCountView.setCountType(RiskCountType.LOW);
         final List<RiskCountView> riskCountViewList = Arrays.asList(highRiskCountView, mediumRiskCountView, lowRiskCountView);
 
         final VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
@@ -94,14 +94,14 @@ public class CommonMetaDataProcessorTest {
         final int expectedMedium = 2;
         final int expectedLow = 1;
         final RiskCountView highRiskCountView = new RiskCountView();
-        highRiskCountView.count = expectedHigh;
-        highRiskCountView.countType = RiskCountType.HIGH;
+        highRiskCountView.setCount(expectedHigh);
+        highRiskCountView.setCountType(RiskCountType.HIGH);
         final RiskCountView mediumRiskCountView = new RiskCountView();
-        mediumRiskCountView.count = expectedMedium;
-        mediumRiskCountView.countType = RiskCountType.MEDIUM;
+        mediumRiskCountView.setCount(expectedMedium);
+        mediumRiskCountView.setCountType(RiskCountType.MEDIUM);
         final RiskCountView lowRiskCountView = new RiskCountView();
-        lowRiskCountView.count = expectedLow;
-        lowRiskCountView.countType = RiskCountType.LOW;
+        lowRiskCountView.setCount(expectedLow);
+        lowRiskCountView.setCountType(RiskCountType.LOW);
         final List<RiskCountView> riskCountViewList = Arrays.asList(highRiskCountView, mediumRiskCountView, lowRiskCountView);
 
         final VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
@@ -165,7 +165,7 @@ public class CommonMetaDataProcessorTest {
         final String foundOverallPolicyStatus = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS);
 
         final String notInViolation = PolicySummaryStatusType.NOT_IN_VIOLATION.prettyPrint();
-        final String notInViolationText = "The Hub found: 0 components in violation, 0 components in violation, but overridden, and 5 components not in violation.";
+        final String notInViolationText = "Black Duck found: 0 components in violation, 0 components in violation, but overridden, and 5 components not in violation.";
 
         Assert.assertEquals(notInViolation, foundOverallPolicyStatus);
         Assert.assertEquals(notInViolationText, foundPolicyStatus);
@@ -223,18 +223,18 @@ public class CommonMetaDataProcessorTest {
 
     private VersionBomPolicyStatusView createVersionBomPolicyStatusView() {
         final VersionBomPolicyStatusView versionBomPolicyStatusView = new VersionBomPolicyStatusView();
-        versionBomPolicyStatusView.overallStatus = PolicySummaryStatusType.NOT_IN_VIOLATION;
+        versionBomPolicyStatusView.setOverallStatus(PolicySummaryStatusType.NOT_IN_VIOLATION);
 
         final NameValuePairView notInViolation = new NameValuePairView();
-        notInViolation.name = PolicySummaryStatusType.NOT_IN_VIOLATION.name();
-        notInViolation.value = 5;
+        notInViolation.setName(PolicySummaryStatusType.NOT_IN_VIOLATION.name());
+        notInViolation.setValue(5);
         final NameValuePairView inViolation = new NameValuePairView();
-        inViolation.name = PolicySummaryStatusType.IN_VIOLATION.name();
-        inViolation.value = 0;
+        inViolation.setName(PolicySummaryStatusType.IN_VIOLATION.name());
+        inViolation.setValue(0);
         final NameValuePairView inViolationButOverridden = new NameValuePairView();
-        inViolationButOverridden.name = PolicySummaryStatusType.IN_VIOLATION_OVERRIDDEN.name();
-        inViolationButOverridden.value = 0;
-        versionBomPolicyStatusView.componentVersionStatusCounts = Arrays.asList(notInViolation, inViolation, inViolationButOverridden);
+        inViolationButOverridden.setName(PolicySummaryStatusType.IN_VIOLATION_OVERRIDDEN.name());
+        inViolationButOverridden.setValue(0);
+        versionBomPolicyStatusView.setComponentVersionStatusCounts(Arrays.asList(notInViolation, inViolation, inViolationButOverridden));
 
         return versionBomPolicyStatusView;
     }

@@ -58,7 +58,7 @@ public class BlackDuckConnection {
     public void updateHubServerConfig() throws IntegrationException {
         final BlackDuckCapabilityConfiguration blackDuckCapabilityConfiguration = blackDuckCapabilityFinder.retrieveBlackDuckCapabilityConfiguration();
         if (blackDuckCapabilityConfiguration == null) {
-            throw new IntegrationException("BlackDuck server configuration not found.");
+            throw new IntegrationException("Black Duck server configuration not found.");
         }
         final BlackDuckServerConfig updatedBlackDuckServerConfig = blackDuckCapabilityConfiguration.createBlackDuckServerConfig();
         setHubServerConfig(updatedBlackDuckServerConfig);
@@ -99,14 +99,5 @@ public class BlackDuckConnection {
         }
 
         return blackDuckHttpClient;
-    }
-
-    public void closeBlackDuckRestConnection() {
-        if (blackDuckHttpClient != null) {
-            logger.info("Closing connection to BlackDuck.");
-            blackDuckHttpClient = null;
-            blackDuckServicesFactory = null;
-            needsUpdate = true;
-        }
     }
 }

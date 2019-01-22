@@ -49,12 +49,12 @@ public class BlackDuckCapabilityFinder {
     public BlackDuckCapabilityConfiguration retrieveBlackDuckCapabilityConfiguration() {
         final CapabilityReference capabilityReference = findCapabilityReference(BlackDuckCapability.class);
         if (capabilityReference == null) {
-            logger.warn("BlackDuck capability not created.");
+            logger.warn("Black Duck capability not created.");
             return null;
         }
 
         final BlackDuckCapability capability = capabilityReference.capabilityAs(BlackDuckCapability.class);
-        logger.info("Getting BlackDuckCapability config");
+        logger.info("Getting Black Duck capability config");
         return capability.getConfig();
     }
 

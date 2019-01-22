@@ -5,9 +5,9 @@ import java.net.URL;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.synopsys.integration.blackduck.configuration.HubServerConfig;
+import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.blackduck.nexus3.mock.MockBlackDuckConnection;
-import com.synopsys.integration.blackduck.service.HubServicesFactory;
+import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.test.TestProperties;
 import com.synopsys.integration.test.TestPropertyKey;
@@ -19,10 +19,10 @@ public class CommonRepositoryTaskHelperTestIT {
         final MockBlackDuckConnection mockBlackDuckConnection = new MockBlackDuckConnection();
         final CommonRepositoryTaskHelper commonRepositoryTaskHelper = new CommonRepositoryTaskHelper(null, null, mockBlackDuckConnection);
 
-        final HubServerConfig hubServerConfig = commonRepositoryTaskHelper.getHubServerConfig();
-        Assert.assertNotNull(hubServerConfig);
+        final BlackDuckServerConfig blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
+        Assert.assertNotNull(blackDuckServerConfig);
 
-        final URL blackDuckUrl = hubServerConfig.getHubUrl();
+        final URL blackDuckUrl = blackDuckServerConfig.getBlackDuckUrl();
         Assert.assertNotNull(blackDuckUrl);
 
         final TestProperties testProperties = new TestProperties();
@@ -35,7 +35,7 @@ public class CommonRepositoryTaskHelperTestIT {
         final MockBlackDuckConnection mockBlackDuckConnection = new MockBlackDuckConnection();
         final CommonRepositoryTaskHelper commonRepositoryTaskHelper = new CommonRepositoryTaskHelper(null, null, mockBlackDuckConnection);
 
-        final HubServicesFactory hubServicesFactory = commonRepositoryTaskHelper.getHubServicesFactory();
-        Assert.assertNotNull(hubServicesFactory);
+        final BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
+        Assert.assertNotNull(blackDuckServicesFactory);
     }
 }

@@ -25,6 +25,7 @@ package com.synopsys.integration.blackduck.nexus3.task.inspector;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,6 @@ import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
 import com.synopsys.integration.blackduck.api.generated.enumeration.PolicySummaryStatusType;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
-import com.synopsys.integration.blackduck.api.view.MetaHandler;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
@@ -47,10 +47,9 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProce
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.task.common.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
-import com.synopsys.integration.blackduck.service.HubServicesFactory;
+import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
-import com.synopsys.integration.log.Slf4jIntLogger;
 
 @Named
 @Singleton
@@ -67,17 +66,18 @@ public class InspectorMetaDataProcessor {
         this.dateTimeParser = dateTimeParser;
     }
 
-    public ProjectVersionWrapper getProjectVersionWrapper(final HubServicesFactory hubServicesFactory, final String name) throws IntegrationException {
-        return commonRepositoryTaskHelper.getProjectVersionWrapper(hubServicesFactory, name, InspectorTask.INSPECTOR_CODE_LOCATION_NAME);
+    public Optional<ProjectVersionWrapper> getProjectVersionWrapper(final BlackDuckServicesFactory blackDuckServicesFactory, final String name) throws IntegrationException {
+        return commonRepositoryTaskHelper.getProjectVersionWrapper(blackDuckServicesFactory, name, InspectorTask.INSPECTOR_CODE_LOCATION_NAME);
     }
 
-    public void updateRepositoryMetaData(final HubServicesFactory hubServicesFactory, final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap, final TaskStatus status) throws IntegrationException {
-        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(hubServicesFactory, projectVersionView);
+    public void updateRepositoryMetaData(final BlackDuckServicesFactory blackDuckServicesFactory, final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap, final TaskStatus status)
+        throws IntegrationException {
+        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(blackDuckServicesFactory, projectVersionView);
         for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
-            final Set<String> externalIds = versionBomComponentView.origins.stream()
-                                                .map(versionBomOriginView -> versionBomOriginView.externalId)
+            final Set<String> externalIds = versionBomComponentView.getOrigins().stream()
+                                                .map(versionBomOriginView -> versionBomOriginView.getExternalId())
                                                 .collect(Collectors.toSet());
-            logger.debug("Found all externalIds ({}) for component: {}", externalIds, versionBomComponentView.componentName);
+            logger.debug("Found all externalIds ({}) for component: {}", externalIds, versionBomComponentView.getComponentName());
             for (final String externalId : externalIds) {
                 final AssetWrapper assetWrapper = assetWrapperMap.get(externalId);
 
@@ -85,10 +85,8 @@ public class InspectorMetaDataProcessor {
                     logger.warn("{} uploaded to Black Duck, but has not been processed in nexus.", externalId);
                     continue;
                 }
-
-                final MetaHandler metaHandler = new MetaHandler(new Slf4jIntLogger(logger));
-                final String blackDuckUrl = metaHandler.getHref(projectVersionView);
-                final PolicySummaryStatusType policyStatus = versionBomComponentView.policyStatus;
+                final String blackDuckUrl = projectVersionView.getHref().orElse(blackDuckServicesFactory.getBlackDuckHttpClient().getBaseUrl());
+                final PolicySummaryStatusType policyStatus = versionBomComponentView.getPolicyStatus();
 
                 logger.info("Found component and updating Asset: {}", assetWrapper.getName());
                 if (TaskStatus.FAILURE.equals(status)) {
@@ -115,7 +113,7 @@ public class InspectorMetaDataProcessor {
 
     private void addVulnerabilityStatus(final AssetWrapper assetWrapper, final VersionBomComponentView versionBomComponentView) {
         final VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
-        final List<RiskCountView> riskCountViews = versionBomComponentView.securityRiskProfile.counts;
+        final List<RiskCountView> riskCountViews = versionBomComponentView.getSecurityRiskProfile().getCounts();
         logger.info("Counting vulnerabilities");
         commonMetaDataProcessor.addAllAssetVulnerabilityCounts(riskCountViews, vulnerabilityLevels);
         commonMetaDataProcessor.setAssetVulnerabilityData(vulnerabilityLevels, assetWrapper);

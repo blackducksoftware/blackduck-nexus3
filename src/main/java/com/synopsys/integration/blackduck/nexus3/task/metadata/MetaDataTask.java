@@ -23,6 +23,8 @@
  */
 package com.synopsys.integration.blackduck.nexus3.task.metadata;
 
+import static com.synopsys.integration.blackduck.nexus3.task.inspector.InspectorTask.INSPECTOR_CODE_LOCATION_NAME;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,6 +42,7 @@ import org.sonatype.nexus.repository.storage.Asset;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
+import com.synopsys.integration.blackduck.api.core.ProjectRequestBuilder;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.codelocation.CodeLocationCreationService;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
@@ -54,9 +57,11 @@ import com.synopsys.integration.blackduck.nexus3.task.inspector.InspectorMetaDat
 import com.synopsys.integration.blackduck.nexus3.task.scan.ScanMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
+import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.NotificationTaskRange;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.phonehome.PhoneHomeResponse;
 
 @Named
 public class MetaDataTask extends RepositoryTaskSupport {
@@ -87,12 +92,14 @@ public class MetaDataTask extends RepositoryTaskSupport {
         BlackDuckServicesFactory blackDuckServicesFactory = null;
         CodeLocationCreationService codeLocationCreationService = null;
         NotificationTaskRange notificationTaskRange = null;
+
+        Optional<PhoneHomeResponse> phoneHomeResponse = Optional.empty();
         try {
             blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
             codeLocationCreationService = blackDuckServicesFactory.createCodeLocationCreationService();
-            commonRepositoryTaskHelper.phoneHome(MetaDataTaskDescriptor.BLACK_DUCK_META_DATA_TASK_ID);
+            phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(MetaDataTaskDescriptor.BLACK_DUCK_META_DATA_TASK_ID);
         } catch (final IntegrationException | IllegalStateException e) {
-            logger.error("BlackDuck hub server config invalid. " + e.getMessage(), e);
+            logger.error("Black Duck hub server config invalid. " + e.getMessage(), e);
             exceptionMessage = e.getMessage();
         }
         for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
@@ -162,7 +169,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
                             throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
                         } catch (final InterruptedException e) {
                             updateAssetWrapperWithError(assetWrapper, "Waiting for the scan to complete was interrupted: " + e.getMessage());
-                            logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+                            logger.error("Problem communicating with Black Duck: {}", e.getMessage());
                         }
                     }
                 }
@@ -174,15 +181,35 @@ public class MetaDataTask extends RepositoryTaskSupport {
             if (isProxyRepo && null != blackDuckServicesFactory) {
                 logger.info("Updating data of proxy repository.");
                 try {
-                    final ProjectVersionWrapper projectVersionWrapper = inspectorMetaDataProcessor.getProjectVersionWrapper(blackDuckServicesFactory, repoName);
-                    inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckServicesFactory, projectVersionWrapper.getProjectVersionView(), assetWrapperMap, TaskStatus.SUCCESS);
+                    final Optional<ProjectVersionWrapper> projectVersionWrapperOptional = inspectorMetaDataProcessor.getProjectVersionWrapper(blackDuckServicesFactory, repoName);
+                    if (projectVersionWrapperOptional.isPresent()) {
+                        final ProjectVersionView projectVersionView = projectVersionWrapperOptional.get().getProjectVersionView();
+                        inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckServicesFactory, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
+                    } else {
+                        logger.debug("Creating project in Black Duck : {}", repoName);
+                        final ProjectService projectService = blackDuckServicesFactory.createProjectService();
+
+                        final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
+                        projectRequestBuilder.setProjectName(repoName);
+                        projectRequestBuilder.setVersionName(INSPECTOR_CODE_LOCATION_NAME);
+                        final ProjectVersionWrapper projectVersionWrapper = projectService.createProject(projectRequestBuilder.build());
+                        inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckServicesFactory, projectVersionWrapper.getProjectVersionView(), assetWrapperMap, TaskStatus.SUCCESS);
+                    }
+
                 } catch (final IntegrationException e) {
+                    for (final Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
+                        updateAssetWrapperWithError(entry.getValue(), String.format("Problem retrieving the project %s from Hub: %s", repoName, e.getMessage()));
+                        logger.error("Problem communicating with Black Duck: {}", e.getMessage());
+                    }
                     throw new TaskInterruptedException("Problem retrieving project from Hub: " + e.getMessage(), true);
                 }
             }
         }
-
-        commonRepositoryTaskHelper.closeConnection();
+        if (phoneHomeResponse.isPresent()) {
+            commonRepositoryTaskHelper.endPhoneHome(phoneHomeResponse.get());
+        } else {
+            logger.trace("Could not phone home.");
+        }
     }
 
     private void updateAssetWrapperWithError(final AssetWrapper assetWrapper, final String message) {

@@ -69,6 +69,7 @@ import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.log.Slf4jIntLogger;
+import com.synopsys.integration.phonehome.PhoneHomeResponse;
 
 @Named
 public class ScanTask extends RepositoryTaskSupport {
@@ -109,12 +110,13 @@ public class ScanTask extends RepositoryTaskSupport {
         String exceptionMessage = null;
         BlackDuckServicesFactory blackDuckServicesFactory = null;
         BlackDuckServerConfig blackDuckServerConfig = null;
+        Optional<PhoneHomeResponse> phoneHomeResponse = Optional.empty();
         try {
             blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
             blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
-            commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
+            phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
         } catch (final IntegrationException | IllegalStateException e) {
-            logger.error("BlackDuck hub server config invalid. " + e.getMessage(), e);
+            logger.error("Black Duck hub server config invalid. " + e.getMessage(), e);
             exceptionMessage = e.getMessage();
         }
 
@@ -179,7 +181,7 @@ public class ScanTask extends RepositoryTaskSupport {
                                     notificationTaskRange = codeLocationCreationService.calculateCodeLocationRange();
                                 } catch (final IntegrationException e) {
                                     updateAssetWrapperWithError(assetWrapper, e.getMessage());
-                                    logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+                                    logger.error("Problem communicating with Black Duck: {}", e.getMessage());
                                 }
                             }
 
@@ -217,18 +219,21 @@ public class ScanTask extends RepositoryTaskSupport {
                                 }
                             } catch (final IntegrationException e) {
                                 updateAssetWrapperWithError(assetWrapper, e.getMessage());
-                                logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+                                logger.error("Problem communicating with Black Duck: {}", e.getMessage());
                             } catch (final InterruptedException e) {
                                 updateAssetWrapperWithError(assetWrapper, "Waiting for the scan to complete was interrupted: " + e.getMessage());
-                                logger.error("Problem communicating with BlackDuck: {}", e.getMessage());
+                                logger.error("Problem communicating with Black Duck: {}", e.getMessage());
                             }
                         }
                     }
                 }
             }
         }
-
-        commonRepositoryTaskHelper.closeConnection();
+        if (phoneHomeResponse.isPresent()) {
+            commonRepositoryTaskHelper.endPhoneHome(phoneHomeResponse.get());
+        } else {
+            logger.trace("Could not phone home.");
+        }
     }
 
     private void updateAssetWrapperWithError(final AssetWrapper assetWrapper, final String message) {
@@ -271,7 +276,7 @@ public class ScanTask extends RepositoryTaskSupport {
             final List<ScanCommandOutput> scanOutputs = scanBatchOutput.getOutputs();
             final ScanCommandOutput scanCommandOutput = scanOutputs.get(SCAN_OUTPUT_LOCATION);
             if (Result.SUCCESS == scanCommandOutput.getResult()) {
-                assetWrapper.addPendingToBlackDuckPanel("Scan uploaded to BlackDuck, waiting for update.");
+                assetWrapper.addPendingToBlackDuckPanel("Scan uploaded to Black Duck, waiting for update.");
                 scannedAssets.put(scanCommandOutput, assetWrapper);
             }
         } catch (final IntegrationException e) {
