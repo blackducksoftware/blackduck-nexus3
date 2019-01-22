@@ -215,7 +215,7 @@ public class ScanTask extends RepositoryTaskSupport {
         if (phoneHomeResponse.isPresent()) {
             commonRepositoryTaskHelper.endPhoneHome(phoneHomeResponse.get());
         } else {
-            logger.trace("Could not phone home.");
+            logger.debug("Could not phone home.");
         }
     }
 

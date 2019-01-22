@@ -52,8 +52,6 @@ import com.synopsys.integration.blackduck.nexus3.ui.AssetPanel;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.phonehome.BlackDuckPhoneHomeHelper;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
-import com.synopsys.integration.blackduck.service.ProjectService;
-import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.phonehome.PhoneHomeResponse;
 
@@ -118,9 +116,9 @@ public class CommonRepositoryTaskHelper {
 
     public void endPhoneHome(final PhoneHomeResponse phoneHomeResponse) {
         if (phoneHomeResponse.getImmediateResult()) {
-            logger.trace("Phone home was successful.");
+            logger.debug("Phone home was successful.");
         } else {
-            logger.trace("Phone home failed.");
+            logger.debug("Phone home failed.");
         }
     }
 
