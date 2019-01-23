@@ -201,7 +201,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
         String errorMessage = null;
         int timeout = -1;
         try {
-            timeout = commonRepositoryTaskHelper.getBlackDuckServerConfig().getTimeout() * 20;
+            timeout = commonRepositoryTaskHelper.getBlackDuckServerConfig().getTimeout() * 5;
             notificationTaskRange = codeLocationCreationService.calculateCodeLocationRange();
             codeLocationWaitResult = codeLocationCreationService.waitForCodeLocations(notificationTaskRange, assetWrapperToWaitFor.keySet(), timeout);
         } catch (final InterruptedException e) {
