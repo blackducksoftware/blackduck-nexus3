@@ -48,6 +48,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProce
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.task.common.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.exception.IntegrationException;
 
@@ -107,8 +108,8 @@ public class InspectorMetaDataProcessor {
         }
     }
 
-    public ProjectVersionView getOrCreateProjectVersion(final ProjectService projectService, final String repoName) throws IntegrationException {
-        return commonMetaDataProcessor.getOrCreateProjectVersion(projectService, repoName, INSPECTOR_VERSION_NAME);
+    public ProjectVersionView getOrCreateProjectVersion(final BlackDuckService blackDuckService, final ProjectService projectService, final String repoName) throws IntegrationException {
+        return commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName, INSPECTOR_VERSION_NAME);
     }
 
     private void addVulnerabilityStatus(final AssetWrapper assetWrapper, final VersionBomComponentView versionBomComponentView) {

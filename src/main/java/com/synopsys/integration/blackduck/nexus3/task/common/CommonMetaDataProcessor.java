@@ -54,7 +54,7 @@ import com.synopsys.integration.log.Slf4jIntLogger;
 @Named
 @Singleton
 public class CommonMetaDataProcessor {
-    public static final String NEXUS_PROJECT_TAG = "blackduck-nexus3";
+    public static final String NEXUS_PROJECT_TAG = "blackduck_nexus3";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public void setAssetVulnerabilityData(final VulnerabilityLevels vulnerabilityLevels, final AssetWrapper assetWrapper) {

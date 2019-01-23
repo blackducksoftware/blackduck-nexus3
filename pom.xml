@@ -85,7 +85,7 @@
         <dependency>
             <groupId>com.blackducksoftware.integration</groupId>
             <artifactId>blackduck-common</artifactId>
-            <version>41.0.0-SNAPSHOT</version>
+            <version>41.0.0</version>
             <scope>compile</scope>
             <exclusions>
                 <!-- Commons logging is a transitive dependency from a dependency in hub-common-reporting
