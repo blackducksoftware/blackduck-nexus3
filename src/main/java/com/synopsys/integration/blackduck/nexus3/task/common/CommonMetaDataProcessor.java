@@ -123,16 +123,8 @@ public class CommonMetaDataProcessor {
 
     public ProjectVersionView getOrCreateProjectVersion(final BlackDuckService blackDuckService, final ProjectService projectService, final String name, final String versionName) throws IntegrationException {
         final Optional<ProjectVersionWrapper> projectVersionWrapperOptional = projectService.getProjectVersion(name, versionName);
-        final ProjectVersionWrapper projectVersionWrapper;
-        if (projectVersionWrapperOptional.isPresent()) {
-            projectVersionWrapper = projectVersionWrapperOptional.get();
-        } else {
-            logger.debug("Creating project in Black Duck : {}", name);
-            final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
-            projectRequestBuilder.setProjectName(name);
-            projectRequestBuilder.setVersionName(versionName);
-            projectVersionWrapper = projectService.createProject(projectRequestBuilder.build());
-        }
+        final ProjectVersionWrapper projectVersionWrapper = projectVersionWrapperOptional.orElse(createProjectVersion(projectService, name, versionName));
+
         final TagService tagService = new TagService(blackDuckService, new Slf4jIntLogger(logger));
         final ProjectView projectView = projectVersionWrapper.getProjectView();
         final Optional<TagView> matchingTag = tagService.findMatchingTag(projectView, NEXUS_PROJECT_TAG);
@@ -146,4 +138,11 @@ public class CommonMetaDataProcessor {
         return projectVersionWrapper.getProjectVersionView();
     }
 
+    private ProjectVersionWrapper createProjectVersion(final ProjectService projectService, final String name, final String versionName) throws IntegrationException {
+        logger.debug("Creating project in Black Duck : {}", name);
+        final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
+        projectRequestBuilder.setProjectName(name);
+        projectRequestBuilder.setVersionName(versionName);
+        return projectService.createProject(projectRequestBuilder.build());
+    }
 }

@@ -23,8 +23,7 @@ public class TagService extends DataService {
     }
 
     public Optional<TagView> findMatchingTag(final ProjectView projectView, final String tagName) throws IntegrationException {
-        final List<TagView> allTags = getAllTags(projectView);
-        return allTags
+        return getAllTags(projectView)
                    .stream()
                    .filter(tagView -> tagView.getName().equals(tagName))
                    .findFirst();
