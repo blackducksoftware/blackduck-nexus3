@@ -42,6 +42,7 @@ import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.common.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.exception.IntegrationException;
 
@@ -79,6 +80,10 @@ public class ScanMetaDataProcessor {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, blackDuckUrl);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
         assetWrapper.updateAsset();
+    }
+
+    public ProjectVersionView getOrCreateProjectVersion(final BlackDuckService blackDuckService, final ProjectService projectService, final String repoName, final String version) throws IntegrationException {
+        return commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName, version);
     }
 
     public String createCodeLocationName(final String repoName, final String name, final String version) {

@@ -33,20 +33,28 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.synopsys.integration.blackduck.api.core.ProjectRequestBuilder;
 import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
 import com.synopsys.integration.blackduck.api.generated.enumeration.RiskCountType;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
+import com.synopsys.integration.blackduck.api.generated.view.ProjectView;
+import com.synopsys.integration.blackduck.api.generated.view.TagView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
+import com.synopsys.integration.blackduck.nexus3.TagService;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
+import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.log.Slf4jIntLogger;
 
 @Named
 @Singleton
 public class CommonMetaDataProcessor {
+    public static final String NEXUS_PROJECT_TAG = "blackduck_nexus3";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public void setAssetVulnerabilityData(final VulnerabilityLevels vulnerabilityLevels, final AssetWrapper assetWrapper) {
@@ -111,6 +119,31 @@ public class CommonMetaDataProcessor {
     public void removeAllMetaData(final AssetWrapper assetWrapper) {
         removePolicyData(assetWrapper);
         removeAssetVulnerabilityData(assetWrapper);
+    }
+
+    public ProjectVersionView getOrCreateProjectVersion(final BlackDuckService blackDuckService, final ProjectService projectService, final String name, final String versionName) throws IntegrationException {
+        final Optional<ProjectVersionWrapper> projectVersionWrapperOptional = projectService.getProjectVersion(name, versionName);
+        final ProjectVersionWrapper projectVersionWrapper;
+        if (projectVersionWrapperOptional.isPresent()) {
+            projectVersionWrapper = projectVersionWrapperOptional.get();
+        } else {
+            logger.debug("Creating project in Black Duck : {}", name);
+            final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
+            projectRequestBuilder.setProjectName(name);
+            projectRequestBuilder.setVersionName(versionName);
+            projectVersionWrapper = projectService.createProject(projectRequestBuilder.build());
+        }
+        final TagService tagService = new TagService(blackDuckService, new Slf4jIntLogger(logger));
+        final ProjectView projectView = projectVersionWrapper.getProjectView();
+        final Optional<TagView> matchingTag = tagService.findMatchingTag(projectView, NEXUS_PROJECT_TAG);
+        if (!matchingTag.isPresent()) {
+            logger.debug("Adding tag {} to project {} in Black Duck.", NEXUS_PROJECT_TAG, name);
+            final TagView tagView = new TagView();
+            tagView.setName(NEXUS_PROJECT_TAG);
+            tagService.createTag(projectView, tagView);
+        }
+
+        return projectVersionWrapper.getProjectVersionView();
     }
 
 }
