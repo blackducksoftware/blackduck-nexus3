@@ -123,7 +123,12 @@ public class CommonMetaDataProcessor {
 
     public ProjectVersionView getOrCreateProjectVersion(final BlackDuckService blackDuckService, final ProjectService projectService, final String name, final String versionName) throws IntegrationException {
         final Optional<ProjectVersionWrapper> projectVersionWrapperOptional = projectService.getProjectVersion(name, versionName);
-        final ProjectVersionWrapper projectVersionWrapper = projectVersionWrapperOptional.orElse(createProjectVersion(projectService, name, versionName));
+        final ProjectVersionWrapper projectVersionWrapper;
+        if (projectVersionWrapperOptional.isPresent()) {
+            projectVersionWrapper = projectVersionWrapperOptional.get();
+        } else {
+            projectVersionWrapper = createProjectVersion(projectService, name, versionName);
+        }
 
         final TagService tagService = new TagService(blackDuckService, new Slf4jIntLogger(logger));
         final ProjectView projectView = projectVersionWrapper.getProjectView();
