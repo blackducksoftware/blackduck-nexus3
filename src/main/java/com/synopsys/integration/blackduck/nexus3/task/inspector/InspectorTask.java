@@ -225,8 +225,8 @@ public class InspectorTask extends RepositoryTaskSupport {
                 inspectorMetaDataProcessor.updateRepositoryMetaData(projectService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.FAILURE);
             }
         } catch (final BlackDuckApiException e) {
-            logger.error("Problem communicating with Black Duck: {}", String.format("Error: %s, Api Error: %s", e.getMessage(), e.getBlackDuckErrorMessage()));
-            updateErrorStatus(assetWrapperMap.values(), String.format("Error: %s, Api Error: %s", e.getMessage(), e.getBlackDuckErrorMessage()));
+            logger.error("Problem communicating with Black Duck: {}", e.getMessage());
+            updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Problem communicating with Black Duck", true);
         } catch (final IntegrationException e) {
             logger.error("Issue communicating with Black Duck: " + e.getMessage(), e);

@@ -153,8 +153,8 @@ public class MetaDataTask extends RepositoryTaskSupport {
                                 assetWrapperMap.put(originId, assetWrapper);
                             }
                         } catch (final BlackDuckApiException e) {
-                            updateAssetWrapperWithError(assetWrapper, String.format("Error: %s, Api Error: %s", e.getMessage(), e.getBlackDuckErrorMessage()));
-                            logger.error("Problem communicating with Black Duck: {}", String.format("Error: %s, Api Error: %s", e.getMessage(), e.getBlackDuckErrorMessage()));
+                            updateAssetWrapperWithError(assetWrapper, e.getMessage());
+                            logger.error("Problem communicating with Black Duck: {}", e.getMessage());
                         } catch (final IntegrationException e) {
                             updateAssetWrapperWithError(assetWrapper, e.getMessage());
                             throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
@@ -176,8 +176,8 @@ public class MetaDataTask extends RepositoryTaskSupport {
                     inspectorMetaDataProcessor.updateRepositoryMetaData(projectService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
                 } catch (final BlackDuckApiException e) {
                     for (final Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
-                        updateAssetWrapperWithError(entry.getValue(), String.format("Error: %s, Api Error: %s", e.getMessage(), e.getBlackDuckErrorMessage()));
-                        logger.error("Problem communicating with Black Duck: {}", String.format("Error: %s, Api Error: %s", e.getMessage(), e.getBlackDuckErrorMessage()));
+                        updateAssetWrapperWithError(entry.getValue(), e.getMessage());
+                        logger.error("Problem communicating with Black Duck: {}", e.getMessage());
                     }
                 } catch (final IntegrationException e) {
                     for (final Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
@@ -208,8 +208,8 @@ public class MetaDataTask extends RepositoryTaskSupport {
             errorMessage = "Waiting for the scan to complete was interrupted: " + e.getMessage();
             logger.error("Problem communicating with Black Duck: {}", e.getMessage());
         } catch (final BlackDuckApiException e) {
-            errorMessage = String.format("Error: %s, Api Error: %s", e.getMessage(), e.getBlackDuckErrorMessage());
-            logger.error("Problem communicating with Black Duck: {}", String.format("Error: %s, Api Error: %s", e.getMessage(), e.getBlackDuckErrorMessage()));
+            errorMessage = e.getMessage();
+            logger.error("Problem communicating with Black Duck: {}", e.getMessage());
         } catch (final IntegrationException e) {
             errorMessage = e.getMessage();
             throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
@@ -232,8 +232,8 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 final ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, name, version);
                 scanMetaDataProcessor.updateRepositoryMetaData(projectService, assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
             } catch (final BlackDuckApiException e) {
-                updateAssetWrapperWithError(assetWrapper, String.format("Error: %s, Api Error: %s", e.getMessage(), e.getBlackDuckErrorMessage()));
-                logger.error("Problem communicating with Black Duck: {}", String.format("Error: %s, Api Error: %s", e.getMessage(), e.getBlackDuckErrorMessage()));
+                updateAssetWrapperWithError(assetWrapper, e.getMessage());
+                logger.error("Problem communicating with Black Duck: {}", e.getMessage());
             } catch (final IntegrationException e) {
                 updateAssetWrapperWithError(assetWrapper, e.getMessage());
                 throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
