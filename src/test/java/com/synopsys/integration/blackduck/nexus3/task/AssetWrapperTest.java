@@ -16,6 +16,7 @@ import org.sonatype.nexus.repository.storage.MetadataNodeEntityAdapter;
 import com.synopsys.integration.blackduck.nexus3.database.QueryManager;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanel;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.exception.IntegrationException;
 
 public class AssetWrapperTest extends TestSupport {
 
@@ -38,7 +39,7 @@ public class AssetWrapperTest extends TestSupport {
     }
 
     @Test
-    public void getBlobTest() {
+    public void getBlobTest() throws IntegrationException {
         final Asset asset = new Asset();
         final QueryManager queryManager = Mockito.mock(QueryManager.class);
         Mockito.when(queryManager.getBlob(Mockito.any(), Mockito.any())).thenReturn(blob);

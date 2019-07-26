@@ -18,6 +18,7 @@ import org.sonatype.nexus.repository.group.GroupFacet;
 
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
+import com.synopsys.integration.exception.IntegrationException;
 
 public class CommonTaskFiltersTest extends TestSupport {
 
@@ -160,7 +161,7 @@ public class CommonTaskFiltersTest extends TestSupport {
     }
 
     @Test
-    public void skipAssetProcessingRepositoryPathTest() {
+    public void skipAssetProcessingRepositoryPathTest() throws IntegrationException {
         final CommonRepositoryTaskHelper commonRepositoryTaskHelper = Mockito.mock(CommonRepositoryTaskHelper.class);
         Mockito.when(commonRepositoryTaskHelper.getRepositoryPath(Mockito.any())).thenReturn("\\/badpath");
         final DateTime assetCutoff = new DateTime().plusDays(1);
@@ -169,17 +170,12 @@ public class CommonTaskFiltersTest extends TestSupport {
 
         final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(commonRepositoryTaskHelper, new DateTimeParser(), null, null, null);
 
-        final AssetWrapper assetWrapper = Mockito.mock(AssetWrapper.class);
-        Mockito.when(assetWrapper.getAssetLastUpdated()).thenReturn(assetCutoff.plusDays(1));
-        Mockito.when(assetWrapper.getFullPath()).thenReturn("path/to/object.jar");
-        Mockito.when(assetWrapper.getFilename()).thenReturn("object.jar");
-
-        final boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetWrapper, null);
+        final boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff.plusDays(1), "path/to/object.jar", "object.jar", null);
         Assert.assertTrue(skipProcessing);
 
         Mockito.when(commonRepositoryTaskHelper.getRepositoryPath(Mockito.any())).thenReturn("path\\/to\\/.*");
 
-        final boolean matchingPath = commonTaskFilters.skipAssetProcessing(assetWrapper, null);
+        final boolean matchingPath = commonTaskFilters.skipAssetProcessing(assetCutoff.plusDays(1), "path/to/object.jar", "object.jar", null);
         Assert.assertFalse(matchingPath);
     }
 
@@ -193,17 +189,10 @@ public class CommonTaskFiltersTest extends TestSupport {
 
         final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(commonRepositoryTaskHelper, new DateTimeParser(), null, null, null);
 
-        final AssetWrapper assetWrapper = Mockito.mock(AssetWrapper.class);
-        Mockito.when(assetWrapper.getAssetLastUpdated()).thenReturn(assetCutoff.minusDays(4));
-        Mockito.when(assetWrapper.getFullPath()).thenReturn("path/to/object.jar");
-        Mockito.when(assetWrapper.getFilename()).thenReturn("object.jar");
-
-        final boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetWrapper, null);
+        final boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff.minusDays(4), "path/to/object.jar", "object.jar", null);
         Assert.assertTrue(skipProcessing);
 
-        Mockito.when(assetWrapper.getAssetLastUpdated()).thenReturn(assetCutoff);
-
-        final boolean notCutoff = commonTaskFilters.skipAssetProcessing(assetWrapper, null);
+        final boolean notCutoff = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", null);
         Assert.assertFalse(notCutoff);
     }
 
@@ -217,17 +206,12 @@ public class CommonTaskFiltersTest extends TestSupport {
 
         final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(commonRepositoryTaskHelper, new DateTimeParser(), null, null, null);
 
-        final AssetWrapper assetWrapper = Mockito.mock(AssetWrapper.class);
-        Mockito.when(assetWrapper.getAssetLastUpdated()).thenReturn(assetCutoff);
-        Mockito.when(assetWrapper.getFullPath()).thenReturn("path/to/object.jar");
-        Mockito.when(assetWrapper.getFilename()).thenReturn("object.jar");
-
-        final boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetWrapper, null);
+        final boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", null);
         Assert.assertTrue(skipProcessing);
 
         Mockito.when(commonRepositoryTaskHelper.getFileExtensionPatterns(Mockito.any())).thenReturn("*.bad,     *.jar");
 
-        final boolean matchingFileExtensions = commonTaskFilters.skipAssetProcessing(assetWrapper, null);
+        final boolean matchingFileExtensions = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", null);
         Assert.assertFalse(matchingFileExtensions);
     }
 }

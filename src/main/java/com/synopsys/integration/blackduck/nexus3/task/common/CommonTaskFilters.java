@@ -26,6 +26,7 @@ import org.sonatype.nexus.scheduling.TaskConfiguration;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.exception.IntegrationException;
 
 @Named
 @Singleton
@@ -70,15 +71,13 @@ public class CommonTaskFilters {
     }
 
     // TODO pull out the dependency on commonRepositoryTaskHelper.
-    public boolean skipAssetProcessing(final AssetWrapper assetWrapper, final TaskConfiguration taskConfiguration) {
-        final DateTime lastModified = assetWrapper.getAssetLastUpdated();
-        final String fullPathName = assetWrapper.getFullPath();
+    public boolean skipAssetProcessing(DateTime lastModified, String fullPathName, String fileName, final TaskConfiguration taskConfiguration) {
         final String repositoryRegexPath = commonRepositoryTaskHelper.getRepositoryPath(taskConfiguration);
         final String fileExtensionPatterns = commonRepositoryTaskHelper.getFileExtensionPatterns(taskConfiguration);
         final DateTime assetCutoffDate = commonRepositoryTaskHelper.getAssetCutoffDateTime(taskConfiguration);
         final boolean doesRepositoryPathMatch = doesRepositoryPathMatch(fullPathName, repositoryRegexPath);
         final boolean isAssetTooOld = isAssetTooOld(assetCutoffDate, lastModified);
-        final boolean doesExtensionMatch = doesExtensionMatch(assetWrapper.getFilename(), fileExtensionPatterns);
+        final boolean doesExtensionMatch = doesExtensionMatch(fileName, fileExtensionPatterns);
 
         logger.debug("Checking if processing of {} should be skipped", fullPathName);
         logger.debug("Is asset to old, {}", isAssetTooOld);

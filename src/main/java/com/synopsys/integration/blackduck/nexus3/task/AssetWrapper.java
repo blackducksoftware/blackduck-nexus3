@@ -80,9 +80,12 @@ public class AssetWrapper {
         return associatedComponent;
     }
 
-    public Blob getBlob() {
+    public Blob getBlob() throws IntegrationException {
         if (associatedBlob == null) {
             associatedBlob = queryManager.getBlob(repository, asset.blobRef());
+            if (associatedBlob != null) {
+                throw new IntegrationException("Could not find the Blob for this asset.");
+            }
         }
         return associatedBlob;
     }
@@ -95,10 +98,9 @@ public class AssetWrapper {
     }
 
     public File getBinaryBlobFile(final File parentDirectory) throws IOException, IntegrationException {
-        String fileNameOptional = getFilename();
         final InputStream blobInputStream = getBlob().getInputStream();
 
-        final File blobFile = new File(parentDirectory, fileNameOptional);
+        final File blobFile = new File(parentDirectory, getFilename());
         FileUtils.copyInputStreamToFile(blobInputStream, blobFile);
 
         return blobFile;
@@ -122,15 +124,11 @@ public class AssetWrapper {
 
     public String getFilename() throws IntegrationException {
         Blob blob = getBlob();
-        if (blob != null) {
-            final Map<String, String> headers = getBlob().getHeaders();
-            if (headers != null) {
-                return headers.get(BlobStore.BLOB_NAME_HEADER);
-            } else {
-                throw new IntegrationException("Could not find the headers for this Blob.");
-            }
+        final Map<String, String> headers = blob.getHeaders();
+        if (headers != null) {
+            return headers.get(BlobStore.BLOB_NAME_HEADER);
         } else {
-            throw new IntegrationException("Could not find the Blob for this asset.");
+            throw new IntegrationException("Could not find the headers for this Blob.");
         }
     }
 
