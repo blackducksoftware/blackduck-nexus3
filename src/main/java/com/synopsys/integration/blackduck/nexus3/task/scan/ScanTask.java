@@ -35,6 +35,7 @@ import javax.inject.Named;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
@@ -163,7 +164,16 @@ public class ScanTask extends RepositoryTaskSupport {
                         logger.debug("Process again, {}", shouldScanAgain);
                         final boolean scan = shouldScan || shouldScanAgain;
                         logger.debug("Scan without filter check, {}", scan);
-                        if (commonTaskFilters.skipAssetProcessing(assetWrapper, taskConfiguration()) || !scan) {
+
+                        DateTime lastModified = assetWrapper.getAssetLastUpdated();
+                        String fullPathName = assetWrapper.getFullPath();
+                        String fileName = null;
+                        try {
+                            fileName = assetWrapper.getFilename();
+                        } catch (IntegrationException e) {
+                            logger.debug("Skipping asset: {}. {}", name, e.getMessage());
+                        }
+                        if (commonTaskFilters.skipAssetProcessing(lastModified, fullPathName, fileName, taskConfiguration()) || !scan) {
                             logger.debug("Binary file did not meet requirements for scan: {}", name);
                             continue;
                         }
@@ -263,6 +273,11 @@ public class ScanTask extends RepositoryTaskSupport {
         final File binaryFile;
         try {
             binaryFile = assetWrapper.getBinaryBlobFile(tempFileStorage);
+        } catch (IntegrationException e) {
+            String errorMessage = String.format("Could not scan item: %s. %s.", name, e.getMessage());
+            logger.warn(errorMessage);
+            updateAssetWrapperWithError(assetWrapper, errorMessage);
+            return Optional.empty();
         } catch (final IOException e) {
             logger.debug("Exception thrown: {}", e.getMessage());
             throw new TaskInterruptedException("Error saving blob binary to file", true);

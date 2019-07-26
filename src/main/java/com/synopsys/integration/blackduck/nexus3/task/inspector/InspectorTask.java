@@ -35,6 +35,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
@@ -179,7 +180,16 @@ public class InspectorTask extends RepositoryTaskSupport {
         final String name = assetWrapper.getName();
         final String version = assetWrapper.getVersion();
 
-        if (commonTaskFilters.skipAssetProcessing(assetWrapper, taskConfiguration())) {
+        DateTime lastModified = assetWrapper.getAssetLastUpdated();
+        String fullPathName = assetWrapper.getFullPath();
+        String fileName = null;
+        try {
+            fileName = assetWrapper.getFilename();
+        } catch (IntegrationException e) {
+            logger.debug("Skipping asset: {}. {}", name, e.getMessage());
+        }
+
+        if (commonTaskFilters.skipAssetProcessing(lastModified, fullPathName, fileName, taskConfiguration())) {
             logger.debug("Binary file did not meet requirements for inspection: {}", name);
             return false;
         }
