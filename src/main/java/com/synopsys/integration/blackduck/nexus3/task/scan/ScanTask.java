@@ -263,6 +263,11 @@ public class ScanTask extends RepositoryTaskSupport {
         final File binaryFile;
         try {
             binaryFile = assetWrapper.getBinaryBlobFile(tempFileStorage);
+        } catch (IntegrationException e) {
+            String errorMessage = String.format("Could not scan item: %s. %s.", name, e.getMessage());
+            logger.warn(errorMessage);
+            updateAssetWrapperWithError(assetWrapper, errorMessage);
+            return Optional.empty();
         } catch (final IOException e) {
             logger.debug("Exception thrown: {}", e.getMessage());
             throw new TaskInterruptedException("Error saving blob binary to file", true);
