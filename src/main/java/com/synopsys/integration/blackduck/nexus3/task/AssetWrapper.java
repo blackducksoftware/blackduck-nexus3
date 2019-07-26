@@ -83,7 +83,7 @@ public class AssetWrapper {
     public Blob getBlob() throws IntegrationException {
         if (associatedBlob == null) {
             associatedBlob = queryManager.getBlob(repository, asset.blobRef());
-            if (associatedBlob != null) {
+            if (associatedBlob == null) {
                 throw new IntegrationException("Could not find the Blob for this asset.");
             }
         }
