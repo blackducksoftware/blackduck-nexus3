@@ -205,25 +205,24 @@ public class InspectorTask extends RepositoryTaskSupport {
             final Optional<ComponentSearchResultView> firstOrEmptyResult = componentService.getFirstOrEmptyResult(externalId);
             if (firstOrEmptyResult.isPresent()) {
                 originId = firstOrEmptyResult.get().getOriginId();
+                final Dependency dependency = dependencyGenerator.createDependency(name, version, externalId);
+                logger.info("Created new dependency: {}", dependency);
+                mutableDependencyGraph.addChildToRoot(dependency);
+
+                assetWrapper.addPendingToBlackDuckPanel("Asset waiting to be uploaded to Black Duck.");
+                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID, originId);
+                assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+
+                logger.debug("Adding asset to map with originId as key: {}", originId);
+                assetWrapperMap.put(originId, assetWrapper);
+            } else {
+                assetWrapper.addComponentNotFoundToBlackDuckPanel(String.format("Could not find this component %s in Black Duck.", externalId.createExternalId()));
             }
         } catch (IntegrationException e) {
-            //FIXME Handle exception
-        }
-        if (StringUtils.isBlank(originId)) {
-            // TODO what do we do if we can't connect to BD or there is no match? Should those 2 cases be handled differently?
-            originId = externalId.createExternalId();
-        }
+            assetWrapper.addFailureToBlackDuckPanel(String.format("Something went wrong communicating with Black Duck: %s", e.getMessage()));
 
-        final Dependency dependency = dependencyGenerator.createDependency(name, version, externalId);
-        logger.info("Created new dependency: {}", dependency);
-        mutableDependencyGraph.addChildToRoot(dependency);
-
-        assetWrapper.addPendingToBlackDuckPanel("Asset waiting to be uploaded to Black Duck.");
-        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID, originId);
-        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+        }
         assetWrapper.updateAsset();
-        logger.debug("Adding asset to map with originId as key: {}", originId);
-        assetWrapperMap.put(originId, assetWrapper);
         return true;
     }
 

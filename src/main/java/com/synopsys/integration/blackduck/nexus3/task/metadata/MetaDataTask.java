@@ -150,7 +150,6 @@ public class MetaDataTask extends RepositoryTaskSupport {
                                     }
                                 }
                             } else {
-                                //FIXME need to search BD for component and get the external ID from that search to use here
                                 final String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
                                 assetWrapperMap.put(originId, assetWrapper);
                             }
