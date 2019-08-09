@@ -57,19 +57,17 @@ import com.synopsys.integration.exception.IntegrationException;
 public class InspectorMetaDataProcessor {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final CommonMetaDataProcessor commonMetaDataProcessor;
-    private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
     private final DateTimeParser dateTimeParser;
 
     @Inject
-    public InspectorMetaDataProcessor(final CommonMetaDataProcessor commonMetaDataProcessor, final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final DateTimeParser dateTimeParser) {
+    public InspectorMetaDataProcessor(final CommonMetaDataProcessor commonMetaDataProcessor, final DateTimeParser dateTimeParser) {
         this.commonMetaDataProcessor = commonMetaDataProcessor;
-        this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
         this.dateTimeParser = dateTimeParser;
     }
 
-    public void updateRepositoryMetaData(final ProjectService projectService, final String blackDuckServerUrl, final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap,
+    public void updateRepositoryMetaData(final BlackDuckService blackDuckService, final String blackDuckServerUrl, final ProjectVersionView projectVersionView, final Map<String, AssetWrapper> assetWrapperMap,
         final TaskStatus status) throws IntegrationException {
-        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(projectService, projectVersionView);
+        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(blackDuckService, projectVersionView);
         for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
             final Set<String> externalIds = versionBomComponentView.getOrigins().stream()
                                                 .map(versionBomOriginView -> versionBomOriginView.getExternalId())

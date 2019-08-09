@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
 import org.sonatype.nexus.repository.storage.Asset;
+import org.sonatype.nexus.repository.storage.Component;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
@@ -50,6 +51,7 @@ import com.synopsys.integration.bdio.model.Forge;
 import com.synopsys.integration.bdio.model.SimpleBdioDocument;
 import com.synopsys.integration.bdio.model.dependency.Dependency;
 import com.synopsys.integration.bdio.model.externalid.ExternalId;
+import com.synopsys.integration.blackduck.api.generated.view.ComponentSearchResultView;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.codelocation.CodeLocationCreationData;
 import com.synopsys.integration.blackduck.codelocation.CodeLocationCreationService;
@@ -72,6 +74,7 @@ import com.synopsys.integration.blackduck.nexus3.task.inspector.dependency.Depen
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
+import com.synopsys.integration.blackduck.service.ComponentService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.phonehome.PhoneHomeResponse;
@@ -105,6 +108,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         ProjectService projectService = null;
         CodeLocationCreationService codeLocationCreationService = null;
         BdioUploadService bdioUploadService = null;
+        ComponentService componentService = null;
         String blackDuckUrl = null;
         int timeOut = -1;
         Optional<PhoneHomeResponse> phoneHomeResponse = Optional.empty();
@@ -114,6 +118,7 @@ public class InspectorTask extends RepositoryTaskSupport {
             projectService = blackDuckServicesFactory.createProjectService();
             codeLocationCreationService = blackDuckServicesFactory.createCodeLocationCreationService();
             bdioUploadService = blackDuckServicesFactory.createBdioUploadService();
+            componentService = blackDuckServicesFactory.createComponentService();
             final BlackDuckServerConfig blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
             blackDuckUrl = blackDuckServerConfig.getBlackDuckUrl().toString();
             timeOut = blackDuckServerConfig.getTimeout();
@@ -148,7 +153,7 @@ public class InspectorTask extends RepositoryTaskSupport {
                             commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
                             assetWrapper.updateAsset();
                         } else {
-                            final boolean shouldProcessAsset = processAsset(assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                            final boolean shouldProcessAsset = processAsset(componentService, assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
                             if (shouldProcessAsset) {
                                 // Only set resultsFound to true, if you set it to false you risk falsely reporting that there are no new assets
                                 // I believe this can be improved upon... -BM
@@ -176,7 +181,8 @@ public class InspectorTask extends RepositoryTaskSupport {
         }
     }
 
-    private boolean processAsset(final AssetWrapper assetWrapper, final DependencyType dependencyType, final MutableDependencyGraph mutableDependencyGraph, final Map<String, AssetWrapper> assetWrapperMap) {
+    private boolean processAsset(ComponentService componentService, final AssetWrapper assetWrapper, final DependencyType dependencyType, final MutableDependencyGraph mutableDependencyGraph,
+        final Map<String, AssetWrapper> assetWrapperMap) {
         final String name = assetWrapper.getName();
         final String version = assetWrapper.getVersion();
 
@@ -193,12 +199,25 @@ public class InspectorTask extends RepositoryTaskSupport {
             logger.debug("Binary file did not meet requirements for inspection: {}", name);
             return false;
         }
+        ExternalId externalId = dependencyGenerator.createExternalId(dependencyType, name, version, assetWrapper.getAsset().attributes());
+        String originId = null;
+        try {
+            final Optional<ComponentSearchResultView> firstOrEmptyResult = componentService.getFirstOrEmptyResult(externalId);
+            if (firstOrEmptyResult.isPresent()) {
+                originId = firstOrEmptyResult.get().getOriginId();
+            }
+        } catch (IntegrationException e) {
+            //FIXME Handle exception
+        }
+        if (StringUtils.isBlank(originId)) {
+            // TODO what do we do if we can't connect to BD or there is no match? Should those 2 cases be handled differently?
+            originId = externalId.createExternalId();
+        }
 
-        final Dependency dependency = dependencyGenerator.createDependency(dependencyType, name, version, assetWrapper.getAsset().attributes());
+        final Dependency dependency = dependencyGenerator.createDependency(name, version, externalId);
         logger.info("Created new dependency: {}", dependency);
         mutableDependencyGraph.addChildToRoot(dependency);
 
-        final String originId = dependency.externalId.createBlackDuckOriginId();
         assetWrapper.addPendingToBlackDuckPanel("Asset waiting to be uploaded to Black Duck.");
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID, originId);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
@@ -211,7 +230,7 @@ public class InspectorTask extends RepositoryTaskSupport {
     private void uploadToBlackDuck(final BlackDuckService blackDuckService, final ProjectService projectService, final CodeLocationCreationService codeLocationCreationService, final BdioUploadService bdioUploadService,
         final String blackDuckUrl, final int timeOutInSeconds, final String repositoryName, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory, final DependencyType dependencyType,
         final Map<String, AssetWrapper> assetWrapperMap) {
-        final Forge nexusForge = new Forge("/", "/", "nexus");
+        final Forge nexusForge = new Forge("/", "nexus");
         final ProjectVersionView projectVersionView;
         final String codeLocationName = String.join("/", INSPECTOR_VERSION_NAME, repositoryName, dependencyType.getRepositoryType());
         try {
@@ -226,13 +245,14 @@ public class InspectorTask extends RepositoryTaskSupport {
             final Set<String> successfulCodeLocationNames = uploadData.getOutput().getSuccessfulCodeLocationNames();
             CodeLocationWaitResult.Status status = CodeLocationWaitResult.Status.PARTIAL;
             if (successfulCodeLocationNames.contains(codeLocationName)) {
-                final CodeLocationWaitResult codeLocationWaitResult = codeLocationCreationService.waitForCodeLocations(uploadData.getNotificationTaskRange(), successfulCodeLocationNames, timeOutInSeconds * 5);
+                final CodeLocationWaitResult codeLocationWaitResult = codeLocationCreationService
+                                                                          .waitForCodeLocations(uploadData.getNotificationTaskRange(), successfulCodeLocationNames, successfulCodeLocationNames.size(), timeOutInSeconds * 5);
                 status = codeLocationWaitResult.getStatus();
             }
             if (CodeLocationWaitResult.Status.COMPLETE == status) {
-                inspectorMetaDataProcessor.updateRepositoryMetaData(projectService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
+                inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
             } else {
-                inspectorMetaDataProcessor.updateRepositoryMetaData(projectService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.FAILURE);
+                inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.FAILURE);
             }
         } catch (final BlackDuckApiException e) {
             logger.error("Problem communicating with Black Duck: {}", e.getMessage());

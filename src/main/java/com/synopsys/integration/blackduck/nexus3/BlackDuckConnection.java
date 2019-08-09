@@ -23,6 +23,8 @@
  */
 package com.synopsys.integration.blackduck.nexus3;
 
+import java.util.concurrent.Executors;
+
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -38,6 +40,7 @@ import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.log.Slf4jIntLogger;
+import com.synopsys.integration.util.IntEnvironmentVariables;
 
 @Named
 @Singleton
@@ -87,7 +90,8 @@ public class BlackDuckConnection {
             logger.debug("Getting updated blackDuckServicesFactory");
             final IntLogger intLogger = new Slf4jIntLogger(logger);
             final BlackDuckHttpClient restConnection = getBlackDuckRestConnection(intLogger);
-            blackDuckServicesFactory = new BlackDuckServicesFactory(BlackDuckServicesFactory.createDefaultGson(), BlackDuckServicesFactory.createDefaultObjectMapper(), restConnection, intLogger);
+            blackDuckServicesFactory = new BlackDuckServicesFactory(new IntEnvironmentVariables(), BlackDuckServicesFactory.createDefaultGson(), BlackDuckServicesFactory.createDefaultObjectMapper(),
+                Executors.newSingleThreadExecutor(), restConnection, intLogger);
         }
 
         return blackDuckServicesFactory;

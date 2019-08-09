@@ -28,7 +28,7 @@ import com.synopsys.integration.bdio.model.Forge;
 public enum DependencyType {
     bower(Forge.BOWER, "bower"),
     maven(Forge.MAVEN, "maven2"),
-    npm(Forge.NPM, "npm"),
+    npm(Forge.NPMJS, "npm"),
     nuget(Forge.NUGET, "nuget"),
     pypi(Forge.PYPI, "pypi"),
     rubygems(Forge.RUBYGEMS, "rubygems"),

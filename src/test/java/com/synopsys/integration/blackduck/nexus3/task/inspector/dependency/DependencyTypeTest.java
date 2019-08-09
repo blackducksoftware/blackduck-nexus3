@@ -16,7 +16,7 @@ public class DependencyTypeTest {
         Assert.assertEquals(Forge.BOWER, DependencyType.bower.getForge());
 
         Assert.assertEquals("npm", DependencyType.npm.getRepositoryType());
-        Assert.assertEquals(Forge.NPM, DependencyType.npm.getForge());
+        Assert.assertEquals(Forge.NPMJS, DependencyType.npm.getForge());
 
         Assert.assertEquals("nuget", DependencyType.nuget.getRepositoryType());
         Assert.assertEquals(Forge.NUGET, DependencyType.nuget.getForge());

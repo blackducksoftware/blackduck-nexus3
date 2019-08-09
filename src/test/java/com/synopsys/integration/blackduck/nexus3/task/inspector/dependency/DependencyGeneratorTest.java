@@ -45,11 +45,11 @@ public class DependencyGeneratorTest {
         final Dependency mavenDependency = dependencyGenerator.createDependency(DependencyType.maven, "maven", "Test", defaultAttributesMap);
 
         final String originId = "testGroup:maven:Test";
-        Assert.assertEquals(originId, mavenDependency.externalId.createBlackDuckOriginId());
+        Assert.assertEquals(originId, mavenDependency.externalId.createExternalId());
 
         final Dependency nugetDependency = dependencyGenerator.createDependency(DependencyType.nuget, "nugetTest", "test1", defaultAttributesMap);
 
         final String nugetOriginId = "nugetTest/test1";
-        Assert.assertEquals(nugetOriginId, nugetDependency.externalId.createBlackDuckOriginId());
+        Assert.assertEquals(nugetOriginId, nugetDependency.externalId.createExternalId());
     }
 }

@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -53,6 +54,8 @@ import com.synopsys.integration.blackduck.codelocation.signaturescanner.ScanBatc
 import com.synopsys.integration.blackduck.codelocation.signaturescanner.ScanBatchOutput;
 import com.synopsys.integration.blackduck.codelocation.signaturescanner.ScanBatchRunner;
 import com.synopsys.integration.blackduck.codelocation.signaturescanner.SignatureScannerService;
+import com.synopsys.integration.blackduck.codelocation.signaturescanner.command.ScanCommandRunner;
+import com.synopsys.integration.blackduck.codelocation.signaturescanner.command.ScanPathsUtility;
 import com.synopsys.integration.blackduck.codelocation.signaturescanner.command.ScanTarget;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.blackduck.exception.BlackDuckApiException;
@@ -64,6 +67,7 @@ import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.rest.BlackDuckHttpClient;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
@@ -71,6 +75,9 @@ import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.log.Slf4jIntLogger;
 import com.synopsys.integration.phonehome.PhoneHomeResponse;
+import com.synopsys.integration.util.IntEnvironmentVariables;
+import com.synopsys.integration.util.NoThreadExecutorService;
+import com.synopsys.integration.util.OperatingSystemType;
 
 @Named
 public class ScanTask extends RepositoryTaskSupport {
@@ -117,7 +124,11 @@ public class ScanTask extends RepositoryTaskSupport {
         try {
             blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
             final BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
-            signatureScannerService = blackDuckServicesFactory.createSignatureScannerService(ScanBatchRunner.createDefault(intLogger, blackDuckServerConfig));
+
+            IntEnvironmentVariables intEnvironmentVariables = new IntEnvironmentVariables();
+            BlackDuckHttpClient blackDuckHttpClient = blackDuckServerConfig.createBlackDuckHttpClient(intLogger);
+
+            signatureScannerService = blackDuckServicesFactory.createSignatureScannerService(ScanBatchRunner.createDefault(intLogger, blackDuckHttpClient, intEnvironmentVariables, new NoThreadExecutorService()));
             codeLocationCreationService = blackDuckServicesFactory.createCodeLocationCreationService();
             blackDuckService = blackDuckServicesFactory.createBlackDuckService();
             projectService = blackDuckServicesFactory.createProjectService();
@@ -212,11 +223,13 @@ public class ScanTask extends RepositoryTaskSupport {
                                     final CodeLocationCreationData<ScanBatchOutput> scanData = scanDataOptional.get();
                                     if (!scanData.getOutput().getSuccessfulCodeLocationNames().isEmpty()) {
                                         final ProjectVersionView projectVersionView = scanMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, projectName, version);
-                                        final CodeLocationWaitResult codeLocationWaitResult = codeLocationCreationService.waitForCodeLocations(scanData.getNotificationTaskRange(), scanData.getOutput().getSuccessfulCodeLocationNames(),
-                                            timeout);
+                                        final Set<String> successfulCodeLocationNames = scanData.getOutput().getSuccessfulCodeLocationNames();
+                                        final CodeLocationWaitResult codeLocationWaitResult = codeLocationCreationService
+                                                                                                  .waitForCodeLocations(scanData.getNotificationTaskRange(), successfulCodeLocationNames, successfulCodeLocationNames.size(),
+                                                                                                      timeout);
                                         if (CodeLocationWaitResult.Status.COMPLETE == codeLocationWaitResult.getStatus()) {
                                             scanMetaDataProcessor
-                                                .updateRepositoryMetaData(projectService, assetWrapper, projectVersionView.getHref().orElse(blackDuckServerConfig.getBlackDuckUrl().toString()), projectVersionView);
+                                                .updateRepositoryMetaData(blackDuckService, assetWrapper, projectVersionView.getHref().orElse(blackDuckServerConfig.getBlackDuckUrl().toString()), projectVersionView);
                                         } else {
                                             updateAssetWrapperWithError(assetWrapper, String.format("The Black Duck server did not update this project within %s seconds", timeout));
                                         }
