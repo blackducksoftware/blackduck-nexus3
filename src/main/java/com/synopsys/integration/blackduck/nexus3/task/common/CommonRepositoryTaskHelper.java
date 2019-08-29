@@ -106,8 +106,9 @@ public class CommonRepositoryTaskHelper {
             logger.debug("Sending phone home data.");
             final PhoneHomeResponse response = phoneHome.sendDataHome(taskName, blackDuckPhoneHomeHelper);
             return Optional.of(response);
-        } catch (final IntegrationException e) {
-            logger.debug("There was an error communicating with Black Duck while phoning home: {}", e.getMessage());
+        } catch (final Exception e) {
+            logger.debug("There was an error communicating with Black Duck while phoning home.");
+            logger.debug(e.getMessage(), e);
         } finally {
             executorService.shutdownNow();
         }
