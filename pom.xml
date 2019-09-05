@@ -39,7 +39,7 @@
             <distributionManagement>
                 <snapshotRepository>
                     <id>bds-artifactory</id>
-                    <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-snapshot</url>
+                    <url>https://artifactory.internal.synopsys.com/artifactory/bds-integrations-snapshot</url>
                 </snapshotRepository>
             </distributionManagement>
         </profile>
@@ -51,7 +51,7 @@
             <distributionManagement>
                 <repository>
                     <id>bds-artifactory</id>
-                    <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-release</url>
+                    <url>https://artifactory.internal.synopsys.com/artifactory/bds-integrations-release</url>
                 </repository>
             </distributionManagement>
         </profile>
@@ -63,11 +63,11 @@
             <distributionManagement>
                 <repository>
                     <id>bds-artifactory</id>
-                    <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-test</url>
+                    <url>https://artifactory.internal.synopsys.com/artifactory/bds-integrations-test</url>
                 </repository>
                 <snapshotRepository>
                     <id>bds-artifactory</id>
-                    <url>https://test-repo.blackducksoftware.com/artifactory/bds-integrations-snapshot</url>
+                    <url>https://artifactory.internal.synopsys.com/artifactory/bds-integrations-snapshot</url>
                 </snapshotRepository>
             </distributionManagement>
         </profile>
