@@ -41,7 +41,7 @@ import com.synopsys.integration.bdio.model.externalid.ExternalIdFactory;
 @Named
 @Singleton
 public class DependencyGenerator {
-    public static final Forge YUM_FORGE = new Forge("/", "/", "@Centos");
+    public static final Forge YUM_FORGE = new Forge("/", "Centos", true);
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExternalIdFactory externalIdFactory;
 
@@ -56,16 +56,25 @@ public class DependencyGenerator {
     }
 
     public Dependency createDependency(final DependencyType dependencyType, final String name, final String version, final NestedAttributesMap attributesMap) {
+        final ExternalId externalId = createExternalId(dependencyType, name, version, attributesMap);
+        return createDependency(name, version, externalId);
+    }
+
+    public Dependency createDependency(final String name, final String version, ExternalId externalId) {
+        return new Dependency(name, version, externalId);
+    }
+
+    public ExternalId createExternalId(final DependencyType dependencyType, final String name, final String version, final NestedAttributesMap attributesMap) {
         if (DependencyType.maven == dependencyType) {
             final String group = attributesMap.child("maven2").get("groupId", String.class);
             final ExternalId mavenExternalId = externalIdFactory.createMavenExternalId(group, name, version);
             logger.debug("Created externalId of: {}", mavenExternalId);
-            return new Dependency(name, version, mavenExternalId);
+            return mavenExternalId;
         }
 
         final ExternalId externalId = externalIdFactory.createNameVersionExternalId(dependencyType.getForge(), name, version);
         logger.debug("Created externalId of: {}", externalId);
-        return new Dependency(name, version, externalId);
+        return externalId;
     }
 
 }

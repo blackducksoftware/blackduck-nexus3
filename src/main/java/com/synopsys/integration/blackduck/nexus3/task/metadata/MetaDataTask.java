@@ -26,6 +26,7 @@ package com.synopsys.integration.blackduck.nexus3.task.metadata;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -145,7 +146,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
                                     if (null != projectService && null != blackDuckService) {
                                         final ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, name, version);
                                         logger.info("Updating data of hosted repository.");
-                                        scanMetaDataProcessor.updateRepositoryMetaData(projectService, assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
+                                        scanMetaDataProcessor.updateRepositoryMetaData(blackDuckService, assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
                                     }
                                 }
                             } else {
@@ -173,7 +174,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
                 logger.info("Updating data of proxy repository.");
                 try {
                     final ProjectVersionView projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName);
-                    inspectorMetaDataProcessor.updateRepositoryMetaData(projectService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
+                    inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
                 } catch (final BlackDuckApiException e) {
                     for (final Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
                         updateAssetWrapperWithError(entry.getValue(), e.getMessage());
@@ -203,16 +204,17 @@ public class MetaDataTask extends RepositoryTaskSupport {
         try {
             timeout = commonRepositoryTaskHelper.getBlackDuckServerConfig().getTimeout() * 5;
             notificationTaskRange = codeLocationCreationService.calculateCodeLocationRange();
-            codeLocationWaitResult = codeLocationCreationService.waitForCodeLocations(notificationTaskRange, assetWrapperToWaitFor.keySet(), timeout);
+            final Set<String> codeLocationNames = assetWrapperToWaitFor.keySet();
+            codeLocationWaitResult = codeLocationCreationService.waitForCodeLocations(notificationTaskRange, codeLocationNames, codeLocationNames.size(), timeout);
         } catch (final InterruptedException e) {
             errorMessage = "Waiting for the scan to complete was interrupted: " + e.getMessage();
-            logger.error("Problem communicating with Black Duck: {}", e.getMessage());
+            logger.error("Problem communicating with Black Duck: {}", errorMessage);
         } catch (final BlackDuckApiException e) {
             errorMessage = e.getMessage();
-            logger.error("Problem communicating with Black Duck: {}", e.getMessage());
+            logger.error("Problem communicating with Black Duck: {}", errorMessage);
         } catch (final IntegrationException e) {
             errorMessage = e.getMessage();
-            throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
+            throw new TaskInterruptedException("Problem checking metadata: " + errorMessage, true);
         }
         for (final Map.Entry<String, AssetWrapper> entry : assetWrapperToWaitFor.entrySet()) {
             final String codeLocationName = entry.getKey();
@@ -230,7 +232,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
             final String assetBlackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
             try {
                 final ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, name, version);
-                scanMetaDataProcessor.updateRepositoryMetaData(projectService, assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
+                scanMetaDataProcessor.updateRepositoryMetaData(blackDuckService, assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
             } catch (final BlackDuckApiException e) {
                 updateAssetWrapperWithError(assetWrapper, e.getMessage());
                 logger.error("Problem communicating with Black Duck: {}", e.getMessage());

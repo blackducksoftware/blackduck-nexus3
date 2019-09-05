@@ -33,7 +33,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.synopsys.integration.blackduck.api.core.ProjectRequestBuilder;
+import com.synopsys.integration.blackduck.api.generated.component.ProjectRequest;
+import com.synopsys.integration.blackduck.api.generated.component.ProjectVersionRequest;
 import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
 import com.synopsys.integration.blackduck.api.generated.enumeration.RiskCountType;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
@@ -47,6 +48,7 @@ import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
+import com.synopsys.integration.blackduck.service.model.ProjectSyncModel;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.Slf4jIntLogger;
@@ -61,8 +63,8 @@ public class CommonMetaDataProcessor {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
     }
 
-    public List<VersionBomComponentView> checkAssetVulnerabilities(final ProjectService projectService, final ProjectVersionView projectVersionView) throws IntegrationException {
-        return projectService.getComponentsForProjectVersion(projectVersionView);
+    public List<VersionBomComponentView> checkAssetVulnerabilities(final BlackDuckService blackDuckService, final ProjectVersionView projectVersionView) throws IntegrationException {
+        return blackDuckService.getResponses(projectVersionView, ProjectVersionView.COMPONENTS_LINK_RESPONSE, true);
     }
 
     public void addAllAssetVulnerabilityCounts(final List<RiskCountView> vulnerabilities, final VulnerabilityLevels vulnerabilityLevels) {
@@ -111,9 +113,9 @@ public class CommonMetaDataProcessor {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS);
     }
 
-    public Optional<VersionBomPolicyStatusView> checkAssetPolicy(final ProjectService projectService, final ProjectVersionView projectVersionView) throws IntegrationException {
+    public Optional<VersionBomPolicyStatusView> checkAssetPolicy(final BlackDuckService blackDuckService, final ProjectVersionView projectVersionView) throws IntegrationException {
         logger.info("Checking metadata of {}", projectVersionView.getVersionName());
-        return projectService.getPolicyStatusForVersion(projectVersionView);
+        return blackDuckService.getResponse(projectVersionView, ProjectVersionView.POLICY_STATUS_LINK_RESPONSE);
     }
 
     public void removeAllMetaData(final AssetWrapper assetWrapper) {
@@ -145,9 +147,8 @@ public class CommonMetaDataProcessor {
 
     private ProjectVersionWrapper createProjectVersion(final ProjectService projectService, final String name, final String versionName) throws IntegrationException {
         logger.debug("Creating project in Black Duck : {}", name);
-        final ProjectRequestBuilder projectRequestBuilder = new ProjectRequestBuilder();
-        projectRequestBuilder.setProjectName(name);
-        projectRequestBuilder.setVersionName(versionName);
-        return projectService.createProject(projectRequestBuilder.build());
+
+        final ProjectSyncModel projectSyncModel = ProjectSyncModel.createWithDefaults(name, versionName);
+        return projectService.createProject(projectSyncModel.createProjectRequest());
     }
 }
