@@ -48,6 +48,7 @@ import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
+import com.synopsys.integration.blackduck.service.model.ProjectSyncModel;
 import com.synopsys.integration.blackduck.service.model.ProjectVersionWrapper;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.Slf4jIntLogger;
@@ -147,13 +148,7 @@ public class CommonMetaDataProcessor {
     private ProjectVersionWrapper createProjectVersion(final ProjectService projectService, final String name, final String versionName) throws IntegrationException {
         logger.debug("Creating project in Black Duck : {}", name);
 
-        ProjectVersionRequest projectVersionRequest = new ProjectVersionRequest();
-        projectVersionRequest.setVersionName(versionName);
-
-        ProjectRequest projectRequest = new ProjectRequest();
-        projectRequest.setName(name);
-        projectRequest.setVersionRequest(projectVersionRequest);
-
-        return projectService.createProject(projectRequest);
+        final ProjectSyncModel projectSyncModel = ProjectSyncModel.createWithDefaults(name, versionName);
+        return projectService.createProject(projectSyncModel.createProjectRequest());
     }
 }

@@ -85,23 +85,14 @@ public class BlackDuckConnection {
         needsUpdate = true;
     }
 
-    public BlackDuckServicesFactory getBlackDuckServicesFactory() throws IntegrationException {
+    public BlackDuckServicesFactory getBlackDuckServicesFactory() {
         if (needsUpdate || blackDuckServicesFactory == null) {
             logger.debug("Getting updated blackDuckServicesFactory");
             final IntLogger intLogger = new Slf4jIntLogger(logger);
-            final BlackDuckHttpClient restConnection = getBlackDuckRestConnection(intLogger);
-            blackDuckServicesFactory = new BlackDuckServicesFactory(new IntEnvironmentVariables(), BlackDuckServicesFactory.createDefaultGson(), BlackDuckServicesFactory.createDefaultObjectMapper(),
-                Executors.newSingleThreadExecutor(), restConnection, intLogger);
+            blackDuckServicesFactory = blackDuckServerConfig.createBlackDuckServicesFactory(intLogger);
         }
 
         return blackDuckServicesFactory;
     }
 
-    public BlackDuckHttpClient getBlackDuckRestConnection(final IntLogger intLogger) throws IntegrationException {
-        if (needsUpdate || blackDuckHttpClient == null) {
-            blackDuckHttpClient = getBlackDuckServerConfig().createBlackDuckHttpClient(intLogger);
-        }
-
-        return blackDuckHttpClient;
-    }
 }
