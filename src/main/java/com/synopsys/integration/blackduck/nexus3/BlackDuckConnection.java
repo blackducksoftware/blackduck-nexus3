@@ -50,7 +50,6 @@ public class BlackDuckConnection {
     private boolean needsUpdate;
     private BlackDuckServerConfig blackDuckServerConfig;
     private BlackDuckServicesFactory blackDuckServicesFactory;
-    private BlackDuckHttpClient blackDuckHttpClient;
 
     @Inject
     public BlackDuckConnection(final BlackDuckCapabilityFinder blackDuckCapabilityFinder) {
@@ -85,11 +84,11 @@ public class BlackDuckConnection {
         needsUpdate = true;
     }
 
-    public BlackDuckServicesFactory getBlackDuckServicesFactory() {
+    public BlackDuckServicesFactory getBlackDuckServicesFactory() throws IntegrationException {
         if (needsUpdate || blackDuckServicesFactory == null) {
             logger.debug("Getting updated blackDuckServicesFactory");
             final IntLogger intLogger = new Slf4jIntLogger(logger);
-            blackDuckServicesFactory = blackDuckServerConfig.createBlackDuckServicesFactory(intLogger);
+            blackDuckServicesFactory = getBlackDuckServerConfig().createBlackDuckServicesFactory(intLogger);
         }
 
         return blackDuckServicesFactory;
