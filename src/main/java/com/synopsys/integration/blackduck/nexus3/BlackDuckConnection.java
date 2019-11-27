@@ -88,10 +88,7 @@ public class BlackDuckConnection {
         if (needsUpdate || blackDuckServicesFactory == null) {
             logger.debug("Getting updated blackDuckServicesFactory");
             final IntLogger intLogger = new Slf4jIntLogger(logger);
-            if(blackDuckServerConfig == null){
-                throw new IntegrationException("The Black Duck configuration is null. Please check that the Black Duck capability has been configured.");
-            }
-            blackDuckServicesFactory = blackDuckServerConfig.createBlackDuckServicesFactory(intLogger);
+            blackDuckServicesFactory = getBlackDuckServerConfig().createBlackDuckServicesFactory(intLogger);
         }
 
         return blackDuckServicesFactory;
