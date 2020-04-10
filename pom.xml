@@ -73,6 +73,30 @@
         </profile>
     </profiles>
 
+    <repositories>
+    <repository>
+      <id>maven-central</id>
+      <url>https://repo.maven.apache.org/maven2/</url>
+    </repository>
+    <repository>
+      <id>bds-artifactory</id>
+      <url>https://sig-repo.synopsys.com/bds-integrations-release</url>
+    </repository>
+    <repository>
+      <snapshots>
+        <updatePolicy>always</updatePolicy>
+      </snapshots>
+      <id>ha-bds-artifactory</id>
+      <url>https://sig-repo.synopsys.com/bds-integrations-snapshot</url>
+    </repository>
+  </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>maven-central</id>
+      <url>https://repo.maven.apache.org/maven2/</url>
+    </pluginRepository>
+  </pluginRepositories>
+
     <properties>
         <skipITTests>true</skipITTests>
         <nexusVersion>3.13.0-01</nexusVersion>
