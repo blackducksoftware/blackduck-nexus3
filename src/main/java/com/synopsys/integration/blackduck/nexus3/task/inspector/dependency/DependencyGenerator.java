@@ -49,30 +49,30 @@ public class DependencyGenerator {
         externalIdFactory = new ExternalIdFactory();
     }
 
-    public Optional<DependencyType> findDependency(final String formatName) {
+    public Optional<DependencyType> findDependency(String formatName) {
         return Arrays.stream(DependencyType.values())
                    .filter(dependencyType -> dependencyType.getRepositoryType().equals(formatName))
                    .findFirst();
     }
 
-    public Dependency createDependency(final DependencyType dependencyType, final String name, final String version, final NestedAttributesMap attributesMap) {
-        final ExternalId externalId = createExternalId(dependencyType, name, version, attributesMap);
+    public Dependency createDependency(DependencyType dependencyType, String name, String version, NestedAttributesMap attributesMap) {
+        ExternalId externalId = createExternalId(dependencyType, name, version, attributesMap);
         return createDependency(name, version, externalId);
     }
 
-    public Dependency createDependency(final String name, final String version, ExternalId externalId) {
+    public Dependency createDependency(String name, String version, ExternalId externalId) {
         return new Dependency(name, version, externalId);
     }
 
-    public ExternalId createExternalId(final DependencyType dependencyType, final String name, final String version, final NestedAttributesMap attributesMap) {
-        if (DependencyType.maven == dependencyType) {
-            final String group = attributesMap.child("maven2").get("groupId", String.class);
-            final ExternalId mavenExternalId = externalIdFactory.createMavenExternalId(group, name, version);
+    public ExternalId createExternalId(DependencyType dependencyType, String name, String version, NestedAttributesMap attributesMap) {
+        if (DependencyType.MAVEN == dependencyType) {
+            String group = attributesMap.child("maven2").get("groupId", String.class);
+            ExternalId mavenExternalId = externalIdFactory.createMavenExternalId(group, name, version);
             logger.debug("Created externalId of: {}", mavenExternalId);
             return mavenExternalId;
         }
 
-        final ExternalId externalId = externalIdFactory.createNameVersionExternalId(dependencyType.getForge(), name, version);
+        ExternalId externalId = externalIdFactory.createNameVersionExternalId(dependencyType.getForge(), name, version);
         logger.debug("Created externalId of: {}", externalId);
         return externalId;
     }

@@ -51,14 +51,13 @@ public class InspectorTaskDescriptor extends TaskDescriptorSupport {
     }
 
     public static FormField[] getFields() {
-        final FormField[] fields = {
+        return new FormField[] {
             CommonDescriptorHelper.getRepositoryField(ProxyType.NAME, GroupType.NAME),
             CommonDescriptorHelper.getRepositoryPathField(),
             CommonDescriptorHelper.getFilePatternField().withInitialValue(DEFAULT_FILE_PATTERNS_MATCHES),
             CommonDescriptorHelper.getWorkingDirectoryField(),
             CommonDescriptorHelper.getAssetCutoffDateField()
         };
-        return fields;
     }
 
 }

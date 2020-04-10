@@ -64,6 +64,8 @@ import com.synopsys.integration.phonehome.PhoneHomeResponse;
 
 @Named
 public class MetaDataTask extends RepositoryTaskSupport {
+    private static final String BLACK_DUCK_COMMUNICATION_FORMAT = "Problem communicating with Black Duck: {}";
+    private static final String METADATA_CHECK_ERROR = "Problem checking metadata: ";
     private final Logger logger = createLogger();
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
     private final QueryManager queryManager;
@@ -74,8 +76,8 @@ public class MetaDataTask extends RepositoryTaskSupport {
     private final CommonTaskFilters commonTaskFilters;
 
     @Inject
-    public MetaDataTask(final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final QueryManager queryManager, final CommonMetaDataProcessor commonMetaDataProcessor, final InspectorMetaDataProcessor inspectorMetaDataProcessor,
-        final ScanMetaDataProcessor scanMetaDataProcessor, final DateTimeParser dateTimeParser, final CommonTaskFilters commonTaskFilters) {
+    public MetaDataTask(CommonRepositoryTaskHelper commonRepositoryTaskHelper, QueryManager queryManager, CommonMetaDataProcessor commonMetaDataProcessor, InspectorMetaDataProcessor inspectorMetaDataProcessor,
+        ScanMetaDataProcessor scanMetaDataProcessor, DateTimeParser dateTimeParser, CommonTaskFilters commonTaskFilters) {
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
         this.queryManager = queryManager;
         this.commonMetaDataProcessor = commonMetaDataProcessor;
@@ -86,7 +88,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
     }
 
     @Override
-    protected void execute(final Repository repository) {
+    protected void execute(Repository repository) {
         String exceptionMessage = null;
         String blackDuckUrl = null;
         CodeLocationCreationService codeLocationCreationService = null;
@@ -95,70 +97,70 @@ public class MetaDataTask extends RepositoryTaskSupport {
         Optional<PhoneHomeResponse> phoneHomeResponse = Optional.empty();
         try {
             blackDuckUrl = commonRepositoryTaskHelper.getBlackDuckServerConfig().getBlackDuckUrl().toString();
-            final BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
+            BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
             codeLocationCreationService = blackDuckServicesFactory.createCodeLocationCreationService();
             blackDuckService = blackDuckServicesFactory.createBlackDuckService();
             projectService = blackDuckServicesFactory.createProjectService();
             phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(MetaDataTaskDescriptor.BLACK_DUCK_META_DATA_TASK_ID);
-        } catch (final IntegrationException | IllegalStateException e) {
+        } catch (IntegrationException | IllegalStateException e) {
             logger.error("Black Duck hub server config invalid. " + e.getMessage(), e);
             exceptionMessage = e.getMessage();
         }
-        for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
-            final String repoName = foundRepository.getName();
-            final boolean isProxyRepo = commonTaskFilters.isProxyRepository(foundRepository.getType());
+        for (Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
+            String repoName = foundRepository.getName();
+            boolean isProxyRepo = commonTaskFilters.isProxyRepository(foundRepository.getType());
             logger.info("Checking repository for assets: {}", repoName);
 
-            final AssetPanelLabel assetStatusLabel;
+            AssetPanelLabel assetStatusLabel;
             if (isProxyRepo) {
                 assetStatusLabel = AssetPanelLabel.INSPECTION_TASK_STATUS;
             } else {
                 assetStatusLabel = AssetPanelLabel.SCAN_TASK_STATUS;
             }
 
-            final Query filteredAssets = createFilteredQuery(assetStatusLabel, Optional.empty());
+            Query filteredAssets = createFilteredQuery(assetStatusLabel, Optional.empty());
             PagedResult<Asset> pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, filteredAssets);
-            final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
-            final Map<String, AssetWrapper> assetWrapperToWaitFor = new HashMap<>();
+            Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
+            Map<String, AssetWrapper> assetWrapperToWaitFor = new HashMap<>();
             while (pagedAssets.hasResults()) {
                 logger.debug("Found items in the DB.");
-                for (final Asset asset : pagedAssets.getTypeList()) {
-                    final AssetWrapper assetWrapper = AssetWrapper.createAssetWrapper(asset, foundRepository, queryManager, assetStatusLabel);
+                for (Asset asset : pagedAssets.getTypeList()) {
+                    AssetWrapper assetWrapper = AssetWrapper.createAssetWrapper(asset, foundRepository, queryManager, assetStatusLabel);
                     if (StringUtils.isNotBlank(exceptionMessage)) {
                         commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
                         assetWrapper.updateAsset();
                     } else {
-                        final String name = assetWrapper.getName();
+                        String name = assetWrapper.getName();
                         logger.info("Updating metadata for {}", name);
                         try {
                             if (!isProxyRepo) {
-                                final String assetBlackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
-                                final TaskStatus status = assetWrapper.getBlackDuckStatus();
-                                final String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
-                                final DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
-                                final String version = assetWrapper.getVersion();
+                                String assetBlackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
+                                TaskStatus status = assetWrapper.getBlackDuckStatus();
+                                String lastProcessedString = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME);
+                                DateTime lastProcessed = dateTimeParser.convertFromStringToDate(lastProcessedString);
+                                String version = assetWrapper.getVersion();
 
                                 if (StringUtils.isBlank(assetBlackDuckUrl) && isPendingOrComponentNotFoundForDay(status, lastProcessed)) {
-                                    final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
+                                    String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
                                     logger.info("Re-checking code location {}", codeLocationName);
                                     assetWrapperToWaitFor.put(codeLocationName, assetWrapper);
                                 } else {
                                     if (null != projectService && null != blackDuckService) {
-                                        final ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, name, version);
+                                        ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, name, version);
                                         logger.info("Updating data of hosted repository.");
                                         scanMetaDataProcessor.updateRepositoryMetaData(blackDuckService, assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
                                     }
                                 }
                             } else {
-                                final String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
+                                String originId = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID);
                                 assetWrapperMap.put(originId, assetWrapper);
                             }
-                        } catch (final BlackDuckApiException e) {
+                        } catch (BlackDuckApiException e) {
                             updateAssetWrapperWithError(assetWrapper, e.getMessage());
-                            logger.error("Problem communicating with Black Duck: {}", e.getMessage());
-                        } catch (final IntegrationException e) {
+                            logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+                        } catch (IntegrationException e) {
                             updateAssetWrapperWithError(assetWrapper, e.getMessage());
-                            throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
+                            throw new TaskInterruptedException(METADATA_CHECK_ERROR + e.getMessage(), true);
                         }
                     }
                 }
@@ -166,24 +168,24 @@ public class MetaDataTask extends RepositoryTaskSupport {
                     updatePendingScanAssets(assetWrapperToWaitFor, codeLocationCreationService, projectService, blackDuckService);
                 }
 
-                final Query nextPage = createFilteredQuery(assetStatusLabel, pagedAssets.getLastName());
+                Query nextPage = createFilteredQuery(assetStatusLabel, pagedAssets.getLastName());
                 pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
             }
 
             if (isProxyRepo && null != projectService && null != blackDuckService) {
                 logger.info("Updating data of proxy repository.");
                 try {
-                    final ProjectVersionView projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName);
+                    ProjectVersionView projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName);
                     inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
-                } catch (final BlackDuckApiException e) {
-                    for (final Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
+                } catch (BlackDuckApiException e) {
+                    for (Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
                         updateAssetWrapperWithError(entry.getValue(), e.getMessage());
-                        logger.error("Problem communicating with Black Duck: {}", e.getMessage());
+                        logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
                     }
-                } catch (final IntegrationException e) {
-                    for (final Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
+                } catch (IntegrationException e) {
+                    for (Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
                         updateAssetWrapperWithError(entry.getValue(), String.format("Problem retrieving the project %s from Hub: %s", repoName, e.getMessage()));
-                        logger.error("Problem communicating with Black Duck: {}", e.getMessage());
+                        logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
                     }
                     throw new TaskInterruptedException("Problem retrieving project from Hub: " + e.getMessage(), true);
                 }
@@ -196,7 +198,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
         }
     }
 
-    private void updatePendingScanAssets(final Map<String, AssetWrapper> assetWrapperToWaitFor, final CodeLocationCreationService codeLocationCreationService, final ProjectService projectService, final BlackDuckService blackDuckService) {
+    private void updatePendingScanAssets(Map<String, AssetWrapper> assetWrapperToWaitFor, CodeLocationCreationService codeLocationCreationService, ProjectService projectService, BlackDuckService blackDuckService) {
         NotificationTaskRange notificationTaskRange = null;
         CodeLocationWaitResult codeLocationWaitResult = null;
         String errorMessage = null;
@@ -204,63 +206,64 @@ public class MetaDataTask extends RepositoryTaskSupport {
         try {
             timeout = commonRepositoryTaskHelper.getBlackDuckServerConfig().getTimeout() * 5;
             notificationTaskRange = codeLocationCreationService.calculateCodeLocationRange();
-            final Set<String> codeLocationNames = assetWrapperToWaitFor.keySet();
+            Set<String> codeLocationNames = assetWrapperToWaitFor.keySet();
             codeLocationWaitResult = codeLocationCreationService.waitForCodeLocations(notificationTaskRange, codeLocationNames, codeLocationNames.size(), timeout);
-        } catch (final InterruptedException e) {
+        } catch (InterruptedException e) {
             errorMessage = "Waiting for the scan to complete was interrupted: " + e.getMessage();
-            logger.error("Problem communicating with Black Duck: {}", errorMessage);
-        } catch (final BlackDuckApiException e) {
+            logger.error(errorMessage);
+            Thread.currentThread().interrupt();
+        } catch (BlackDuckApiException e) {
             errorMessage = e.getMessage();
-            logger.error("Problem communicating with Black Duck: {}", errorMessage);
-        } catch (final IntegrationException e) {
+            logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, errorMessage);
+        } catch (IntegrationException e) {
             errorMessage = e.getMessage();
-            throw new TaskInterruptedException("Problem checking metadata: " + errorMessage, true);
+            throw new TaskInterruptedException(METADATA_CHECK_ERROR + errorMessage, true);
         }
-        for (final Map.Entry<String, AssetWrapper> entry : assetWrapperToWaitFor.entrySet()) {
-            final String codeLocationName = entry.getKey();
-            final AssetWrapper assetWrapper = entry.getValue();
+        for (Map.Entry<String, AssetWrapper> entry : assetWrapperToWaitFor.entrySet()) {
+            String codeLocationName = entry.getKey();
+            AssetWrapper assetWrapper = entry.getValue();
 
+            if (StringUtils.isBlank(errorMessage) && null != codeLocationWaitResult && !codeLocationWaitResult.getCodeLocationNames().contains(codeLocationName)) {
+                errorMessage = String.format("The Black Duck server did not update this project within %s seconds", timeout);
+            }
             if (StringUtils.isNotBlank(errorMessage)) {
                 updateAssetWrapperWithError(assetWrapper, errorMessage);
                 continue;
-            } else if (!codeLocationWaitResult.getCodeLocationNames().contains(codeLocationName)) {
-                updateAssetWrapperWithError(assetWrapper, String.format("The Black Duck server did not update this project within %s seconds", timeout));
-                continue;
             }
-            final String name = assetWrapper.getName();
-            final String version = assetWrapper.getVersion();
-            final String assetBlackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
+            String name = assetWrapper.getName();
+            String version = assetWrapper.getVersion();
+            String assetBlackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
             try {
-                final ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, name, version);
+                ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, name, version);
                 scanMetaDataProcessor.updateRepositoryMetaData(blackDuckService, assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
-            } catch (final BlackDuckApiException e) {
+            } catch (BlackDuckApiException e) {
                 updateAssetWrapperWithError(assetWrapper, e.getMessage());
-                logger.error("Problem communicating with Black Duck: {}", e.getMessage());
-            } catch (final IntegrationException e) {
+                logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+            } catch (IntegrationException e) {
                 updateAssetWrapperWithError(assetWrapper, e.getMessage());
-                throw new TaskInterruptedException("Problem checking metadata: " + e.getMessage(), true);
+                throw new TaskInterruptedException(METADATA_CHECK_ERROR + e.getMessage(), true);
             }
         }
 
     }
 
-    private void updateAssetWrapperWithError(final AssetWrapper assetWrapper, final String message) {
+    private void updateAssetWrapperWithError(AssetWrapper assetWrapper, String message) {
         commonMetaDataProcessor.removeAllMetaData(assetWrapper);
         assetWrapper.addFailureToBlackDuckPanel(message);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
         assetWrapper.updateAsset();
     }
 
-    private Query createFilteredQuery(final AssetPanelLabel statusLabel, final Optional<String> lastNameUsed) {
-        final Query.Builder pagedQueryBuilder = commonRepositoryTaskHelper.createPagedQuery(lastNameUsed);
-        final String statusPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(statusLabel);
-        final String oldStatusPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(AssetPanelLabel.OLD_STATUS);
+    private Query createFilteredQuery(AssetPanelLabel statusLabel, Optional<String> lastNameUsed) {
+        Query.Builder pagedQueryBuilder = commonRepositoryTaskHelper.createPagedQuery(lastNameUsed);
+        String statusPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(statusLabel);
+        String oldStatusPath = commonRepositoryTaskHelper.getBlackDuckPanelPath(AssetPanelLabel.OLD_STATUS);
         pagedQueryBuilder.and(statusWhereStatement(statusPath)).or(statusWhereStatement(oldStatusPath));
         return pagedQueryBuilder.build();
     }
 
-    private String statusWhereStatement(final String blackDuckDbPath) {
-        final StringBuilder statusWhere = new StringBuilder();
+    private String statusWhereStatement(String blackDuckDbPath) {
+        StringBuilder statusWhere = new StringBuilder();
 
         statusWhere.append("(");
         statusWhere.append(createEqualsStatement(blackDuckDbPath, TaskStatus.SUCCESS.name()));
@@ -273,8 +276,8 @@ public class MetaDataTask extends RepositoryTaskSupport {
         return statusWhere.toString();
     }
 
-    private String createEqualsStatement(final String object, final String value) {
-        final StringBuilder equalsStatement = new StringBuilder();
+    private String createEqualsStatement(String object, String value) {
+        StringBuilder equalsStatement = new StringBuilder();
         equalsStatement.append(object);
         equalsStatement.append(" = '");
         equalsStatement.append(value);
@@ -282,10 +285,10 @@ public class MetaDataTask extends RepositoryTaskSupport {
         return equalsStatement.toString();
     }
 
-    private boolean isPendingOrComponentNotFoundForDay(final TaskStatus status, final DateTime lastProcessed) {
+    private boolean isPendingOrComponentNotFoundForDay(TaskStatus status, DateTime lastProcessed) {
         if (TaskStatus.PENDING.equals(status) || TaskStatus.COMPONENT_NOT_FOUND.equals(status)) {
-            final String timeNow = dateTimeParser.getCurrentDateTime();
-            final DateTime now = dateTimeParser.convertFromStringToDate(timeNow);
+            String timeNow = dateTimeParser.getCurrentDateTime();
+            DateTime now = dateTimeParser.convertFromStringToDate(timeNow);
             return now.isAfter(lastProcessed.plusDays(1));
         }
 
@@ -293,8 +296,8 @@ public class MetaDataTask extends RepositoryTaskSupport {
     }
 
     @Override
-    protected boolean appliesTo(final Repository repository) {
-        return commonRepositoryTaskHelper.doesRepositoryApply(repository, getRepositoryField());
+    protected boolean appliesTo(Repository repository) {
+        return commonTaskFilters.doesRepositoryApply(repository, getRepositoryField());
     }
 
     @Override

@@ -68,7 +68,7 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
     }
 
     public static FormField[] getFields() {
-        final FormField[] fields = {
+        return new FormField[] {
             CommonDescriptorHelper.getRepositoryField(HostedType.NAME, GroupType.NAME),
             CommonDescriptorHelper.getRepositoryPathField(),
             CommonDescriptorHelper.getFilePatternField().withInitialValue(DEFAULT_FILE_PATTERNS_MATCHES),
@@ -78,7 +78,6 @@ public class ScanTaskDescriptor extends TaskDescriptorSupport {
             FIELD_RESCAN_FAILURE,
             CommonDescriptorHelper.getAssetCutoffDateField()
         };
-        return fields;
     }
 
 }

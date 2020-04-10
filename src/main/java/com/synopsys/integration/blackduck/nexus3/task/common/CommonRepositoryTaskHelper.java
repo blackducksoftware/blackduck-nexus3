@@ -34,7 +34,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.apache.commons.lang3.StringUtils;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
@@ -65,18 +64,13 @@ public class CommonRepositoryTaskHelper {
     private final BlackDuckConnection blackDuckConnection;
 
     @Inject
-    public CommonRepositoryTaskHelper(final QueryManager queryManager, final DateTimeParser dateTimeParser, final BlackDuckConnection blackDuckConnection) {
+    public CommonRepositoryTaskHelper(QueryManager queryManager, DateTimeParser dateTimeParser, BlackDuckConnection blackDuckConnection) {
         this.queryManager = queryManager;
         this.dateTimeParser = dateTimeParser;
         this.blackDuckConnection = blackDuckConnection;
     }
 
-    // TODO move this to the filter class
-    public boolean doesRepositoryApply(final Repository repository, final String repositoryField) {
-        return repository.getName().equals(repositoryField);
-    }
-
-    public String getTaskMessage(final String taskName, final String repositoryField) {
+    public String getTaskMessage(String taskName, String repositoryField) {
         return String.format("Running %s for repository %s: ", taskName, repositoryField);
     }
 
@@ -92,21 +86,21 @@ public class CommonRepositoryTaskHelper {
         return blackDuckConnection.getBlackDuckServicesFactory();
     }
 
-    public void failedConnection(final AssetWrapper assetWrapper, final String exceptionMessage) {
+    public void failedConnection(AssetWrapper assetWrapper, String exceptionMessage) {
         assetWrapper.removeAllBlackDuckData();
         assetWrapper.addFailureToBlackDuckPanel("Error connecting to Black Duck. " + exceptionMessage);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
     }
 
-    public Optional<PhoneHomeResponse> phoneHome(final String taskName) {
-        final PhoneHome phoneHome = new PhoneHome(blackDuckConnection);
-        final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    public Optional<PhoneHomeResponse> phoneHome(String taskName) {
+        PhoneHome phoneHome = new PhoneHome(blackDuckConnection);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
-            final BlackDuckPhoneHomeHelper blackDuckPhoneHomeHelper = phoneHome.createBlackDuckPhoneHomeHelper(executorService);
+            BlackDuckPhoneHomeHelper blackDuckPhoneHomeHelper = phoneHome.createBlackDuckPhoneHomeHelper(executorService);
             logger.debug("Sending phone home data.");
-            final PhoneHomeResponse response = phoneHome.sendDataHome(taskName, blackDuckPhoneHomeHelper);
+            PhoneHomeResponse response = phoneHome.sendDataHome(taskName, blackDuckPhoneHomeHelper);
             return Optional.of(response);
-        } catch (final Exception e) {
+        } catch (Exception e) {
             logger.debug("There was an error communicating with Black Duck while phoning home.");
             logger.debug(e.getMessage(), e);
         } finally {
@@ -115,7 +109,7 @@ public class CommonRepositoryTaskHelper {
         return Optional.empty();
     }
 
-    public void endPhoneHome(final PhoneHomeResponse phoneHomeResponse) {
+    public void endPhoneHome(PhoneHomeResponse phoneHomeResponse) {
         if (phoneHomeResponse.getImmediateResult()) {
             logger.debug("Phone home was successful.");
         } else {
@@ -123,34 +117,21 @@ public class CommonRepositoryTaskHelper {
         }
     }
 
-    public String getRepositoryPath(final TaskConfiguration taskConfiguration) {
-        return taskConfiguration.getString(CommonTaskKeys.REPOSITORY_PATH.getParameterKey());
-    }
-
-    public String getFileExtensionPatterns(final TaskConfiguration taskConfiguration) {
-        return taskConfiguration.getString(CommonTaskKeys.FILE_PATTERNS.getParameterKey());
-    }
-
-    public DateTime getAssetCutoffDateTime(final TaskConfiguration taskConfiguration) {
-        final String assetCutoffString = taskConfiguration.getString(CommonTaskKeys.OLD_ASSET_CUTOFF.getParameterKey());
-        return dateTimeParser.convertFromStringToDate(assetCutoffString);
-    }
-
-    public File getWorkingDirectory(final TaskConfiguration taskConfiguration) {
-        final String directoryName = taskConfiguration.getString(CommonTaskKeys.WORKING_DIRECTORY.getParameterKey());
+    public File getWorkingDirectory(TaskConfiguration taskConfiguration) {
+        String directoryName = taskConfiguration.getString(CommonTaskKeys.WORKING_DIRECTORY.getParameterKey());
         if (StringUtils.isBlank(directoryName)) {
             return new File(CommonDescriptorHelper.DEFAULT_WORKING_DIRECTORY);
         }
         return new File(directoryName);
     }
 
-    public String getBlackDuckPanelPath(final AssetPanelLabel assetPanelLabel) {
+    public String getBlackDuckPanelPath(AssetPanelLabel assetPanelLabel) {
         final String dbXmlPath = "attributes." + AssetPanel.BLACKDUCK_CATEGORY + ".";
         return dbXmlPath + assetPanelLabel.getLabel();
     }
 
-    public Query.Builder createPagedQuery(final Optional<String> lastNameUsed) {
-        final Query.Builder pagedQueryBuilder = Query.builder();
+    public Query.Builder createPagedQuery(Optional<String> lastNameUsed) {
+        Query.Builder pagedQueryBuilder = Query.builder();
         pagedQueryBuilder.where("component").isNotNull();
         if (lastNameUsed.isPresent()) {
             pagedQueryBuilder.and("name > ").param(lastNameUsed.get());
@@ -160,10 +141,10 @@ public class CommonRepositoryTaskHelper {
         return pagedQueryBuilder;
     }
 
-    public PagedResult<Asset> retrievePagedAssets(final Repository repository, final Query filteredQuery) {
+    public PagedResult<Asset> retrievePagedAssets(Repository repository, Query filteredQuery) {
         logger.debug("Running where statement from asset table of: {}. With the parameters: {}. And suffix: {}", filteredQuery.getWhere(), filteredQuery.getParameters(), filteredQuery.getQuerySuffix());
-        final Iterable<Asset> filteredAssets = queryManager.findAssetsInRepository(repository, filteredQuery);
-        final Optional<Asset> lastReturnedAsset = StreamSupport.stream(filteredAssets.spliterator(), true).reduce((first, second) -> second);
+        Iterable<Asset> filteredAssets = queryManager.findAssetsInRepository(repository, filteredQuery);
+        Optional<Asset> lastReturnedAsset = StreamSupport.stream(filteredAssets.spliterator(), true).reduce((first, second) -> second);
         Optional<String> name = Optional.empty();
         if (lastReturnedAsset.isPresent()) {
             name = Optional.of(lastReturnedAsset.get().name());

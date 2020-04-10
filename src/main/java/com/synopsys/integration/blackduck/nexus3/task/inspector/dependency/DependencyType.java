@@ -26,18 +26,18 @@ package com.synopsys.integration.blackduck.nexus3.task.inspector.dependency;
 import com.synopsys.integration.bdio.model.Forge;
 
 public enum DependencyType {
-    bower(Forge.BOWER, "bower"),
-    maven(Forge.MAVEN, "maven2"),
-    npm(Forge.NPMJS, "npm"),
-    nuget(Forge.NUGET, "nuget"),
-    pypi(Forge.PYPI, "pypi"),
-    rubygems(Forge.RUBYGEMS, "rubygems"),
-    yum(DependencyGenerator.YUM_FORGE, "yum");
+    BOWER(Forge.BOWER, "bower"),
+    MAVEN(Forge.MAVEN, "maven2"),
+    NPM(Forge.NPMJS, "npm"),
+    NUGET(Forge.NUGET, "nuget"),
+    PYPI(Forge.PYPI, "pypi"),
+    RUBYGEMS(Forge.RUBYGEMS, "rubygems"),
+    YUM(DependencyGenerator.YUM_FORGE, "yum");
 
     private final Forge dependencyForge;
     private final String repositoryType;
 
-    DependencyType(final Forge forge, final String repositoryType) {
+    DependencyType(Forge forge, String repositoryType) {
         dependencyForge = forge;
         this.repositoryType = repositoryType;
     }

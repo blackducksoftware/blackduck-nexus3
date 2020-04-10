@@ -15,6 +15,7 @@ import org.sonatype.goodies.testsupport.TestSupport;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.Type;
 import org.sonatype.nexus.repository.group.GroupFacet;
+import org.sonatype.nexus.scheduling.TaskConfiguration;
 
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
@@ -36,7 +37,7 @@ public class CommonTaskFiltersTest extends TestSupport {
 
     @Test
     public void doesExtensionMatchTest() {
-        final CommonTaskFilters commonRepositoryTaskHelper = new CommonTaskFilters(null, null, null, null, null);
+        CommonTaskFilters commonRepositoryTaskHelper = new CommonTaskFilters(null, null, null, null);
 
         final String filenameSuccess1 = "test.zip";
         final String filenameSuccess2 = "test.brb";
@@ -44,9 +45,9 @@ public class CommonTaskFiltersTest extends TestSupport {
 
         final String allowedExtensions = "*.zip, *.brb";
 
-        final boolean success1 = commonRepositoryTaskHelper.doesExtensionMatch(filenameSuccess1, allowedExtensions);
-        final boolean success2 = commonRepositoryTaskHelper.doesExtensionMatch(filenameSuccess2, allowedExtensions);
-        final boolean failed = commonRepositoryTaskHelper.doesExtensionMatch(filenameFailed, allowedExtensions);
+        boolean success1 = commonRepositoryTaskHelper.doesExtensionMatch(filenameSuccess1, allowedExtensions);
+        boolean success2 = commonRepositoryTaskHelper.doesExtensionMatch(filenameSuccess2, allowedExtensions);
+        boolean failed = commonRepositoryTaskHelper.doesExtensionMatch(filenameFailed, allowedExtensions);
 
         assertTrue(success1);
         assertTrue(success2);
@@ -55,7 +56,7 @@ public class CommonTaskFiltersTest extends TestSupport {
 
     @Test
     public void doesRepositoryPathMatchTest() {
-        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null, null, null, null);
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null, null, null);
 
         final String assetPath = "org/test/path/mything.jar";
         final String workingRegexPattern = "org\\/.*";
@@ -68,13 +69,74 @@ public class CommonTaskFiltersTest extends TestSupport {
     }
 
     @Test
-    public void isAssetTooOldTest() {
-        final DateTimeParser dateTimeParser = new DateTimeParser();
-        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, dateTimeParser, null, null, null);
+    public void getRepositoryPathTest() {
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null, null, null);
+        TaskConfiguration taskConfiguration = new TaskConfiguration();
 
-        final DateTime now = new DateTime();
-        final DateTime dayOlder = now.minusDays(1);
-        final DateTime dayNewer = now.plusDays(1);
+        String noValueFound = commonTaskFilters.getRepositoryPath(taskConfiguration);
+        Assert.assertNull(noValueFound);
+
+        final String testValue = "testValue";
+        taskConfiguration.setString(CommonTaskKeys.REPOSITORY_PATH.getParameterKey(), testValue);
+
+        String foundValue = commonTaskFilters.getRepositoryPath(taskConfiguration);
+        Assert.assertEquals(testValue, foundValue);
+    }
+
+    @Test
+    public void getFileExtensionsPathTest() {
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null, null, null);
+        TaskConfiguration taskConfiguration = new TaskConfiguration();
+
+        String noValueFound = commonTaskFilters.getFileExtensionPatterns(taskConfiguration);
+        Assert.assertNull(noValueFound);
+
+        final String testValue = "testValue";
+        taskConfiguration.setString(CommonTaskKeys.FILE_PATTERNS.getParameterKey(), testValue);
+
+        String foundValue = commonTaskFilters.getFileExtensionPatterns(taskConfiguration);
+        Assert.assertEquals(testValue, foundValue);
+    }
+
+    @Test
+    public void getAssetCutoffDateTimeTest() {
+        DateTimeParser dateTimeParser = new DateTimeParser();
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(dateTimeParser, null, null, null);
+        TaskConfiguration taskConfiguration = new TaskConfiguration();
+
+        DateTime noValueFound = commonTaskFilters.getAssetCutoffDateTime(taskConfiguration);
+        Assert.assertNull(noValueFound);
+
+        DateTime testValue = new DateTime();
+        taskConfiguration.setString(CommonTaskKeys.OLD_ASSET_CUTOFF.getParameterKey(), testValue.toString(DateTimeParser.DATE_TIME_PATTERN));
+
+        DateTime foundValue = commonTaskFilters.getAssetCutoffDateTime(taskConfiguration);
+        Assert.assertEquals(testValue.toString(DateTimeParser.DATE_TIME_PATTERN), foundValue.toString(DateTimeParser.DATE_TIME_PATTERN));
+    }
+
+    @Test
+    public void doesRepositoryApplyTest() {
+        Repository repository = Mockito.mock(Repository.class);
+        final String repoName = "testRepo";
+        Mockito.when(repository.getName()).thenReturn(repoName);
+
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null, null, null);
+
+        boolean repoApplies = commonTaskFilters.doesRepositoryApply(repository, repoName);
+        boolean repoDoesNotApply = commonTaskFilters.doesRepositoryApply(repository, "wrongName");
+
+        Assert.assertTrue(repoApplies);
+        Assert.assertFalse(repoDoesNotApply);
+    }
+
+    @Test
+    public void isAssetTooOldTest() {
+        DateTimeParser dateTimeParser = new DateTimeParser();
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(dateTimeParser, null, null, null);
+
+        DateTime now = new DateTime();
+        DateTime dayOlder = now.minusDays(1);
+        DateTime dayNewer = now.plusDays(1);
 
         Assert.assertTrue(commonTaskFilters.isAssetTooOld(now, dayOlder));
         Assert.assertFalse(commonTaskFilters.isAssetTooOld(now, dayNewer));
@@ -82,38 +144,38 @@ public class CommonTaskFiltersTest extends TestSupport {
 
     @Test
     public void hasAssetBeenModifiedTest() {
-        final DateTimeParser dateTimeParser = new DateTimeParser();
-        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, dateTimeParser, null, null, null);
+        DateTimeParser dateTimeParser = new DateTimeParser();
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(dateTimeParser, null, null, null);
 
-        final DateTime now = new DateTime();
-        final DateTime dayOlder = now.minusDays(1);
-        final DateTime dayNewer = now.plusDays(1);
+        DateTime now = new DateTime();
+        DateTime dayOlder = now.minusDays(1);
+        DateTime dayNewer = now.plusDays(1);
 
-        final AssetWrapper assetWrapper = Mockito.mock(AssetWrapper.class);
+        AssetWrapper assetWrapper = Mockito.mock(AssetWrapper.class);
         Mockito.when(assetWrapper.getAssetLastUpdated()).thenReturn(dayOlder);
         Mockito.when(assetWrapper.getFromBlackDuckAssetPanel(Mockito.any())).thenReturn(dateTimeParser.convertFromDateToString(dayNewer));
 
-        final boolean isNotModified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
+        boolean isNotModified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
         Assert.assertFalse(isNotModified);
 
         Mockito.when(assetWrapper.getAssetLastUpdated()).thenReturn(dayNewer);
         Mockito.when(assetWrapper.getFromBlackDuckAssetPanel(Mockito.any())).thenReturn(dateTimeParser.convertFromDateToString(dayOlder));
 
-        final boolean isModified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
+        boolean isModified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
         Assert.assertTrue(isModified);
 
         Mockito.when(assetWrapper.getAssetLastUpdated()).thenReturn(dayNewer);
         Mockito.when(assetWrapper.getFromBlackDuckAssetPanel(Mockito.any())).thenReturn(null);
 
-        final boolean neverProcessed = commonTaskFilters.hasAssetBeenModified(assetWrapper);
+        boolean neverProcessed = commonTaskFilters.hasAssetBeenModified(assetWrapper);
         Assert.assertTrue(neverProcessed);
     }
 
     @Test
     public void isProxyRepositoryTest() {
-        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null, hostedType, proxyType, groupType);
-        final boolean isProxy = commonTaskFilters.isProxyRepository(proxyType);
-        final boolean isNotProxy = commonTaskFilters.isProxyRepository(groupType);
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, hostedType, proxyType, groupType);
+        boolean isProxy = commonTaskFilters.isProxyRepository(proxyType);
+        boolean isNotProxy = commonTaskFilters.isProxyRepository(groupType);
 
         Assert.assertTrue(isProxy);
         Assert.assertFalse(isNotProxy);
@@ -121,9 +183,9 @@ public class CommonTaskFiltersTest extends TestSupport {
 
     @Test
     public void isHostedRepositoryTest() {
-        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null, hostedType, proxyType, groupType);
-        final boolean isHosted = commonTaskFilters.isHostedRepository(hostedType);
-        final boolean isNotHosted = commonTaskFilters.isHostedRepository(groupType);
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, hostedType, proxyType, groupType);
+        boolean isHosted = commonTaskFilters.isHostedRepository(hostedType);
+        boolean isNotHosted = commonTaskFilters.isHostedRepository(groupType);
 
         Assert.assertTrue(isHosted);
         Assert.assertFalse(isNotHosted);
@@ -131,9 +193,9 @@ public class CommonTaskFiltersTest extends TestSupport {
 
     @Test
     public void isGroupRepositoryTest() {
-        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null, hostedType, proxyType, groupType);
-        final boolean isGroup = commonTaskFilters.isGroupRepository(groupType);
-        final boolean isNotGroup = commonTaskFilters.isGroupRepository(hostedType);
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, hostedType, proxyType, groupType);
+        boolean isGroup = commonTaskFilters.isGroupRepository(groupType);
+        boolean isNotGroup = commonTaskFilters.isGroupRepository(hostedType);
 
         Assert.assertTrue(isGroup);
         Assert.assertFalse(isNotGroup);
@@ -141,77 +203,80 @@ public class CommonTaskFiltersTest extends TestSupport {
 
     @Test
     public void findRelevantRepositoriesTest() {
-        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, null, hostedType, proxyType, groupType);
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(null, hostedType, proxyType, groupType);
 
-        final Repository repository = Mockito.mock(Repository.class);
+        Repository repository = Mockito.mock(Repository.class);
         Mockito.when(repository.getType()).thenReturn(hostedType);
 
-        final List<Repository> singleRepositoryReturned = commonTaskFilters.findRelevantRepositories(repository);
+        List<Repository> singleRepositoryReturned = commonTaskFilters.findRelevantRepositories(repository);
         Assert.assertEquals(1, singleRepositoryReturned.size());
 
-        final Repository firstRepository = Mockito.mock(Repository.class);
-        final Repository secondRepository = Mockito.mock(Repository.class);
+        Repository firstRepository = Mockito.mock(Repository.class);
+        Repository secondRepository = Mockito.mock(Repository.class);
 
         Mockito.when(repository.getType()).thenReturn(groupType);
         Mockito.when(repository.facet(Mockito.any())).thenReturn(groupFacet);
         Mockito.when(groupFacet.leafMembers()).thenReturn(Arrays.asList(firstRepository, secondRepository));
 
-        final List<Repository> multipleRepositories = commonTaskFilters.findRelevantRepositories(repository);
+        List<Repository> multipleRepositories = commonTaskFilters.findRelevantRepositories(repository);
         Assert.assertEquals(2, multipleRepositories.size());
     }
 
     @Test
     public void skipAssetProcessingRepositoryPathTest() throws IntegrationException {
-        final CommonRepositoryTaskHelper commonRepositoryTaskHelper = Mockito.mock(CommonRepositoryTaskHelper.class);
-        Mockito.when(commonRepositoryTaskHelper.getRepositoryPath(Mockito.any())).thenReturn("\\/badpath");
-        final DateTime assetCutoff = new DateTime().plusDays(1);
-        Mockito.when(commonRepositoryTaskHelper.getAssetCutoffDateTime(Mockito.any())).thenReturn(assetCutoff);
-        Mockito.when(commonRepositoryTaskHelper.getFileExtensionPatterns(Mockito.any())).thenReturn("*.jar");
+        TaskConfiguration taskConfiguration = Mockito.mock(TaskConfiguration.class);
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.REPOSITORY_PATH.getParameterKey()))).thenReturn("\\/badpath");
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.FILE_PATTERNS.getParameterKey()))).thenReturn("*.jar");
+        DateTimeParser dateTimeParser = new DateTimeParser();
+        DateTime assetCutoff = new DateTime().minusDays(1);
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.OLD_ASSET_CUTOFF.getParameterKey()))).thenReturn(dateTimeParser.convertFromDateToString(assetCutoff));
 
-        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(commonRepositoryTaskHelper, new DateTimeParser(), null, null, null);
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(dateTimeParser, null, null, null);
 
-        final boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff.plusDays(1), "path/to/object.jar", "object.jar", null);
+        boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff.plusDays(1), "path/to/object.jar", "object.jar", taskConfiguration);
         Assert.assertTrue(skipProcessing);
 
-        Mockito.when(commonRepositoryTaskHelper.getRepositoryPath(Mockito.any())).thenReturn("path\\/to\\/.*");
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.REPOSITORY_PATH.getParameterKey()))).thenReturn("path\\/to\\/.*");
 
-        final boolean matchingPath = commonTaskFilters.skipAssetProcessing(assetCutoff.plusDays(1), "path/to/object.jar", "object.jar", null);
+        boolean matchingPath = commonTaskFilters.skipAssetProcessing(assetCutoff.plusDays(1), "path/to/object.jar", "object.jar", taskConfiguration);
         Assert.assertFalse(matchingPath);
     }
 
     @Test
     public void skipAssetProcessingAssetCutoffTest() {
-        final CommonRepositoryTaskHelper commonRepositoryTaskHelper = Mockito.mock(CommonRepositoryTaskHelper.class);
-        Mockito.when(commonRepositoryTaskHelper.getRepositoryPath(Mockito.any())).thenReturn("");
-        final DateTime assetCutoff = new DateTime().minusDays(1);
-        Mockito.when(commonRepositoryTaskHelper.getAssetCutoffDateTime(Mockito.any())).thenReturn(assetCutoff);
-        Mockito.when(commonRepositoryTaskHelper.getFileExtensionPatterns(Mockito.any())).thenReturn("*.jar");
+        TaskConfiguration taskConfiguration = Mockito.mock(TaskConfiguration.class);
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.REPOSITORY_PATH.getParameterKey()))).thenReturn("");
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.FILE_PATTERNS.getParameterKey()))).thenReturn("*.jar");
+        DateTimeParser dateTimeParser = new DateTimeParser();
+        DateTime assetCutoff = new DateTime().minusDays(1);
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.OLD_ASSET_CUTOFF.getParameterKey()))).thenReturn(dateTimeParser.convertFromDateToString(assetCutoff));
 
-        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(commonRepositoryTaskHelper, new DateTimeParser(), null, null, null);
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(dateTimeParser, null, null, null);
 
-        final boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff.minusDays(4), "path/to/object.jar", "object.jar", null);
+        boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff.minusDays(4), "path/to/object.jar", "object.jar", taskConfiguration);
         Assert.assertTrue(skipProcessing);
 
-        final boolean notCutoff = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", null);
+        boolean notCutoff = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", taskConfiguration);
         Assert.assertFalse(notCutoff);
     }
 
     @Test
     public void skipAssetProcessingFileExtensionsTest() {
-        final CommonRepositoryTaskHelper commonRepositoryTaskHelper = Mockito.mock(CommonRepositoryTaskHelper.class);
-        Mockito.when(commonRepositoryTaskHelper.getRepositoryPath(Mockito.any())).thenReturn("");
-        final DateTime assetCutoff = new DateTime().minusDays(1);
-        Mockito.when(commonRepositoryTaskHelper.getAssetCutoffDateTime(Mockito.any())).thenReturn(assetCutoff);
-        Mockito.when(commonRepositoryTaskHelper.getFileExtensionPatterns(Mockito.any())).thenReturn("*.bad");
+        TaskConfiguration taskConfiguration = Mockito.mock(TaskConfiguration.class);
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.REPOSITORY_PATH.getParameterKey()))).thenReturn("");
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.FILE_PATTERNS.getParameterKey()))).thenReturn("*.bad");
+        DateTimeParser dateTimeParser = new DateTimeParser();
+        DateTime assetCutoff = new DateTime().minusDays(1);
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.OLD_ASSET_CUTOFF.getParameterKey()))).thenReturn(dateTimeParser.convertFromDateToString(assetCutoff));
 
-        final CommonTaskFilters commonTaskFilters = new CommonTaskFilters(commonRepositoryTaskHelper, new DateTimeParser(), null, null, null);
+        CommonTaskFilters commonTaskFilters = new CommonTaskFilters(dateTimeParser, null, null, null);
 
-        final boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", null);
+        boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", taskConfiguration);
         Assert.assertTrue(skipProcessing);
 
-        Mockito.when(commonRepositoryTaskHelper.getFileExtensionPatterns(Mockito.any())).thenReturn("*.bad,     *.jar");
+        Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.FILE_PATTERNS.getParameterKey()))).thenReturn("*.bad,     *.jar");
 
-        final boolean matchingFileExtensions = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", null);
+        boolean matchingFileExtensions = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", taskConfiguration);
         Assert.assertFalse(matchingFileExtensions);
     }
 }

@@ -72,23 +72,33 @@ public class BlackDuckCapabilityValidator {
 
         if (StringUtils.isBlank(configuredProxyHost) && (StringUtils.isNotBlank(configuredProxyPort) || StringUtils.isNotBlank(configuredProxyUser) || StringUtils.isNotBlank(configuredProxyPassword))) {
             return Optional.of("Proxy Host: The proxy host not specified.");
-        } else {
-            if (StringUtils.isNotBlank(configuredProxyHost) && StringUtils.isBlank(configuredProxyPort)) {
-                return Optional.of("Proxy Port: The proxy port not specified.");
-            } else if (StringUtils.isNotBlank(configuredProxyHost) && StringUtils.isNotBlank(configuredProxyPort)) {
-                try {
-                    final Integer timeout = Integer.valueOf(configuredProxyPort);
-                    if (timeout <= 0) {
-                        return Optional.of("Proxy Port: The proxy port must be greater than 0.");
-                    }
-                } catch (final NumberFormatException e) {
-                    return Optional.of(String.format("Proxy Port: The String : %s, is not an Integer.", configuredProxyPort));
+        }
+        Optional<String> proxyPortError = validateProxyPort(configuredProxyHost, configuredProxyPort);
+        if (proxyPortError.isPresent()) {
+            return proxyPortError;
+        }
+        if (StringUtils.isNotBlank(configuredProxyUser) && StringUtils.isBlank(configuredProxyPassword)) {
+            return Optional.of("Proxy Password: The proxy password not specified.");
+        }
+        if (StringUtils.isBlank(configuredProxyUser) && StringUtils.isNotBlank(configuredProxyPassword)) {
+            return Optional.of("Proxy Username: The proxy user not specified.");
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<String> validateProxyPort(String configuredProxyHost, String configuredProxyPort) {
+        if (StringUtils.isNotBlank(configuredProxyHost) && StringUtils.isBlank(configuredProxyPort)) {
+            return Optional.of("Proxy Port: The proxy port not specified.");
+        }
+        if (StringUtils.isNotBlank(configuredProxyHost) && StringUtils.isNotBlank(configuredProxyPort)) {
+            try {
+                final Integer timeout = Integer.valueOf(configuredProxyPort);
+                if (timeout <= 0) {
+                    return Optional.of("Proxy Port: The proxy port must be greater than 0.");
                 }
-            }
-            if (StringUtils.isNotBlank(configuredProxyUser) && StringUtils.isBlank(configuredProxyPassword)) {
-                return Optional.of("Proxy Password: The proxy password not specified.");
-            } else if (StringUtils.isBlank(configuredProxyUser) && StringUtils.isNotBlank(configuredProxyPassword)) {
-                return Optional.of("Proxy Username: The proxy user not specified.");
+            } catch (final NumberFormatException e) {
+                return Optional.of(String.format("Proxy Port: The String : %s, is not an Integer.", configuredProxyPort));
             }
         }
         return Optional.empty();
