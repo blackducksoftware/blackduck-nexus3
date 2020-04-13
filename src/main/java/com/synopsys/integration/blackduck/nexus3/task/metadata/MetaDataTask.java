@@ -103,7 +103,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
             projectService = blackDuckServicesFactory.createProjectService();
             phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(MetaDataTaskDescriptor.BLACK_DUCK_META_DATA_TASK_ID);
         } catch (IntegrationException | IllegalStateException e) {
-            logger.error("Black Duck hub server config invalid. " + e.getMessage(), e);
+            logger.error(String.format("Black Duck hub server config invalid. %s", e.getMessage()), e);
             exceptionMessage = e.getMessage();
         }
         for (Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {

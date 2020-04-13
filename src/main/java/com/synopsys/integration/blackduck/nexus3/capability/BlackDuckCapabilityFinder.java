@@ -50,11 +50,11 @@ public class BlackDuckCapabilityFinder {
     public BlackDuckCapabilityConfiguration retrieveBlackDuckCapabilityConfiguration() {
         Optional<? extends CapabilityReference> capabilityReferenceOptional = findCapabilityReference();
         if (!capabilityReferenceOptional.isPresent()) {
-            logger.warn("Black Duck capability not created.");
+            logger.warn("Could not find the Black Duck capability. Please make sure you have configured the Black Duck capability.");
             return null;
         }
         BlackDuckCapability capability = capabilityReferenceOptional.get().capabilityAs(BlackDuckCapability.class);
-        logger.info("Retrieved the Black Duck capability config");
+        logger.info("Retrieved the Black Duck capability configuration.");
         return capability.getConfig();
     }
 

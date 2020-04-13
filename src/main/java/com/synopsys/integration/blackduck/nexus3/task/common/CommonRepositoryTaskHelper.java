@@ -33,6 +33,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,7 +111,7 @@ public class CommonRepositoryTaskHelper {
     }
 
     public void endPhoneHome(PhoneHomeResponse phoneHomeResponse) {
-        if (phoneHomeResponse.getImmediateResult()) {
+        if (BooleanUtils.isTrue(phoneHomeResponse.getImmediateResult())) {
             logger.debug("Phone home was successful.");
         } else {
             logger.debug("Phone home failed.");

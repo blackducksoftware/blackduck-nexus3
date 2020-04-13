@@ -132,7 +132,7 @@ public class ScanTask extends RepositoryTaskSupport {
             projectService = blackDuckServicesFactory.createProjectService();
             phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
         } catch (IntegrationException | IllegalStateException e) {
-            logger.error("Black Duck hub server config invalid. " + e.getMessage(), e);
+            logger.error(String.format("Black Duck hub server config invalid. %s", e.getMessage()), e);
             exceptionMessage = e.getMessage();
         }
 

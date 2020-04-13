@@ -125,7 +125,7 @@ public class InspectorTask extends RepositoryTaskSupport {
 
             phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(InspectorTaskDescriptor.BLACK_DUCK_INSPECTOR_TASK_ID);
         } catch (IntegrationException | IllegalStateException e) {
-            logger.error("Black Duck server config invalid. " + e.getMessage(), e);
+            logger.error(String.format("Black Duck server config invalid. %s", e.getMessage()), e);
             exceptionMessage = e.getMessage();
         }
         for (Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
@@ -258,7 +258,7 @@ public class InspectorTask extends RepositoryTaskSupport {
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Problem communicating with Black Duck", true);
         } catch (IntegrationException e) {
-            logger.error("Issue communicating with Black Duck: " + e.getMessage(), e);
+            logger.error(String.format("Issue communicating with Black Duck: %s", e.getMessage()), e);
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Issue communicating with Black Duck", true);
         } catch (IOException e) {
