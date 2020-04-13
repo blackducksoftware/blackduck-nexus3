@@ -12,7 +12,6 @@ import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 
 public class ScanConfiguration {
-
     private final String exceptionMessage;
 
     private final Repository repository;
