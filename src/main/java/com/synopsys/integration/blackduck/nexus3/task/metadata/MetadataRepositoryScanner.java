@@ -63,40 +63,48 @@ public class MetadataRepositoryScanner {
         while (pagedAssets.hasResults()) {
             logger.debug("Found items in the DB.");
             for (Asset asset : pagedAssets.getTypeList()) {
-                AssetWrapper assetWrapper = AssetWrapper.createAssetWrapper(asset, metaDataScanConfiguration.getRepository(), queryManager, metaDataScanConfiguration.getAssetStatusLabel());
-                if (metaDataScanConfiguration.hasErrors()) {
-                    commonRepositoryTaskHelper.failedConnection(assetWrapper, metaDataScanConfiguration.getExceptionMessage());
-                    assetWrapper.updateAsset();
-                } else {
-                    updateAsset(assetWrapper, repoName, assetWrapperToWaitFor, assetWrapperMap);
-                }
+                updateAsset(asset, repoName, assetWrapperToWaitFor, assetWrapperMap);
             }
-            if (!assetWrapperToWaitFor.isEmpty() && !metaDataScanConfiguration.hasErrors()) {
-                updatePendingScanAssets(assetWrapperToWaitFor);
-            }
-
             Query nextPage = createFilteredQuery(pagedAssets.getLastName());
             pagedAssets = commonRepositoryTaskHelper.retrievePagedAssets(metaDataScanConfiguration.getRepository(), nextPage);
         }
 
+        if (!assetWrapperToWaitFor.isEmpty() && !metaDataScanConfiguration.hasErrors()) {
+            updatePendingScanAssets(assetWrapperToWaitFor);
+        }
+
         if (metaDataScanConfiguration.isProxyRepo() && !metaDataScanConfiguration.hasErrors()) {
             logger.info("Updating data of proxy repository.");
-            try {
-                String blackDuckUrl = commonRepositoryTaskHelper.getBlackDuckServerConfig().getBlackDuckUrl().toString();
-                ProjectVersionView projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(metaDataScanConfiguration.getBlackDuckService(), metaDataScanConfiguration.getProjectService(), repoName);
-                inspectorMetaDataProcessor.updateRepositoryMetaData(metaDataScanConfiguration.getBlackDuckService(), blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
-            } catch (BlackDuckApiException e) {
-                for (Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
-                    updateAssetWrapperWithError(entry.getValue(), e.getMessage());
-                    logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
-                }
-            } catch (IntegrationException e) {
-                for (Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
-                    updateAssetWrapperWithError(entry.getValue(), String.format("Problem retrieving the project %s from Hub: %s", repoName, e.getMessage()));
-                    logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
-                }
-                throw new TaskInterruptedException("Problem retrieving project from Hub: " + e.getMessage(), true);
+            updateProxyAssets(repoName, assetWrapperMap);
+        }
+    }
+
+    private void updateAsset(Asset asset, String repoName, Map<String, AssetWrapper> assetWrapperToWaitFor, Map<String, AssetWrapper> assetWrapperMap) {
+        AssetWrapper assetWrapper = AssetWrapper.createAssetWrapper(asset, metaDataScanConfiguration.getRepository(), queryManager, metaDataScanConfiguration.getAssetStatusLabel());
+        if (metaDataScanConfiguration.hasErrors()) {
+            commonRepositoryTaskHelper.failedConnection(assetWrapper, metaDataScanConfiguration.getExceptionMessage());
+            assetWrapper.updateAsset();
+        } else {
+            updateAsset(assetWrapper, repoName, assetWrapperToWaitFor, assetWrapperMap);
+        }
+    }
+
+    private void updateProxyAssets(String repoName, Map<String, AssetWrapper> assetWrapperMap) {
+        try {
+            String blackDuckUrl = commonRepositoryTaskHelper.getBlackDuckServerConfig().getBlackDuckUrl().toString();
+            ProjectVersionView projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(metaDataScanConfiguration.getBlackDuckService(), metaDataScanConfiguration.getProjectService(), repoName);
+            inspectorMetaDataProcessor.updateRepositoryMetaData(metaDataScanConfiguration.getBlackDuckService(), blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
+        } catch (BlackDuckApiException e) {
+            for (Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
+                updateAssetWrapperWithError(entry.getValue(), e.getMessage());
+                logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
             }
+        } catch (IntegrationException e) {
+            for (Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
+                updateAssetWrapperWithError(entry.getValue(), String.format("Problem retrieving the project %s from Hub: %s", repoName, e.getMessage()));
+                logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+            }
+            throw new TaskInterruptedException("Problem retrieving project from Hub: " + e.getMessage(), true);
         }
     }
 
