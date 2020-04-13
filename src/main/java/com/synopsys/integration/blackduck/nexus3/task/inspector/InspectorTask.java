@@ -268,6 +268,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         } catch (InterruptedException e) {
             logger.error("Waiting for the results from Black Duck was interrupted: {}", e.getMessage());
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
+            Thread.currentThread().interrupt();
             throw new TaskInterruptedException("Waiting for Black Duck results interrupted", true);
         }
     }
