@@ -24,6 +24,7 @@
 package com.synopsys.integration.blackduck.nexus3.capability;
 
 import java.util.Collection;
+import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -33,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.capability.CapabilityReference;
 import org.sonatype.nexus.capability.CapabilityRegistry;
-import org.sonatype.nexus.capability.CapabilitySupport;
+import org.sonatype.nexus.capability.CapabilityType;
 
 @Named
 @Singleton
@@ -42,32 +43,34 @@ public class BlackDuckCapabilityFinder {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
-    public BlackDuckCapabilityFinder(final CapabilityRegistry capabilityRegistry) {
+    public BlackDuckCapabilityFinder(CapabilityRegistry capabilityRegistry) {
         this.capabilityRegistry = capabilityRegistry;
     }
 
     public BlackDuckCapabilityConfiguration retrieveBlackDuckCapabilityConfiguration() {
-        final CapabilityReference capabilityReference = findCapabilityReference(BlackDuckCapability.class);
-        if (capabilityReference == null) {
-            logger.warn("Black Duck capability not created.");
+        Optional<? extends CapabilityReference> capabilityReferenceOptional = findCapabilityReference();
+        if (!capabilityReferenceOptional.isPresent()) {
+            logger.warn("Could not find the Black Duck capability. Please make sure you have configured the Black Duck capability.");
             return null;
         }
-
-        final BlackDuckCapability capability = capabilityReference.capabilityAs(BlackDuckCapability.class);
-        logger.info("Getting Black Duck capability config");
+        BlackDuckCapability capability = capabilityReferenceOptional.get().capabilityAs(BlackDuckCapability.class);
+        logger.info("Retrieved the Black Duck capability configuration.");
         return capability.getConfig();
     }
 
-    //TODO Find a better way to get the correct capability (Don't know what the ID is to use with get)
-    public CapabilityReference findCapabilityReference(final Class<? extends CapabilitySupport<?>> capabilityClass) {
-        final Collection<? extends CapabilityReference> capabilityReferenceList = capabilityRegistry.getAll();
-        for (final CapabilityReference capabilityReference : capabilityReferenceList) {
-            final String capabilityName = capabilityReference.capability().getClass().getName();
-            if (capabilityName.equals(capabilityClass.getName())) {
-                logger.debug("Found capability: " + capabilityName);
-                return capabilityReference;
-            }
+    public Optional<? extends CapabilityReference> findCapabilityReference() {
+        CapabilityType blackDuckCapabilityType = CapabilityType.capabilityType(BlackDuckCapabilityDescriptor.CAPABILITY_ID);
+        Collection<? extends CapabilityReference> capabilityReferences = capabilityRegistry.get(capabilityReference -> matchesBlackDuckCapabilityType(capabilityReference, blackDuckCapabilityType));
+        if (capabilityReferences.isEmpty()) {
+            return Optional.empty();
         }
-        return null;
+        return capabilityReferences.stream().findFirst();
+    }
+
+    private boolean matchesBlackDuckCapabilityType(CapabilityReference capabilityReference, CapabilityType blackDuckCapabilityType) {
+        if (null != capabilityReference && null != capabilityReference.context() && null != capabilityReference.context().type()) {
+            return capabilityReference.context().type().equals(blackDuckCapabilityType);
+        }
+        return false;
     }
 }

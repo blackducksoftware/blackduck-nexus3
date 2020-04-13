@@ -36,22 +36,23 @@ import org.joda.time.format.DateTimeFormatter;
 public class DateTimeParser {
     public static final String DATE_TIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
-    // TODO convert to using the new Java 8 time library that replaces Joda
+    // convert to using the new Java 8 time library that replaces Joda
+    // we should wait until nexus converts to Java 8 time
     public String getCurrentDateTime() {
         return new DateTime().toString(DATE_TIME_PATTERN);
     }
 
-    public DateTime formatDateTime(final DateTime dateTime) {
-        final String dateTimeString = convertFromDateToString(dateTime);
+    public DateTime formatDateTime(DateTime dateTime) {
+        String dateTimeString = convertFromDateToString(dateTime);
         return convertFromStringToDate(dateTimeString);
     }
 
-    public String convertFromDateToString(final DateTime dateTime) {
-        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(DATE_TIME_PATTERN);
+    public String convertFromDateToString(DateTime dateTime) {
+        DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(DATE_TIME_PATTERN);
         return dateTimeFormatter.print(dateTime);
     }
 
-    public DateTime convertFromStringToDate(final String date) {
+    public DateTime convertFromStringToDate(String date) {
         if (StringUtils.isBlank(date)) {
             return null;
         }

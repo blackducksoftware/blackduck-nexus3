@@ -9,25 +9,25 @@ public class DependencyTypeTest {
 
     @Test
     public void enforcedTypeNames() {
-        Assert.assertEquals("maven2", DependencyType.maven.getRepositoryType());
-        Assert.assertEquals(Forge.MAVEN, DependencyType.maven.getForge());
+        Assert.assertEquals("maven2", DependencyType.MAVEN.getRepositoryType());
+        Assert.assertEquals(Forge.MAVEN, DependencyType.MAVEN.getForge());
 
-        Assert.assertEquals("bower", DependencyType.bower.getRepositoryType());
-        Assert.assertEquals(Forge.BOWER, DependencyType.bower.getForge());
+        Assert.assertEquals("bower", DependencyType.BOWER.getRepositoryType());
+        Assert.assertEquals(Forge.BOWER, DependencyType.BOWER.getForge());
 
-        Assert.assertEquals("npm", DependencyType.npm.getRepositoryType());
-        Assert.assertEquals(Forge.NPMJS, DependencyType.npm.getForge());
+        Assert.assertEquals("npm", DependencyType.NPM.getRepositoryType());
+        Assert.assertEquals(Forge.NPMJS, DependencyType.NPM.getForge());
 
-        Assert.assertEquals("nuget", DependencyType.nuget.getRepositoryType());
-        Assert.assertEquals(Forge.NUGET, DependencyType.nuget.getForge());
+        Assert.assertEquals("nuget", DependencyType.NUGET.getRepositoryType());
+        Assert.assertEquals(Forge.NUGET, DependencyType.NUGET.getForge());
 
-        Assert.assertEquals("pypi", DependencyType.pypi.getRepositoryType());
-        Assert.assertEquals(Forge.PYPI, DependencyType.pypi.getForge());
+        Assert.assertEquals("pypi", DependencyType.PYPI.getRepositoryType());
+        Assert.assertEquals(Forge.PYPI, DependencyType.PYPI.getForge());
 
-        Assert.assertEquals("rubygems", DependencyType.rubygems.getRepositoryType());
-        Assert.assertEquals(Forge.RUBYGEMS, DependencyType.rubygems.getForge());
+        Assert.assertEquals("rubygems", DependencyType.RUBYGEMS.getRepositoryType());
+        Assert.assertEquals(Forge.RUBYGEMS, DependencyType.RUBYGEMS.getForge());
 
-        Assert.assertEquals("yum", DependencyType.yum.getRepositoryType());
-        Assert.assertEquals(DependencyGenerator.YUM_FORGE, DependencyType.yum.getForge());
+        Assert.assertEquals("yum", DependencyType.YUM.getRepositoryType());
+        Assert.assertEquals(DependencyGenerator.YUM_FORGE, DependencyType.YUM.getForge());
     }
 }

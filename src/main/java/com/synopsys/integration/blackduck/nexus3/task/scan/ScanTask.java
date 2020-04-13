@@ -54,8 +54,6 @@ import com.synopsys.integration.blackduck.codelocation.signaturescanner.ScanBatc
 import com.synopsys.integration.blackduck.codelocation.signaturescanner.ScanBatchOutput;
 import com.synopsys.integration.blackduck.codelocation.signaturescanner.ScanBatchRunner;
 import com.synopsys.integration.blackduck.codelocation.signaturescanner.SignatureScannerService;
-import com.synopsys.integration.blackduck.codelocation.signaturescanner.command.ScanCommandRunner;
-import com.synopsys.integration.blackduck.codelocation.signaturescanner.command.ScanPathsUtility;
 import com.synopsys.integration.blackduck.codelocation.signaturescanner.command.ScanTarget;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.blackduck.exception.BlackDuckApiException;
@@ -77,11 +75,11 @@ import com.synopsys.integration.log.Slf4jIntLogger;
 import com.synopsys.integration.phonehome.PhoneHomeResponse;
 import com.synopsys.integration.util.IntEnvironmentVariables;
 import com.synopsys.integration.util.NoThreadExecutorService;
-import com.synopsys.integration.util.OperatingSystemType;
 
 @Named
 public class ScanTask extends RepositoryTaskSupport {
     public static final String SCAN_CODE_LOCATION_NAME = "Nexus3Scan";
+    private static final String BLACK_DUCK_COMMUNICATION_FORMAT = "Problem communicating with Black Duck: {}";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final QueryManager queryManager;
@@ -91,8 +89,8 @@ public class ScanTask extends RepositoryTaskSupport {
     private final CommonTaskFilters commonTaskFilters;
 
     @Inject
-    public ScanTask(final QueryManager queryManager, final DateTimeParser dateTimeParser, final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final ScanMetaDataProcessor scanMetaDataProcessor,
-        final CommonTaskFilters commonTaskFilters) {
+    public ScanTask(QueryManager queryManager, DateTimeParser dateTimeParser, CommonRepositoryTaskHelper commonRepositoryTaskHelper, ScanMetaDataProcessor scanMetaDataProcessor,
+        CommonTaskFilters commonTaskFilters) {
         this.queryManager = queryManager;
         this.dateTimeParser = dateTimeParser;
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
@@ -101,8 +99,8 @@ public class ScanTask extends RepositoryTaskSupport {
     }
 
     @Override
-    protected boolean appliesTo(final Repository repository) {
-        return commonRepositoryTaskHelper.doesRepositoryApply(repository, getRepositoryField());
+    protected boolean appliesTo(Repository repository) {
+        return commonTaskFilters.doesRepositoryApply(repository, getRepositoryField());
     }
 
     @Override
@@ -111,8 +109,8 @@ public class ScanTask extends RepositoryTaskSupport {
     }
 
     @Override
-    protected void execute(final Repository repository) {
-        final IntLogger intLogger = new Slf4jIntLogger(logger);
+    protected void execute(Repository repository) {
+        IntLogger intLogger = new Slf4jIntLogger(logger);
 
         String exceptionMessage = null;
         BlackDuckServerConfig blackDuckServerConfig = null;
@@ -123,7 +121,7 @@ public class ScanTask extends RepositoryTaskSupport {
         Optional<PhoneHomeResponse> phoneHomeResponse = Optional.empty();
         try {
             blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
-            final BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
+            BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
 
             IntEnvironmentVariables intEnvironmentVariables = new IntEnvironmentVariables();
             BlackDuckHttpClient blackDuckHttpClient = blackDuckServerConfig.createBlackDuckHttpClient(intLogger);
@@ -133,47 +131,47 @@ public class ScanTask extends RepositoryTaskSupport {
             blackDuckService = blackDuckServicesFactory.createBlackDuckService();
             projectService = blackDuckServicesFactory.createProjectService();
             phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
-        } catch (final IntegrationException | IllegalStateException e) {
-            logger.error("Black Duck hub server config invalid. " + e.getMessage(), e);
+        } catch (IntegrationException | IllegalStateException e) {
+            logger.error(String.format("Black Duck hub server config invalid. %s", e.getMessage()), e);
             exceptionMessage = e.getMessage();
         }
 
-        final File workingDirectory = commonRepositoryTaskHelper.getWorkingDirectory(taskConfiguration());
-        final File workingBlackDuckDirectory = new File(workingDirectory, "blackduck");
-        final File tempFileStorage = new File(workingBlackDuckDirectory, "temp");
-        final File outputDirectory = new File(workingBlackDuckDirectory, "output");
+        File workingDirectory = commonRepositoryTaskHelper.getWorkingDirectory(taskConfiguration());
+        File workingBlackDuckDirectory = new File(workingDirectory, "blackduck");
+        File tempFileStorage = new File(workingBlackDuckDirectory, "temp");
+        File outputDirectory = new File(workingBlackDuckDirectory, "output");
         try {
             Files.createDirectories(tempFileStorage.toPath());
             Files.createDirectories(outputDirectory.toPath());
-        } catch (final IOException e) {
+        } catch (IOException e) {
             intLogger.debug(e.getMessage(), e);
             throw new TaskInterruptedException("Could not create directories to use with Scanner: " + e.getMessage(), true);
         }
 
-        final boolean alwaysScan = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_ALWAYS_CHECK, false);
-        final boolean redoFailures = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_REDO_FAILURES, false);
-        for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
+        boolean alwaysScan = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_ALWAYS_CHECK, false);
+        boolean redoFailures = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_REDO_FAILURES, false);
+        for (Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             if (commonTaskFilters.isHostedRepository(foundRepository.getType())) {
-                final String repoName = foundRepository.getName();
+                String repoName = foundRepository.getName();
                 logger.info("Checking repository for assets: {}", repoName);
-                final Query filteredQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
+                Query filteredQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
                 PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, filteredQuery);
 
                 while (foundAssets.hasResults()) {
                     logger.debug("Found results from DB");
-                    final Map<Optional<CodeLocationCreationData<ScanBatchOutput>>, AssetWrapper> scannedAssets = new HashMap<>();
-                    for (final Asset asset : foundAssets.getTypeList()) {
-                        final AssetWrapper assetWrapper = AssetWrapper.createScanAssetWrapper(asset, foundRepository, queryManager);
-                        final String name = assetWrapper.getFullPath();
-                        final String version = assetWrapper.getVersion();
-                        final String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
+                    Map<Optional<CodeLocationCreationData<ScanBatchOutput>>, AssetWrapper> scannedAssets = new HashMap<>();
+                    for (Asset asset : foundAssets.getTypeList()) {
+                        AssetWrapper assetWrapper = AssetWrapper.createScanAssetWrapper(asset, foundRepository, queryManager);
+                        String name = assetWrapper.getFullPath();
+                        String version = assetWrapper.getVersion();
+                        String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
 
-                        final TaskStatus status = assetWrapper.getBlackDuckStatus();
-                        final boolean shouldScan = shouldScan(status, alwaysScan, redoFailures);
+                        TaskStatus status = assetWrapper.getBlackDuckStatus();
+                        boolean shouldScan = shouldScan(status, alwaysScan, redoFailures);
                         logger.debug("Status matches, {}", shouldScan);
-                        final boolean shouldScanAgain = commonTaskFilters.hasAssetBeenModified(assetWrapper);
+                        boolean shouldScanAgain = commonTaskFilters.hasAssetBeenModified(assetWrapper);
                         logger.debug("Process again, {}", shouldScanAgain);
-                        final boolean scan = shouldScan || shouldScanAgain;
+                        boolean scan = shouldScan || shouldScanAgain;
                         logger.debug("Scan without filter check, {}", scan);
 
                         DateTime lastModified = assetWrapper.getAssetLastUpdated();
@@ -193,7 +191,7 @@ public class ScanTask extends RepositoryTaskSupport {
                             commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
                             assetWrapper.updateAsset();
                         } else if (null != blackDuckServerConfig && null != signatureScannerService) {
-                            final Optional<CodeLocationCreationData<ScanBatchOutput>> scanData = performScan(blackDuckServerConfig, workingBlackDuckDirectory, outputDirectory, tempFileStorage, codeLocationName, assetWrapper,
+                            Optional<CodeLocationCreationData<ScanBatchOutput>> scanData = performScan(blackDuckServerConfig, workingBlackDuckDirectory, outputDirectory, tempFileStorage, codeLocationName, assetWrapper,
                                 signatureScannerService,
                                 blackDuckService, projectService);
                             scannedAssets.put(scanData, assetWrapper);
@@ -204,29 +202,29 @@ public class ScanTask extends RepositoryTaskSupport {
                     try {
                         FileUtils.cleanDirectory(tempFileStorage);
                         FileUtils.cleanDirectory(outputDirectory);
-                    } catch (final IOException e) {
+                    } catch (IOException e) {
                         logger.warn("Problem cleaning scan directories {}", outputDirectory.getAbsolutePath());
                     }
 
-                    final Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
+                    Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
                     foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPageQuery);
 
                     if (null != signatureScannerService && null != projectService && null != blackDuckService) {
-                        for (final Map.Entry<Optional<CodeLocationCreationData<ScanBatchOutput>>, AssetWrapper> entry : scannedAssets.entrySet()) {
-                            final AssetWrapper assetWrapper = entry.getValue();
-                            final Optional<CodeLocationCreationData<ScanBatchOutput>> scanDataOptional = entry.getKey();
-                            final String projectName = assetWrapper.getName();
-                            final String version = assetWrapper.getVersion();
-                            final int timeout = blackDuckServerConfig.getTimeout() * 5;
+                        for (Map.Entry<Optional<CodeLocationCreationData<ScanBatchOutput>>, AssetWrapper> entry : scannedAssets.entrySet()) {
+                            AssetWrapper assetWrapper = entry.getValue();
+                            Optional<CodeLocationCreationData<ScanBatchOutput>> scanDataOptional = entry.getKey();
+                            String projectName = assetWrapper.getName();
+                            String version = assetWrapper.getVersion();
+                            int timeout = blackDuckServerConfig.getTimeout() * 5;
                             try {
                                 if (scanDataOptional.isPresent()) {
-                                    final CodeLocationCreationData<ScanBatchOutput> scanData = scanDataOptional.get();
+                                    CodeLocationCreationData<ScanBatchOutput> scanData = scanDataOptional.get();
                                     if (!scanData.getOutput().getSuccessfulCodeLocationNames().isEmpty()) {
-                                        final ProjectVersionView projectVersionView = scanMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, projectName, version);
-                                        final Set<String> successfulCodeLocationNames = scanData.getOutput().getSuccessfulCodeLocationNames();
-                                        final CodeLocationWaitResult codeLocationWaitResult = codeLocationCreationService
-                                                                                                  .waitForCodeLocations(scanData.getNotificationTaskRange(), successfulCodeLocationNames, successfulCodeLocationNames.size(),
-                                                                                                      timeout);
+                                        ProjectVersionView projectVersionView = scanMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, projectName, version);
+                                        Set<String> successfulCodeLocationNames = scanData.getOutput().getSuccessfulCodeLocationNames();
+                                        CodeLocationWaitResult codeLocationWaitResult = codeLocationCreationService
+                                                                                            .waitForCodeLocations(scanData.getNotificationTaskRange(), successfulCodeLocationNames, successfulCodeLocationNames.size(),
+                                                                                                timeout);
                                         if (CodeLocationWaitResult.Status.COMPLETE == codeLocationWaitResult.getStatus()) {
                                             scanMetaDataProcessor
                                                 .updateRepositoryMetaData(blackDuckService, assetWrapper, projectVersionView.getHref().orElse(blackDuckServerConfig.getBlackDuckUrl().toString()), projectVersionView);
@@ -235,15 +233,14 @@ public class ScanTask extends RepositoryTaskSupport {
                                         }
                                     }
                                 }
-                            } catch (final BlackDuckApiException e) {
+                            } catch (IntegrationException e) {
                                 updateAssetWrapperWithError(assetWrapper, e.getMessage());
-                                logger.error("Problem communicating with Black Duck: {}", e.getMessage());
-                            } catch (final IntegrationException e) {
-                                updateAssetWrapperWithError(assetWrapper, e.getMessage());
-                                logger.error("Problem communicating with Black Duck: {}", e.getMessage());
-                            } catch (final InterruptedException e) {
-                                updateAssetWrapperWithError(assetWrapper, "Waiting for the scan to complete was interrupted: " + e.getMessage());
-                                logger.error("Problem communicating with Black Duck: {}", e.getMessage());
+                                logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+                            } catch (InterruptedException e) {
+                                String errorMessage = "Waiting for the scan to complete was interrupted: " + e.getMessage();
+                                updateAssetWrapperWithError(assetWrapper, errorMessage);
+                                logger.error(errorMessage);
+                                Thread.currentThread().interrupt();
                             }
                         }
                     }
@@ -257,14 +254,14 @@ public class ScanTask extends RepositoryTaskSupport {
         }
     }
 
-    private void updateAssetWrapperWithError(final AssetWrapper assetWrapper, final String message) {
+    private void updateAssetWrapperWithError(AssetWrapper assetWrapper, String message) {
         assetWrapper.removeAllBlackDuckData();
         assetWrapper.addFailureToBlackDuckPanel(message);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
         assetWrapper.updateAsset();
     }
 
-    private boolean shouldScan(final TaskStatus status, final boolean alwaysScan, final boolean redoFailures) {
+    private boolean shouldScan(TaskStatus status, boolean alwaysScan, boolean redoFailures) {
         if (TaskStatus.PENDING.equals(status) || TaskStatus.SUCCESS.equals(status)) {
             return alwaysScan;
         }
@@ -276,14 +273,14 @@ public class ScanTask extends RepositoryTaskSupport {
         return true;
     }
 
-    private Optional<CodeLocationCreationData<ScanBatchOutput>> performScan(final BlackDuckServerConfig blackDuckServerConfig, final File workingBlackDuckDirectory, final File outputDirectory, final File tempFileStorage,
-        final String codeLocationName, final AssetWrapper assetWrapper, final SignatureScannerService signatureScannerService, final BlackDuckService blackDuckService, final ProjectService projectService) {
-        final String name = assetWrapper.getFullPath();
-        final String projectName = assetWrapper.getName();
-        final String version = assetWrapper.getVersion();
+    private Optional<CodeLocationCreationData<ScanBatchOutput>> performScan(BlackDuckServerConfig blackDuckServerConfig, File workingBlackDuckDirectory, File outputDirectory, File tempFileStorage,
+        String codeLocationName, AssetWrapper assetWrapper, SignatureScannerService signatureScannerService, BlackDuckService blackDuckService, ProjectService projectService) {
+        String name = assetWrapper.getFullPath();
+        String projectName = assetWrapper.getName();
+        String version = assetWrapper.getVersion();
 
         logger.info("Scanning item: {}", name);
-        final File binaryFile;
+        File binaryFile;
         try {
             binaryFile = assetWrapper.getBinaryBlobFile(tempFileStorage);
         } catch (IntegrationException e) {
@@ -291,24 +288,24 @@ public class ScanTask extends RepositoryTaskSupport {
             logger.warn(errorMessage);
             updateAssetWrapperWithError(assetWrapper, errorMessage);
             return Optional.empty();
-        } catch (final IOException e) {
+        } catch (IOException e) {
             logger.debug("Exception thrown: {}", e.getMessage());
             throw new TaskInterruptedException("Error saving blob binary to file", true);
         }
 
         CodeLocationCreationData<ScanBatchOutput> scanData = null;
         try {
-            final ScanBatch scanBatch = createScanBatch(blackDuckServerConfig, workingBlackDuckDirectory, outputDirectory, projectName, version, binaryFile.getAbsolutePath(), codeLocationName);
+            ScanBatch scanBatch = createScanBatch(blackDuckServerConfig, workingBlackDuckDirectory, outputDirectory, projectName, version, binaryFile.getAbsolutePath(), codeLocationName);
             scanData = signatureScannerService.performSignatureScan(scanBatch);
             scanMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, projectName, version);
             if (scanData.getOutput().getSuccessfulCodeLocationNames().contains(codeLocationName)) {
                 assetWrapper.addPendingToBlackDuckPanel("Scan uploaded to Black Duck, waiting for update.");
             }
-        } catch (final BlackDuckApiException e) {
+        } catch (BlackDuckApiException e) {
             assetWrapper.removeAllBlackDuckData();
             assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
-            logger.error("Problem communicating with Black Duck: {}", e.getMessage());
-        } catch (final IntegrationException e) {
+            logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+        } catch (IntegrationException e) {
             assetWrapper.removeAllBlackDuckData();
             assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
             logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
@@ -318,11 +315,11 @@ public class ScanTask extends RepositoryTaskSupport {
         return Optional.ofNullable(scanData);
     }
 
-    private ScanBatch createScanBatch(final BlackDuckServerConfig blackDuckServerConfig, final File workingBlackDuckDirectory, final File outputDirectory, final String projectName, final String projectVersion, final String pathToScan,
-        final String codeLocationName) {
-        final int scanMemory = taskConfiguration().getInteger(ScanTaskDescriptor.KEY_SCAN_MEMORY, ScanTaskDescriptor.DEFAULT_SCAN_MEMORY);
+    private ScanBatch createScanBatch(BlackDuckServerConfig blackDuckServerConfig, File workingBlackDuckDirectory, File outputDirectory, String projectName, String projectVersion, String pathToScan,
+        String codeLocationName) {
+        int scanMemory = taskConfiguration().getInteger(ScanTaskDescriptor.KEY_SCAN_MEMORY, ScanTaskDescriptor.DEFAULT_SCAN_MEMORY);
 
-        final ScanBatchBuilder scanBatchBuilder = new ScanBatchBuilder();
+        ScanBatchBuilder scanBatchBuilder = new ScanBatchBuilder();
         scanBatchBuilder.fromBlackDuckServerConfig(blackDuckServerConfig);
         scanBatchBuilder.installDirectory(workingBlackDuckDirectory);
         scanBatchBuilder.outputDirectory(outputDirectory);

@@ -52,11 +52,11 @@ public class CommonDescriptorHelper {
     public static final String DESCRIPTION_ASSET_CUTOFF = "If this is set, only assets with a modified date later than specified will be retrieved for the task. To get only assets newer than January 01, 2016 you would use "
                                                               + "the cutoff format of \"2016-01-01T00:00:00.000\"";
 
-    public static RepositoryCombobox getRepositoryField(final String... repoTypes) {
-        final Set<String> listedRepoTypes = Arrays.stream(repoTypes).collect(Collectors.toSet());
-        final String[] allRepoTypes = { GroupType.NAME, ProxyType.NAME, HostedType.NAME };
-        final String[] excludedRepoTypes = Arrays.stream(allRepoTypes).filter(repoType -> !listedRepoTypes.contains(repoType)).toArray(String[]::new);
-        final String allRepos = String.join(" or ", repoTypes);
+    public static RepositoryCombobox getRepositoryField(String... repoTypes) {
+        Set<String> listedRepoTypes = Arrays.stream(repoTypes).collect(Collectors.toSet());
+        String[] allRepoTypes = { GroupType.NAME, ProxyType.NAME, HostedType.NAME };
+        String[] excludedRepoTypes = Arrays.stream(allRepoTypes).filter(repoType -> !listedRepoTypes.contains(repoType)).toArray(String[]::new);
+        String allRepos = String.join(" or ", repoTypes);
         return new RepositoryCombobox(RepositoryTaskSupport.REPOSITORY_NAME_FIELD_ID, CommonDescriptorHelper.LABEL_REPOSITORY, String.format(CommonDescriptorHelper.DESCRIPTION_REPO_NAME, allRepos), FormField.MANDATORY)
                    .excludingAnyOfTypes(excludedRepoTypes);
     }
@@ -77,6 +77,10 @@ public class CommonDescriptorHelper {
     public static StringTextFormField getAssetCutoffDateField() {
         return new StringTextFormField(CommonTaskKeys.OLD_ASSET_CUTOFF.getParameterKey(), CommonDescriptorHelper.LABEL_ASSET_CUTOFF, CommonDescriptorHelper.DESCRIPTION_ASSET_CUTOFF, FormField.OPTIONAL)
                    .withInitialValue(CommonDescriptorHelper.DEFAULT_ARTIFACT_CUTOFF);
+    }
+
+    private CommonDescriptorHelper() {
+        throw new IllegalStateException("Utility class");
     }
 
 }

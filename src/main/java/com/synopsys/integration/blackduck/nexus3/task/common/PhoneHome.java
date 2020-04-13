@@ -26,22 +26,22 @@ public class PhoneHome {
     private final BlackDuckConnection blackDuckConnection;
 
     @Inject
-    public PhoneHome(final BlackDuckConnection blackDuckConnection) {
+    public PhoneHome(BlackDuckConnection blackDuckConnection) {
         this.blackDuckConnection = blackDuckConnection;
     }
 
-    public BlackDuckPhoneHomeHelper createBlackDuckPhoneHomeHelper(final ExecutorService executorService) throws IntegrationException {
-        final BlackDuckServicesFactory blackDuckServicesFactory = blackDuckConnection.getBlackDuckServicesFactory();
+    public BlackDuckPhoneHomeHelper createBlackDuckPhoneHomeHelper(ExecutorService executorService) throws IntegrationException {
+        BlackDuckServicesFactory blackDuckServicesFactory = blackDuckConnection.getBlackDuckServicesFactory();
         return BlackDuckPhoneHomeHelper.createAsynchronousPhoneHomeHelper(blackDuckServicesFactory, executorService);
     }
 
-    public PhoneHomeResponse sendDataHome(final String taskName, final BlackDuckPhoneHomeHelper blackDuckPhoneHomeHelper) throws IntegrationException {
-        final Map<String, String> metaData = new HashMap();
+    public PhoneHomeResponse sendDataHome(String taskName, BlackDuckPhoneHomeHelper blackDuckPhoneHomeHelper) {
+        Map<String, String> metaData = new HashMap();
         metaData.put("task.type", taskName);
 
-        final Version version = FrameworkUtil.getBundle(getClass()).getVersion();
-        final String productVersion = version.toString();
-        final String artifactId = FrameworkUtil.getBundle(getClass()).getSymbolicName();
+        Version version = FrameworkUtil.getBundle(getClass()).getVersion();
+        String productVersion = version.toString();
+        String artifactId = FrameworkUtil.getBundle(getClass()).getSymbolicName();
         logger.debug("Found {} version {}", artifactId, productVersion);
 
         return blackDuckPhoneHomeHelper.handlePhoneHome(artifactId, productVersion, metaData);

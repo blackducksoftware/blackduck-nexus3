@@ -25,6 +25,7 @@ package com.synopsys.integration.blackduck.nexus3.task.inspector;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
 import org.sonatype.nexus.repository.storage.Asset;
-import org.sonatype.nexus.repository.storage.Component;
 import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
@@ -92,8 +92,8 @@ public class InspectorTask extends RepositoryTaskSupport {
     private final CommonTaskFilters commonTaskFilters;
 
     @Inject
-    public InspectorTask(final CommonRepositoryTaskHelper commonRepositoryTaskHelper, final DateTimeParser dateTimeParser, final DependencyGenerator dependencyGenerator, final InspectorMetaDataProcessor inspectorMetaDataProcessor,
-        final CommonTaskFilters commonTaskFilters) {
+    public InspectorTask(CommonRepositoryTaskHelper commonRepositoryTaskHelper, DateTimeParser dateTimeParser, DependencyGenerator dependencyGenerator, InspectorMetaDataProcessor inspectorMetaDataProcessor,
+        CommonTaskFilters commonTaskFilters) {
         this.commonRepositoryTaskHelper = commonRepositoryTaskHelper;
         this.dateTimeParser = dateTimeParser;
         this.dependencyGenerator = dependencyGenerator;
@@ -102,7 +102,7 @@ public class InspectorTask extends RepositoryTaskSupport {
     }
 
     @Override
-    protected void execute(final Repository repository) {
+    protected void execute(Repository repository) {
         String exceptionMessage = null;
         BlackDuckService blackDuckService = null;
         ProjectService projectService = null;
@@ -113,47 +113,47 @@ public class InspectorTask extends RepositoryTaskSupport {
         int timeOut = -1;
         Optional<PhoneHomeResponse> phoneHomeResponse = Optional.empty();
         try {
-            final BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
+            BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
             blackDuckService = blackDuckServicesFactory.createBlackDuckService();
             projectService = blackDuckServicesFactory.createProjectService();
             codeLocationCreationService = blackDuckServicesFactory.createCodeLocationCreationService();
             bdioUploadService = blackDuckServicesFactory.createBdioUploadService();
             componentService = blackDuckServicesFactory.createComponentService();
-            final BlackDuckServerConfig blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
+            BlackDuckServerConfig blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
             blackDuckUrl = blackDuckServerConfig.getBlackDuckUrl().toString();
             timeOut = blackDuckServerConfig.getTimeout();
 
             phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(InspectorTaskDescriptor.BLACK_DUCK_INSPECTOR_TASK_ID);
-        } catch (final IntegrationException | IllegalStateException e) {
-            logger.error("Black Duck server config invalid. " + e.getMessage(), e);
+        } catch (IntegrationException | IllegalStateException e) {
+            logger.error(String.format("Black Duck server config invalid. %s", e.getMessage()), e);
             exceptionMessage = e.getMessage();
         }
-        for (final Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
+        for (Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             if (commonTaskFilters.isProxyRepository(foundRepository.getType())) {
-                final Optional<DependencyType> dependencyType = dependencyGenerator.findDependency(foundRepository.getFormat().getValue());
+                Optional<DependencyType> dependencyType = dependencyGenerator.findDependency(foundRepository.getFormat().getValue());
                 if (!dependencyType.isPresent()) {
                     throw new TaskInterruptedException("Task being run on unsupported repository", true);
                 }
 
-                final SimpleBdioFactory simpleBdioFactory = new SimpleBdioFactory();
-                final MutableDependencyGraph mutableDependencyGraph = simpleBdioFactory.createMutableDependencyGraph();
-                final Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
+                SimpleBdioFactory simpleBdioFactory = new SimpleBdioFactory();
+                MutableDependencyGraph mutableDependencyGraph = simpleBdioFactory.createMutableDependencyGraph();
+                Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
 
-                final String repoName = foundRepository.getName();
+                String repoName = foundRepository.getName();
                 logger.info("Checking repository for assets: {}", repoName);
-                final Query pagedQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
+                Query pagedQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
                 PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, pagedQuery);
                 boolean uploadToBlackDuck = false;
                 while (filteredAssets.hasResults()) {
                     logger.info("Found some items from the DB");
-                    for (final Asset asset : filteredAssets.getTypeList()) {
-                        final AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, foundRepository, commonRepositoryTaskHelper.getQueryManager());
+                    for (Asset asset : filteredAssets.getTypeList()) {
+                        AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, foundRepository, commonRepositoryTaskHelper.getQueryManager());
 
                         if (StringUtils.isNotBlank(exceptionMessage)) {
                             commonRepositoryTaskHelper.failedConnection(assetWrapper, exceptionMessage);
                             assetWrapper.updateAsset();
                         } else {
-                            final boolean shouldProcessAsset = processAsset(componentService, assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
+                            boolean shouldProcessAsset = processAsset(componentService, assetWrapper, dependencyType.get(), mutableDependencyGraph, assetWrapperMap);
                             if (shouldProcessAsset) {
                                 // Only set resultsFound to true, if you set it to false you risk falsely reporting that there are no new assets
                                 // I believe this can be improved upon... -BM
@@ -162,7 +162,7 @@ public class InspectorTask extends RepositoryTaskSupport {
                         }
                     }
 
-                    final Query nextPage = commonRepositoryTaskHelper.createPagedQuery(filteredAssets.getLastName()).build();
+                    Query nextPage = commonRepositoryTaskHelper.createPagedQuery(filteredAssets.getLastName()).build();
                     filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(foundRepository, nextPage);
                 }
 
@@ -181,10 +181,10 @@ public class InspectorTask extends RepositoryTaskSupport {
         }
     }
 
-    private boolean processAsset(ComponentService componentService, final AssetWrapper assetWrapper, final DependencyType dependencyType, final MutableDependencyGraph mutableDependencyGraph,
-        final Map<String, AssetWrapper> assetWrapperMap) {
-        final String name = assetWrapper.getName();
-        final String version = assetWrapper.getVersion();
+    private boolean processAsset(ComponentService componentService, AssetWrapper assetWrapper, DependencyType dependencyType, MutableDependencyGraph mutableDependencyGraph,
+        Map<String, AssetWrapper> assetWrapperMap) {
+        String name = assetWrapper.getName();
+        String version = assetWrapper.getVersion();
 
         DateTime lastModified = assetWrapper.getAssetLastUpdated();
         String fullPathName = assetWrapper.getFullPath();
@@ -202,10 +202,10 @@ public class InspectorTask extends RepositoryTaskSupport {
         ExternalId externalId = dependencyGenerator.createExternalId(dependencyType, name, version, assetWrapper.getAsset().attributes());
         String originId = null;
         try {
-            final Optional<ComponentSearchResultView> firstOrEmptyResult = componentService.getFirstOrEmptyResult(externalId);
+            Optional<ComponentSearchResultView> firstOrEmptyResult = componentService.getFirstOrEmptyResult(externalId);
             if (firstOrEmptyResult.isPresent()) {
                 originId = firstOrEmptyResult.get().getOriginId();
-                final Dependency dependency = dependencyGenerator.createDependency(name, version, externalId);
+                Dependency dependency = dependencyGenerator.createDependency(name, version, externalId);
                 logger.info("Created new dependency: {}", dependency);
                 mutableDependencyGraph.addChildToRoot(dependency);
 
@@ -226,26 +226,26 @@ public class InspectorTask extends RepositoryTaskSupport {
         return true;
     }
 
-    private void uploadToBlackDuck(final BlackDuckService blackDuckService, final ProjectService projectService, final CodeLocationCreationService codeLocationCreationService, final BdioUploadService bdioUploadService,
-        final String blackDuckUrl, final int timeOutInSeconds, final String repositoryName, final MutableDependencyGraph mutableDependencyGraph, final SimpleBdioFactory simpleBdioFactory, final DependencyType dependencyType,
-        final Map<String, AssetWrapper> assetWrapperMap) {
-        final Forge nexusForge = new Forge("/", "nexus");
-        final ProjectVersionView projectVersionView;
-        final String codeLocationName = String.join("/", INSPECTOR_VERSION_NAME, repositoryName, dependencyType.getRepositoryType());
+    private void uploadToBlackDuck(BlackDuckService blackDuckService, ProjectService projectService, CodeLocationCreationService codeLocationCreationService, BdioUploadService bdioUploadService,
+        String blackDuckUrl, int timeOutInSeconds, String repositoryName, MutableDependencyGraph mutableDependencyGraph, SimpleBdioFactory simpleBdioFactory, DependencyType dependencyType,
+        Map<String, AssetWrapper> assetWrapperMap) {
+        Forge nexusForge = new Forge("/", "nexus");
+        ProjectVersionView projectVersionView;
+        String codeLocationName = String.join("/", INSPECTOR_VERSION_NAME, repositoryName, dependencyType.getRepositoryType());
         try {
             logger.debug("Creating project in Black Duck if needed: {}", repositoryName);
             projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repositoryName);
 
-            final ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, repositoryName, INSPECTOR_VERSION_NAME);
-            final SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, repositoryName, INSPECTOR_VERSION_NAME, projectRoot, mutableDependencyGraph);
+            ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, repositoryName, INSPECTOR_VERSION_NAME);
+            SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, repositoryName, INSPECTOR_VERSION_NAME, projectRoot, mutableDependencyGraph);
 
-            final CodeLocationCreationData<UploadBatchOutput> uploadData = sendInspectorData(bdioUploadService, simpleBdioDocument, simpleBdioFactory, codeLocationName);
+            CodeLocationCreationData<UploadBatchOutput> uploadData = sendInspectorData(bdioUploadService, simpleBdioDocument, simpleBdioFactory, codeLocationName);
 
-            final Set<String> successfulCodeLocationNames = uploadData.getOutput().getSuccessfulCodeLocationNames();
+            Set<String> successfulCodeLocationNames = uploadData.getOutput().getSuccessfulCodeLocationNames();
             CodeLocationWaitResult.Status status = CodeLocationWaitResult.Status.PARTIAL;
             if (successfulCodeLocationNames.contains(codeLocationName)) {
-                final CodeLocationWaitResult codeLocationWaitResult = codeLocationCreationService
-                                                                          .waitForCodeLocations(uploadData.getNotificationTaskRange(), successfulCodeLocationNames, successfulCodeLocationNames.size(), timeOutInSeconds * 5);
+                CodeLocationWaitResult codeLocationWaitResult = codeLocationCreationService
+                                                                    .waitForCodeLocations(uploadData.getNotificationTaskRange(), successfulCodeLocationNames, successfulCodeLocationNames.size(), timeOutInSeconds * 5L);
                 status = codeLocationWaitResult.getStatus();
             }
             if (CodeLocationWaitResult.Status.COMPLETE == status) {
@@ -253,27 +253,28 @@ public class InspectorTask extends RepositoryTaskSupport {
             } else {
                 inspectorMetaDataProcessor.updateRepositoryMetaData(blackDuckService, blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.FAILURE);
             }
-        } catch (final BlackDuckApiException e) {
+        } catch (BlackDuckApiException e) {
             logger.error("Problem communicating with Black Duck: {}", e.getMessage());
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Problem communicating with Black Duck", true);
-        } catch (final IntegrationException e) {
-            logger.error("Issue communicating with Black Duck: " + e.getMessage(), e);
+        } catch (IntegrationException e) {
+            logger.error(String.format("Issue communicating with Black Duck: %s", e.getMessage()), e);
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Issue communicating with Black Duck", true);
-        } catch (final IOException e) {
+        } catch (IOException e) {
             logger.error("Error writing to file: {}", e.getMessage());
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Couldn't save inspection data", true);
-        } catch (final InterruptedException e) {
+        } catch (InterruptedException e) {
             logger.error("Waiting for the results from Black Duck was interrupted: {}", e.getMessage());
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
+            Thread.currentThread().interrupt();
             throw new TaskInterruptedException("Waiting for Black Duck results interrupted", true);
         }
     }
 
-    private void updateErrorStatus(final Collection<AssetWrapper> assetWrappers, final String error) {
-        for (final AssetWrapper assetWrapper : assetWrappers) {
+    private void updateErrorStatus(Collection<AssetWrapper> assetWrappers, String error) {
+        for (AssetWrapper assetWrapper : assetWrappers) {
             assetWrapper.removeAllBlackDuckData();
             assetWrapper.addFailureToBlackDuckPanel(error);
             assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
@@ -281,32 +282,42 @@ public class InspectorTask extends RepositoryTaskSupport {
         }
     }
 
-    private CodeLocationCreationData<UploadBatchOutput> sendInspectorData(final BdioUploadService bdioUploadService, final SimpleBdioDocument bdioDocument, final SimpleBdioFactory simpleBdioFactory, final String codeLocationName)
+    private CodeLocationCreationData<UploadBatchOutput> sendInspectorData(BdioUploadService bdioUploadService, SimpleBdioDocument bdioDocument, SimpleBdioFactory simpleBdioFactory, String codeLocationName)
         throws IntegrationException, IOException {
 
-        final IntegrationEscapeUtil integrationEscapeUtil = new IntegrationEscapeUtil();
-        final File workingDirectory = commonRepositoryTaskHelper.getWorkingDirectory(taskConfiguration());
-        final File blackDuckWorkingDirectory = new File(workingDirectory, "inspector");
-        blackDuckWorkingDirectory.mkdirs();
-        final File bdioFile = new File(blackDuckWorkingDirectory, integrationEscapeUtil.escapeForUri(codeLocationName));
-        bdioFile.delete();
-        bdioFile.createNewFile();
+        IntegrationEscapeUtil integrationEscapeUtil = new IntegrationEscapeUtil();
+        File workingDirectory = commonRepositoryTaskHelper.getWorkingDirectory(taskConfiguration());
+        File blackDuckWorkingDirectory = new File(workingDirectory, "inspector");
+        if (blackDuckWorkingDirectory.mkdirs()) {
+            logger.debug("Created directories for {}", blackDuckWorkingDirectory.getAbsolutePath());
+        } else {
+            logger.debug("Directories {} already exists", blackDuckWorkingDirectory.getAbsolutePath());
+        }
+
+        File bdioFile = new File(blackDuckWorkingDirectory, integrationEscapeUtil.escapeForUri(codeLocationName));
+        Files.delete(bdioFile.toPath());
+        if (bdioFile.createNewFile()) {
+            logger.debug("Created file {}", bdioFile.getAbsolutePath());
+        } else {
+            logger.debug("File {} already exists", bdioFile.getAbsolutePath());
+        }
+
         logger.debug("Sending data to Black Duck.");
         simpleBdioFactory.writeSimpleBdioDocumentToFile(bdioFile, bdioDocument);
 
-        final UploadBatch uploadBatch = new UploadBatch();
+        UploadBatch uploadBatch = new UploadBatch();
         uploadBatch.addUploadTarget(UploadTarget.createDefault(codeLocationName, bdioFile));
 
-        final BdioUploadCodeLocationCreationRequest uploadRequest = bdioUploadService.createUploadRequest(uploadBatch);
-        final CodeLocationCreationData<UploadBatchOutput> uploadBatchOutputCodeLocationCreationData = bdioUploadService.uploadBdio(uploadRequest);
+        BdioUploadCodeLocationCreationRequest uploadRequest = bdioUploadService.createUploadRequest(uploadBatch);
+        CodeLocationCreationData<UploadBatchOutput> uploadBatchOutputCodeLocationCreationData = bdioUploadService.uploadBdio(uploadRequest);
 
-        bdioFile.delete();
+        Files.delete(bdioFile.toPath());
         return uploadBatchOutputCodeLocationCreationData;
     }
 
     @Override
-    protected boolean appliesTo(final Repository repository) {
-        return commonRepositoryTaskHelper.doesRepositoryApply(repository, getRepositoryField());
+    protected boolean appliesTo(Repository repository) {
+        return commonTaskFilters.doesRepositoryApply(repository, getRepositoryField());
     }
 
     @Override
