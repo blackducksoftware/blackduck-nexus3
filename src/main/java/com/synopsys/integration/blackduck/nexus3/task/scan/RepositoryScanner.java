@@ -36,7 +36,7 @@ import com.synopsys.integration.exception.IntegrationException;
 
 public class RepositoryScanner {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private static final String BLACK_DUCK_COMMUNICATION_FORMAT = "Problem communicating with Black Duck: {}";
+    private static final String BLACK_DUCK_COMMUNICATION_FORMAT = "Problem communicating with Black Duck: {}.";
 
     private final QueryManager queryManager;
     private final DateTimeParser dateTimeParser;

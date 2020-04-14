@@ -30,7 +30,7 @@ import com.synopsys.integration.blackduck.service.model.NotificationTaskRange;
 import com.synopsys.integration.exception.IntegrationException;
 
 public class MetadataRepositoryScanner {
-    private static final String BLACK_DUCK_COMMUNICATION_FORMAT = "Problem communicating with Black Duck: {}";
+    private static final String BLACK_DUCK_COMMUNICATION_FORMAT = "Problem communicating with Black Duck: {}.";
     private static final String METADATA_CHECK_ERROR = "Problem checking metadata: ";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

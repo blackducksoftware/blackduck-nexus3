@@ -187,7 +187,7 @@ public class InspectorScanner {
                 inspectorMetaDataProcessor.updateRepositoryMetaData(inspectorConfiguration.getBlackDuckService(), blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.FAILURE);
             }
         } catch (BlackDuckApiException e) {
-            logger.error("Problem communicating with Black Duck: {}", e.getMessage());
+            logger.error("Problem communicating with Black Duck: {}.", e.getMessage());
             logger.debug(e.getMessage(), e);
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Problem communicating with Black Duck", true);
