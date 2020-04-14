@@ -138,7 +138,7 @@ public class CommonMetaDataProcessor {
     }
 
     private ProjectVersionWrapper handleGetOrProjectVersion(ProjectService projectService, String name, String versionName) throws IntegrationException {
-        logger.debug("Creating project in Black Duck : {}", name);
+        logger.debug("Getting project in Black Duck : {}. Version: {}", name, versionName);
 
         ProjectVersionWrapper projectVersionWrapper = null;
         ProjectSyncModel projectSyncModel = ProjectSyncModel.createWithDefaults(name, versionName);
@@ -150,10 +150,12 @@ public class CommonMetaDataProcessor {
             if (projectVersionViewOptional.isPresent()) {
                 projectVersionView = projectVersionViewOptional.get();
             } else {
+                logger.debug("Creating version: {}. In Project {}", versionName, name);
                 projectVersionView = projectService.createProjectVersion(projectView, projectSyncModel.createProjectVersionRequest());
             }
             projectVersionWrapper = new ProjectVersionWrapper(projectView, projectVersionView);
         } else {
+            logger.debug("Creating project in Black Duck : {}. Version: {}", name, versionName);
             projectVersionWrapper = projectService.createProject(projectSyncModel.createProjectRequest());
         }
         return projectVersionWrapper;
