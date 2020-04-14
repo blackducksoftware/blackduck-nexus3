@@ -30,6 +30,7 @@ import javax.inject.Named;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.RepositoryTaskSupport;
 
@@ -50,7 +51,7 @@ import com.synopsys.integration.phonehome.PhoneHomeResponse;
 
 @Named
 public class MetaDataTask extends RepositoryTaskSupport {
-    private final Logger logger = createLogger();
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final CommonRepositoryTaskHelper commonRepositoryTaskHelper;
     private final QueryManager queryManager;
     private final CommonMetaDataProcessor commonMetaDataProcessor;

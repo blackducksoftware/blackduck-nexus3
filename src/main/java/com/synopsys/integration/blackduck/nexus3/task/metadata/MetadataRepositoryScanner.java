@@ -96,13 +96,15 @@ public class MetadataRepositoryScanner {
             inspectorMetaDataProcessor.updateRepositoryMetaData(metaDataScanConfiguration.getBlackDuckService(), blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
         } catch (BlackDuckApiException e) {
             for (Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
-                updateAssetWrapperWithError(entry.getValue(), e.getMessage());
                 logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+                logger.debug(e.getMessage(), e);
+                updateAssetWrapperWithError(entry.getValue(), e.getMessage());
             }
         } catch (IntegrationException e) {
             for (Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
-                updateAssetWrapperWithError(entry.getValue(), String.format("Problem retrieving the project %s from Hub: %s", repoName, e.getMessage()));
                 logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+                logger.debug(e.getMessage(), e);
+                updateAssetWrapperWithError(entry.getValue(), String.format("Problem retrieving the project %s from Hub: %s", repoName, e.getMessage()));
             }
             throw new TaskInterruptedException("Problem retrieving project from Hub: " + e.getMessage(), true);
         }
@@ -134,8 +136,9 @@ public class MetadataRepositoryScanner {
                 assetWrapperMap.put(originId, assetWrapper);
             }
         } catch (BlackDuckApiException e) {
-            updateAssetWrapperWithError(assetWrapper, e.getMessage());
             logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+            logger.debug(e.getMessage(), e);
+            updateAssetWrapperWithError(assetWrapper, e.getMessage());
         } catch (IntegrationException e) {
             updateAssetWrapperWithError(assetWrapper, e.getMessage());
             throw new TaskInterruptedException(METADATA_CHECK_ERROR + e.getMessage(), true);
@@ -155,10 +158,12 @@ public class MetadataRepositoryScanner {
         } catch (InterruptedException e) {
             errorMessage = "Waiting for the scan to complete was interrupted: " + e.getMessage();
             logger.error(errorMessage);
+            logger.debug(e.getMessage(), e);
             Thread.currentThread().interrupt();
         } catch (BlackDuckApiException e) {
             errorMessage = e.getMessage();
             logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, errorMessage);
+            logger.debug(e.getMessage(), e);
         } catch (IntegrationException e) {
             errorMessage = e.getMessage();
             throw new TaskInterruptedException(METADATA_CHECK_ERROR + errorMessage, true);
@@ -181,8 +186,9 @@ public class MetadataRepositoryScanner {
                 ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(metaDataScanConfiguration.getBlackDuckService(), metaDataScanConfiguration.getProjectService(), name, version);
                 scanMetaDataProcessor.updateRepositoryMetaData(metaDataScanConfiguration.getBlackDuckService(), assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
             } catch (BlackDuckApiException e) {
-                updateAssetWrapperWithError(assetWrapper, e.getMessage());
                 logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+                logger.debug(e.getMessage(), e);
+                updateAssetWrapperWithError(assetWrapper, e.getMessage());
             } catch (IntegrationException e) {
                 updateAssetWrapperWithError(assetWrapper, e.getMessage());
                 throw new TaskInterruptedException(METADATA_CHECK_ERROR + e.getMessage(), true);

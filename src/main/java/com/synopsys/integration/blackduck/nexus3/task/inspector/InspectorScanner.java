@@ -122,7 +122,7 @@ public class InspectorScanner {
         try {
             fileName = assetWrapper.getFilename();
         } catch (IntegrationException e) {
-            logger.debug("Skipping asset: {}. {}", name, e.getMessage());
+            logger.debug(String.format("Skipping asset: %s. %s", name, e.getMessage()), e);
         }
 
         if (commonTaskFilters.skipAssetProcessing(lastModified, fullPathName, fileName, taskConfiguration)) {
@@ -149,6 +149,7 @@ public class InspectorScanner {
                 assetWrapper.addComponentNotFoundToBlackDuckPanel(String.format("Could not find this component %s in Black Duck.", externalId.createExternalId()));
             }
         } catch (IntegrationException e) {
+            logger.debug(e.getMessage(), e);
             assetWrapper.addFailureToBlackDuckPanel(String.format("Something went wrong communicating with Black Duck: %s", e.getMessage()));
         }
         assetWrapper.updateAsset();
@@ -187,6 +188,7 @@ public class InspectorScanner {
             }
         } catch (BlackDuckApiException e) {
             logger.error("Problem communicating with Black Duck: {}", e.getMessage());
+            logger.debug(e.getMessage(), e);
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Problem communicating with Black Duck", true);
         } catch (IntegrationException e) {
@@ -195,10 +197,12 @@ public class InspectorScanner {
             throw new TaskInterruptedException("Issue communicating with Black Duck", true);
         } catch (IOException e) {
             logger.error("Error writing to file: {}", e.getMessage());
+            logger.debug(e.getMessage(), e);
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             throw new TaskInterruptedException("Couldn't save inspection data", true);
         } catch (InterruptedException e) {
             logger.error("Waiting for the results from Black Duck was interrupted: {}", e.getMessage());
+            logger.debug(e.getMessage(), e);
             updateErrorStatus(assetWrapperMap.values(), e.getMessage());
             Thread.currentThread().interrupt();
             throw new TaskInterruptedException("Waiting for Black Duck results interrupted", true);

@@ -75,21 +75,26 @@ public class RepositoryScanner {
                 FileUtils.cleanDirectory(scanConfiguration.getOutputDirectory());
             } catch (IOException e) {
                 logger.warn("Problem cleaning scan directories {}", scanConfiguration.getOutputDirectory().getAbsolutePath());
+                logger.debug(e.getMessage(), e);
             }
-            Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
-            foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(scanConfiguration.getRepository(), nextPageQuery);
-
+            logger.error("Scanned assets : " + scannedAssets.size());
             if (!scanConfiguration.hasErrors()) {
                 for (Map.Entry<AssetWrapper, Optional<CodeLocationCreationData<ScanBatchOutput>>> entry : scannedAssets.entrySet()) {
                     processScannedAsset(entry.getKey(), entry.getValue());
                 }
+            } else {
+                logger.error("Scan Configuration has errors");
             }
+            Query nextPageQuery = commonRepositoryTaskHelper.createPagedQuery(foundAssets.getLastName()).build();
+            foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(scanConfiguration.getRepository(), nextPageQuery);
         }
+
     }
 
     private void scanAsset(Asset asset, String repoName, Map<AssetWrapper, Optional<CodeLocationCreationData<ScanBatchOutput>>> scannedAssets) {
         AssetWrapper assetWrapper = AssetWrapper.createScanAssetWrapper(asset, scanConfiguration.getRepository(), queryManager);
         String name = assetWrapper.getFullPath();
+        logger.debug("Processing asset: {}", name);
         String version = assetWrapper.getVersion();
         String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
 
@@ -107,7 +112,7 @@ public class RepositoryScanner {
         try {
             fileName = assetWrapper.getFilename();
         } catch (IntegrationException e) {
-            logger.debug("Skipping asset: {}. {}", name, e.getMessage());
+            logger.debug(String.format("Skipping asset: %s. %s", name, e.getMessage()), e);
         }
         if (commonTaskFilters.skipAssetProcessing(lastModified, fullPathName, fileName, taskConfiguration) || !scan) {
             logger.debug("Binary file did not meet requirements for scan: {}", name);
@@ -148,10 +153,12 @@ public class RepositoryScanner {
         } catch (IntegrationException e) {
             updateAssetWrapperWithError(assetWrapper, e.getMessage());
             logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+            logger.debug(e.getMessage(), e);
         } catch (InterruptedException e) {
             String errorMessage = "Waiting for the scan to complete was interrupted: " + e.getMessage();
             updateAssetWrapperWithError(assetWrapper, errorMessage);
             logger.error(errorMessage);
+            logger.debug(e.getMessage(), e);
             Thread.currentThread().interrupt();
         }
     }
@@ -185,13 +192,13 @@ public class RepositoryScanner {
         } catch (IntegrationException e) {
             String errorMessage = String.format("Could not scan item: %s. %s.", name, e.getMessage());
             logger.warn(errorMessage);
+            logger.debug(e.getMessage(), e);
             updateAssetWrapperWithError(assetWrapper, errorMessage);
             return Optional.empty();
         } catch (IOException e) {
-            logger.debug("Exception thrown: {}", e.getMessage());
+            logger.debug(String.format("Exception thrown: %s", e.getMessage()), e);
             throw new TaskInterruptedException("Error saving blob binary to file", true);
         }
-
         CodeLocationCreationData<ScanBatchOutput> scanData = null;
         try {
             ScanBatch scanBatch = createScanBatch(projectName, version, binaryFile.getAbsolutePath(), codeLocationName);
@@ -201,13 +208,15 @@ public class RepositoryScanner {
                 assetWrapper.addPendingToBlackDuckPanel("Scan uploaded to Black Duck, waiting for update.");
             }
         } catch (BlackDuckApiException e) {
-            assetWrapper.removeAllBlackDuckData();
-            assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
             logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
-        } catch (IntegrationException e) {
+            logger.debug(e.getMessage(), e);
             assetWrapper.removeAllBlackDuckData();
             assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
+        } catch (IntegrationException e) {
             logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
+            logger.debug(e.getMessage(), e);
+            assetWrapper.removeAllBlackDuckData();
+            assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
         } finally {
             assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
         }

@@ -51,8 +51,6 @@ import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.exception.IntegrationException;
-import com.synopsys.integration.log.IntLogger;
-import com.synopsys.integration.log.Slf4jIntLogger;
 import com.synopsys.integration.phonehome.PhoneHomeResponse;
 import com.synopsys.integration.util.IntEnvironmentVariables;
 import com.synopsys.integration.util.NoThreadExecutorService;
@@ -90,7 +88,6 @@ public class ScanTask extends RepositoryTaskSupport {
 
     @Override
     protected void execute(Repository repository) {
-        IntLogger intLogger = new Slf4jIntLogger(logger);
         Optional<PhoneHomeResponse> phoneHomeResponse = commonRepositoryTaskHelper.phoneHome(ScanTaskDescriptor.BLACK_DUCK_SCAN_TASK_ID);
 
         String exceptionMessage = null;
@@ -104,9 +101,9 @@ public class ScanTask extends RepositoryTaskSupport {
             BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
 
             IntEnvironmentVariables intEnvironmentVariables = new IntEnvironmentVariables();
-            BlackDuckHttpClient blackDuckHttpClient = blackDuckServerConfig.createBlackDuckHttpClient(intLogger);
+            BlackDuckHttpClient blackDuckHttpClient = blackDuckServerConfig.createBlackDuckHttpClient(blackDuckServicesFactory.getLogger());
 
-            signatureScannerService = blackDuckServicesFactory.createSignatureScannerService(ScanBatchRunner.createDefault(intLogger, blackDuckHttpClient, intEnvironmentVariables, new NoThreadExecutorService()));
+            signatureScannerService = blackDuckServicesFactory.createSignatureScannerService(ScanBatchRunner.createDefault(blackDuckServicesFactory.getLogger(), blackDuckHttpClient, intEnvironmentVariables, new NoThreadExecutorService()));
             codeLocationCreationService = blackDuckServicesFactory.createCodeLocationCreationService();
             blackDuckService = blackDuckServicesFactory.createBlackDuckService();
             projectService = blackDuckServicesFactory.createProjectService();
@@ -123,7 +120,7 @@ public class ScanTask extends RepositoryTaskSupport {
             Files.createDirectories(tempFileStorage.toPath());
             Files.createDirectories(outputDirectory.toPath());
         } catch (IOException e) {
-            intLogger.debug(e.getMessage(), e);
+            logger.debug(e.getMessage(), e);
             throw new TaskInterruptedException("Could not create directories to use with Scanner: " + e.getMessage(), true);
         }
 
