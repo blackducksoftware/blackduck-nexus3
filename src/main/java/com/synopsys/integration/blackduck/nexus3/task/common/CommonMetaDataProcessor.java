@@ -33,8 +33,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.synopsys.integration.blackduck.api.generated.component.ProjectRequest;
-import com.synopsys.integration.blackduck.api.generated.component.ProjectVersionRequest;
 import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
 import com.synopsys.integration.blackduck.api.generated.enumeration.RiskCountType;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
@@ -59,27 +57,27 @@ public class CommonMetaDataProcessor {
     public static final String NEXUS_PROJECT_TAG = "blackduck_nexus3";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public void setAssetVulnerabilityData(final VulnerabilityLevels vulnerabilityLevels, final AssetWrapper assetWrapper) {
+    public void setAssetVulnerabilityData(VulnerabilityLevels vulnerabilityLevels, AssetWrapper assetWrapper) {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
     }
 
-    public List<VersionBomComponentView> checkAssetVulnerabilities(final BlackDuckService blackDuckService, final ProjectVersionView projectVersionView) throws IntegrationException {
+    public List<VersionBomComponentView> checkAssetVulnerabilities(BlackDuckService blackDuckService, ProjectVersionView projectVersionView) throws IntegrationException {
         return blackDuckService.getResponses(projectVersionView, ProjectVersionView.COMPONENTS_LINK_RESPONSE, true);
     }
 
-    public void addAllAssetVulnerabilityCounts(final List<RiskCountView> vulnerabilities, final VulnerabilityLevels vulnerabilityLevels) {
-        for (final RiskCountView riskCountView : vulnerabilities) {
-            final String riskCountType = riskCountView.getCountType().name();
-            final int riskCount = riskCountView.getCount();
+    public void addAllAssetVulnerabilityCounts(List<RiskCountView> vulnerabilities, VulnerabilityLevels vulnerabilityLevels) {
+        for (RiskCountView riskCountView : vulnerabilities) {
+            String riskCountType = riskCountView.getCountType().name();
+            int riskCount = riskCountView.getCount();
             vulnerabilityLevels.addXVulnerabilities(riskCountType, riskCount);
         }
     }
 
-    public void addMaxAssetVulnerabilityCounts(final List<RiskCountView> vulnerabilities, final VulnerabilityLevels vulnerabilityLevels) {
+    public void addMaxAssetVulnerabilityCounts(List<RiskCountView> vulnerabilities, VulnerabilityLevels vulnerabilityLevels) {
         String highestSeverity = "";
-        for (final RiskCountView vulnerability : vulnerabilities) {
-            final RiskCountType severity = vulnerability.getCountType();
-            final int severityCount = vulnerability.getCount();
+        for (RiskCountView vulnerability : vulnerabilities) {
+            RiskCountType severity = vulnerability.getCountType();
+            int severityCount = vulnerability.getCount();
             if (RiskCountType.HIGH.equals(severity) && severityCount > 0) {
                 highestSeverity = VulnerabilityLevels.HIGH_VULNERABILITY;
                 break;
@@ -94,50 +92,50 @@ public class CommonMetaDataProcessor {
         }
     }
 
-    public void removeAssetVulnerabilityData(final AssetWrapper assetWrapper) {
+    public void removeAssetVulnerabilityData(AssetWrapper assetWrapper) {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES);
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.VULNERABLE_COMPONENTS);
     }
 
-    public void setAssetPolicyData(final VersionBomPolicyStatusView policyStatusView, final AssetWrapper assetWrapper) {
-        final PolicyStatusDescription policyStatusDescription = new PolicyStatusDescription(policyStatusView);
-        final String policyStatus = policyStatusDescription.getPolicyStatusMessage();
-        final String overallStatus = policyStatusView.getOverallStatus().prettyPrint();
+    public void setAssetPolicyData(VersionBomPolicyStatusView policyStatusView, AssetWrapper assetWrapper) {
+        PolicyStatusDescription policyStatusDescription = new PolicyStatusDescription(policyStatusView);
+        String policyStatus = policyStatusDescription.getPolicyStatusMessage();
+        String overallStatus = policyStatusView.getOverallStatus().prettyPrint();
 
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.POLICY_STATUS, policyStatus);
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, overallStatus);
     }
 
-    public void removePolicyData(final AssetWrapper assetWrapper) {
+    public void removePolicyData(AssetWrapper assetWrapper) {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.POLICY_STATUS);
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS);
     }
 
-    public Optional<VersionBomPolicyStatusView> checkAssetPolicy(final BlackDuckService blackDuckService, final ProjectVersionView projectVersionView) throws IntegrationException {
+    public Optional<VersionBomPolicyStatusView> checkAssetPolicy(BlackDuckService blackDuckService, ProjectVersionView projectVersionView) throws IntegrationException {
         logger.info("Checking metadata of {}", projectVersionView.getVersionName());
         return blackDuckService.getResponse(projectVersionView, ProjectVersionView.POLICY_STATUS_LINK_RESPONSE);
     }
 
-    public void removeAllMetaData(final AssetWrapper assetWrapper) {
+    public void removeAllMetaData(AssetWrapper assetWrapper) {
         removePolicyData(assetWrapper);
         removeAssetVulnerabilityData(assetWrapper);
     }
 
-    public ProjectVersionView getOrCreateProjectVersion(final BlackDuckService blackDuckService, final ProjectService projectService, final String name, final String versionName) throws IntegrationException {
-        final Optional<ProjectVersionWrapper> projectVersionWrapperOptional = projectService.getProjectVersion(name, versionName);
-        final ProjectVersionWrapper projectVersionWrapper;
+    public ProjectVersionView getOrCreateProjectVersion(BlackDuckService blackDuckService, ProjectService projectService, String name, String versionName) throws IntegrationException {
+        Optional<ProjectVersionWrapper> projectVersionWrapperOptional = projectService.getProjectVersion(name, versionName);
+        ProjectVersionWrapper projectVersionWrapper;
         if (projectVersionWrapperOptional.isPresent()) {
             projectVersionWrapper = projectVersionWrapperOptional.get();
         } else {
             projectVersionWrapper = createProjectVersion(projectService, name, versionName);
         }
 
-        final TagService tagService = new TagService(blackDuckService, new Slf4jIntLogger(logger));
-        final ProjectView projectView = projectVersionWrapper.getProjectView();
-        final Optional<TagView> matchingTag = tagService.findMatchingTag(projectView, NEXUS_PROJECT_TAG);
+        TagService tagService = new TagService(blackDuckService, new Slf4jIntLogger(logger));
+        ProjectView projectView = projectVersionWrapper.getProjectView();
+        Optional<TagView> matchingTag = tagService.findMatchingTag(projectView, NEXUS_PROJECT_TAG);
         if (!matchingTag.isPresent()) {
             logger.debug("Adding tag {} to project {} in Black Duck.", NEXUS_PROJECT_TAG, name);
-            final TagView tagView = new TagView();
+            TagView tagView = new TagView();
             tagView.setName(NEXUS_PROJECT_TAG);
             tagService.createTag(projectView, tagView);
         }
@@ -145,10 +143,10 @@ public class CommonMetaDataProcessor {
         return projectVersionWrapper.getProjectVersionView();
     }
 
-    private ProjectVersionWrapper createProjectVersion(final ProjectService projectService, final String name, final String versionName) throws IntegrationException {
+    private ProjectVersionWrapper createProjectVersion(ProjectService projectService, String name, String versionName) throws IntegrationException {
         logger.debug("Creating project in Black Duck : {}", name);
 
-        final ProjectSyncModel projectSyncModel = ProjectSyncModel.createWithDefaults(name, versionName);
+        ProjectSyncModel projectSyncModel = ProjectSyncModel.createWithDefaults(name, versionName);
         return projectService.createProject(projectSyncModel.createProjectRequest());
     }
 }

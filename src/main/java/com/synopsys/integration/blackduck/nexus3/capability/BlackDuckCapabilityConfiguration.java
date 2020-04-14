@@ -34,21 +34,21 @@ import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfigBui
 public class BlackDuckCapabilityConfiguration extends CapabilityConfigurationSupport {
     private final Map<String, String> capabilitySettings;
 
-    public BlackDuckCapabilityConfiguration(final Map<String, String> capabilitySettings) {
+    public BlackDuckCapabilityConfiguration(Map<String, String> capabilitySettings) {
         this.capabilitySettings = capabilitySettings;
     }
 
     public BlackDuckServerConfig createBlackDuckServerConfig() {
-        final BlackDuckServerConfigBuilder blackDuckServerConfigBuilder = new BlackDuckServerConfigBuilder();
+        BlackDuckServerConfigBuilder blackDuckServerConfigBuilder = new BlackDuckServerConfigBuilder();
         blackDuckServerConfigBuilder.setUrl(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_URL.getKey()));
-        blackDuckServerConfigBuilder.setTimeout(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TIMEOUT.getKey()));
+        blackDuckServerConfigBuilder.setTimeoutInSeconds(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TIMEOUT.getKey()));
         blackDuckServerConfigBuilder.setTrustCert(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_TRUST_CERT.getKey()));
         blackDuckServerConfigBuilder.setApiToken(capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_API_KEY.getKey()));
 
-        final String proxyHost = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_HOST.getKey());
-        final String proxyPort = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PORT.getKey());
-        final String proxyUsername = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey());
-        final String proxyPassword = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey());
+        String proxyHost = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_HOST.getKey());
+        String proxyPort = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PORT.getKey());
+        String proxyUsername = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_USERNAME.getKey());
+        String proxyPassword = capabilitySettings.get(BlackDuckCapabilityConfigKeys.BLACKDUCK_PROXY_PASSWORD.getKey());
 
         if (StringUtils.isNotBlank(proxyHost)) {
             blackDuckServerConfigBuilder.setProxyHost(proxyHost);

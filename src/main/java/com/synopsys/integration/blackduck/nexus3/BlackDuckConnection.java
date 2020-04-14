@@ -23,8 +23,6 @@
  */
 package com.synopsys.integration.blackduck.nexus3;
 
-import java.util.concurrent.Executors;
-
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -35,12 +33,10 @@ import org.slf4j.LoggerFactory;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.blackduck.nexus3.capability.BlackDuckCapabilityConfiguration;
 import com.synopsys.integration.blackduck.nexus3.capability.BlackDuckCapabilityFinder;
-import com.synopsys.integration.blackduck.rest.BlackDuckHttpClient;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.log.IntLogger;
 import com.synopsys.integration.log.Slf4jIntLogger;
-import com.synopsys.integration.util.IntEnvironmentVariables;
 
 @Named
 @Singleton
@@ -52,17 +48,17 @@ public class BlackDuckConnection {
     private BlackDuckServicesFactory blackDuckServicesFactory;
 
     @Inject
-    public BlackDuckConnection(final BlackDuckCapabilityFinder blackDuckCapabilityFinder) {
+    public BlackDuckConnection(BlackDuckCapabilityFinder blackDuckCapabilityFinder) {
         this.blackDuckCapabilityFinder = blackDuckCapabilityFinder;
         markForUpdate();
     }
 
     public void updateHubServerConfig() throws IntegrationException {
-        final BlackDuckCapabilityConfiguration blackDuckCapabilityConfiguration = blackDuckCapabilityFinder.retrieveBlackDuckCapabilityConfiguration();
+        BlackDuckCapabilityConfiguration blackDuckCapabilityConfiguration = blackDuckCapabilityFinder.retrieveBlackDuckCapabilityConfiguration();
         if (blackDuckCapabilityConfiguration == null) {
             throw new IntegrationException("Black Duck server configuration not found.");
         }
-        final BlackDuckServerConfig updatedBlackDuckServerConfig = blackDuckCapabilityConfiguration.createBlackDuckServerConfig();
+        BlackDuckServerConfig updatedBlackDuckServerConfig = blackDuckCapabilityConfiguration.createBlackDuckServerConfig();
         setHubServerConfig(updatedBlackDuckServerConfig);
     }
 
@@ -74,7 +70,7 @@ public class BlackDuckConnection {
         return blackDuckServerConfig;
     }
 
-    public void setHubServerConfig(final BlackDuckServerConfig blackDuckServerConfig) {
+    public void setHubServerConfig(BlackDuckServerConfig blackDuckServerConfig) {
         this.blackDuckServerConfig = blackDuckServerConfig;
         blackDuckServicesFactory = null;
         needsUpdate = false;
@@ -87,7 +83,7 @@ public class BlackDuckConnection {
     public BlackDuckServicesFactory getBlackDuckServicesFactory() throws IntegrationException {
         if (needsUpdate || blackDuckServicesFactory == null) {
             logger.debug("Getting updated blackDuckServicesFactory");
-            final IntLogger intLogger = new Slf4jIntLogger(logger);
+            IntLogger intLogger = new Slf4jIntLogger(logger);
             blackDuckServicesFactory = getBlackDuckServerConfig().createBlackDuckServicesFactory(intLogger);
         }
 
