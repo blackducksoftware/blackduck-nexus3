@@ -131,7 +131,7 @@ public class ScanTask extends RepositoryTaskSupport {
         boolean redoFailures = taskConfiguration().getBoolean(ScanTaskDescriptor.KEY_REDO_FAILURES, false);
         for (Repository foundRepository : commonTaskFilters.findRelevantRepositories(repository)) {
             if (commonTaskFilters.isHostedRepository(foundRepository.getType())) {
-                ScanConfiguration scanConfiguration = null;
+                ScanConfiguration scanConfiguration;
                 if (StringUtils.isNotBlank(exceptionMessage)) {
                     scanConfiguration = ScanConfiguration.createConfigurationWithError(exceptionMessage, repository, alwaysScan, redoFailures);
                 } else {
