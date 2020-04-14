@@ -231,7 +231,9 @@ public class InspectorScanner {
         }
 
         File bdioFile = new File(blackDuckWorkingDirectory, integrationEscapeUtil.escapeForUri(codeLocationName));
-        Files.delete(bdioFile.toPath());
+        if (bdioFile.exists()) {
+            Files.delete(bdioFile.toPath());
+        }
         if (bdioFile.createNewFile()) {
             logger.debug("Created file {}", bdioFile.getAbsolutePath());
         } else {
