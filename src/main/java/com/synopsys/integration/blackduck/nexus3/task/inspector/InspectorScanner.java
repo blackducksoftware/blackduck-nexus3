@@ -92,7 +92,7 @@ public class InspectorScanner {
                 } else {
                     boolean shouldProcessAsset = processAsset(inspectorConfiguration.getComponentService(), assetWrapper, inspectorConfiguration.getDependencyType(), mutableDependencyGraph, assetWrapperMap);
                     if (shouldProcessAsset) {
-                        // Only set resultsFound to true, if you set it to false you risk falsely reporting that there are no new assets
+                        // Only set uploadToBlackDuck to true, if you set it to false you risk falsely reporting that there are no new assets
                         // I believe this can be improved upon... -BM
                         uploadToBlackDuck = true;
                     }
