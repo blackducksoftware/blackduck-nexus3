@@ -122,13 +122,7 @@ public class CommonMetaDataProcessor {
     }
 
     public ProjectVersionView getOrCreateProjectVersion(BlackDuckService blackDuckService, ProjectService projectService, String name, String versionName) throws IntegrationException {
-        Optional<ProjectVersionWrapper> projectVersionWrapperOptional = projectService.getProjectVersion(name, versionName);
-        ProjectVersionWrapper projectVersionWrapper;
-        if (projectVersionWrapperOptional.isPresent()) {
-            projectVersionWrapper = projectVersionWrapperOptional.get();
-        } else {
-            projectVersionWrapper = createProjectVersion(projectService, name, versionName);
-        }
+        ProjectVersionWrapper projectVersionWrapper = handleGetOrProjectVersion(projectService, name, versionName);
 
         TagService tagService = new TagService(blackDuckService, new Slf4jIntLogger(logger));
         ProjectView projectView = projectVersionWrapper.getProjectView();
@@ -143,10 +137,25 @@ public class CommonMetaDataProcessor {
         return projectVersionWrapper.getProjectVersionView();
     }
 
-    private ProjectVersionWrapper createProjectVersion(ProjectService projectService, String name, String versionName) throws IntegrationException {
+    private ProjectVersionWrapper handleGetOrProjectVersion(ProjectService projectService, String name, String versionName) throws IntegrationException {
         logger.debug("Creating project in Black Duck : {}", name);
 
+        ProjectVersionWrapper projectVersionWrapper = null;
         ProjectSyncModel projectSyncModel = ProjectSyncModel.createWithDefaults(name, versionName);
-        return projectService.createProject(projectSyncModel.createProjectRequest());
+        Optional<ProjectView> projectViewOptional = projectService.getProjectByName(name);
+        if (projectViewOptional.isPresent()) {
+            ProjectView projectView = projectViewOptional.get();
+            ProjectVersionView projectVersionView = null;
+            Optional<ProjectVersionView> projectVersionViewOptional = projectService.getProjectVersion(projectView, versionName);
+            if (projectVersionViewOptional.isPresent()) {
+                projectVersionView = projectVersionViewOptional.get();
+            } else {
+                projectVersionView = projectService.createProjectVersion(projectView, projectSyncModel.createProjectVersionRequest());
+            }
+            projectVersionWrapper = new ProjectVersionWrapper(projectView, projectVersionView);
+        } else {
+            projectVersionWrapper = projectService.createProject(projectSyncModel.createProjectRequest());
+        }
+        return projectVersionWrapper;
     }
 }
