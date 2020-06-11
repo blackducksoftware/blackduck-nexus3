@@ -33,10 +33,10 @@ import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
+import com.synopsys.integration.blackduck.api.generated.component.ComponentVersionRiskProfileRiskDataCountsView;
+import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionComponentView;
+import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionPolicyStatusView;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
-import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
-import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
@@ -54,23 +54,23 @@ public class ScanMetaDataProcessor {
     private final DateTimeParser dateTimeParser;
 
     @Inject
-    public ScanMetaDataProcessor(final CommonMetaDataProcessor commonMetaDataProcessor, final DateTimeParser dateTimeParser) {
+    public ScanMetaDataProcessor(CommonMetaDataProcessor commonMetaDataProcessor, DateTimeParser dateTimeParser) {
         this.commonMetaDataProcessor = commonMetaDataProcessor;
         this.dateTimeParser = dateTimeParser;
     }
 
-    public void updateRepositoryMetaData(final BlackDuckService blackDuckService, final AssetWrapper assetWrapper, final String blackDuckUrl, final ProjectVersionView projectVersionView)
+    public void updateRepositoryMetaData(BlackDuckService blackDuckService, AssetWrapper assetWrapper, String blackDuckUrl, ProjectVersionView projectVersionView)
         throws IntegrationException {
         logger.info("Checking vulnerabilities.");
-        final List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(blackDuckService, projectVersionView);
-        final VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
-        for (final VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
-            final List<RiskCountView> vulnerabilities = versionBomComponentView.getSecurityRiskProfile().getCounts();
-            commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(vulnerabilities, vulnerabilityLevels);
+        List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(blackDuckService, projectVersionView);
+        VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
+        for (ProjectVersionComponentView versionComponentView : versionComponentViews) {
+            List<ComponentVersionRiskProfileRiskDataCountsView> riskCounts = versionComponentView.getSecurityRiskProfile().getCounts();
+            commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(riskCounts, vulnerabilityLevels);
         }
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABLE_COMPONENTS, vulnerabilityLevels.getAllCounts());
         logger.info("Checking policies.");
-        final Optional<VersionBomPolicyStatusView> policyStatusView = commonMetaDataProcessor.checkAssetPolicy(blackDuckService, projectVersionView);
+        Optional<ProjectVersionPolicyStatusView> policyStatusView = commonMetaDataProcessor.checkAssetPolicy(blackDuckService, projectVersionView);
         if (policyStatusView.isPresent()) {
             commonMetaDataProcessor.setAssetPolicyData(policyStatusView.get(), assetWrapper);
             assetWrapper.addSuccessToBlackDuckPanel("Scan results successfully retrieved from Black Duck.");
@@ -82,11 +82,11 @@ public class ScanMetaDataProcessor {
         assetWrapper.updateAsset();
     }
 
-    public ProjectVersionView getOrCreateProjectVersion(final BlackDuckService blackDuckService, final ProjectService projectService, final String repoName, final String version) throws IntegrationException {
+    public ProjectVersionView getOrCreateProjectVersion(BlackDuckService blackDuckService, ProjectService projectService, String repoName, String version) throws IntegrationException {
         return commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName, version);
     }
 
-    public String createCodeLocationName(final String repoName, final String name, final String version) {
+    public String createCodeLocationName(String repoName, String name, String version) {
         return String.join("/", ScanTask.SCAN_CODE_LOCATION_NAME, repoName, name, version);
     }
 }

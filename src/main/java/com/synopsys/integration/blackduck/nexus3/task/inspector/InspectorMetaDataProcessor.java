@@ -37,11 +37,11 @@ import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
-import com.synopsys.integration.blackduck.api.generated.component.VersionBomOriginView;
-import com.synopsys.integration.blackduck.api.generated.enumeration.PolicySummaryStatusType;
+import com.synopsys.integration.blackduck.api.generated.component.ComponentVersionRiskProfileRiskDataCountsView;
+import com.synopsys.integration.blackduck.api.generated.enumeration.PolicyStatusType;
+import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionComponentView;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
-import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
+import com.synopsys.integration.blackduck.api.manual.throwaway.generated.component.VersionBomOriginView;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
 import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
@@ -67,12 +67,12 @@ public class InspectorMetaDataProcessor {
 
     public void updateRepositoryMetaData(BlackDuckService blackDuckService, String blackDuckServerUrl, ProjectVersionView projectVersionView, Map<String, AssetWrapper> assetWrapperMap,
         TaskStatus status) throws IntegrationException {
-        List<VersionBomComponentView> versionBomComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(blackDuckService, projectVersionView);
-        for (VersionBomComponentView versionBomComponentView : versionBomComponentViews) {
-            Set<String> externalIds = versionBomComponentView.getOrigins().stream()
+        List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(blackDuckService, projectVersionView);
+        for (ProjectVersionComponentView versionComponentView : versionComponentViews) {
+            Set<String> externalIds = versionComponentView.getOrigins().stream()
                                           .map(VersionBomOriginView::getExternalId)
                                           .collect(Collectors.toSet());
-            logger.debug("Found all externalIds ({}) for component: {}", externalIds, versionBomComponentView.getComponentName());
+            logger.debug("Found all externalIds ({}) for component: {}", externalIds, versionComponentView.getComponentName());
             for (String externalId : externalIds) {
                 AssetWrapper assetWrapper = assetWrapperMap.get(externalId);
 
@@ -81,7 +81,7 @@ public class InspectorMetaDataProcessor {
                     continue;
                 }
                 String blackDuckUrl = projectVersionView.getHref().orElse(blackDuckServerUrl);
-                PolicySummaryStatusType policyStatus = versionBomComponentView.getPolicyStatus();
+                PolicyStatusType policyStatus = versionComponentView.getPolicyStatus();
 
                 logger.info("Found component and updating Asset: {}", assetWrapper.getName());
                 if (TaskStatus.FAILURE.equals(status)) {
@@ -91,7 +91,7 @@ public class InspectorMetaDataProcessor {
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, blackDuckUrl);
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, policyStatus.prettyPrint());
                     assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
-                    addVulnerabilityStatus(assetWrapper, versionBomComponentView);
+                    addVulnerabilityStatus(assetWrapper, versionComponentView);
                 }
                 assetWrapper.updateAsset();
                 assetWrapperMap.remove(externalId);
@@ -110,9 +110,9 @@ public class InspectorMetaDataProcessor {
         return commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName, INSPECTOR_VERSION_NAME);
     }
 
-    private void addVulnerabilityStatus(AssetWrapper assetWrapper, VersionBomComponentView versionBomComponentView) {
+    private void addVulnerabilityStatus(AssetWrapper assetWrapper, ProjectVersionComponentView versionComponentView) {
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
-        List<RiskCountView> riskCountViews = versionBomComponentView.getSecurityRiskProfile().getCounts();
+        List<ComponentVersionRiskProfileRiskDataCountsView> riskCountViews = versionComponentView.getSecurityRiskProfile().getCounts();
         logger.info("Counting vulnerabilities");
         commonMetaDataProcessor.addAllAssetVulnerabilityCounts(riskCountViews, vulnerabilityLevels);
         commonMetaDataProcessor.setAssetVulnerabilityData(vulnerabilityLevels, assetWrapper);

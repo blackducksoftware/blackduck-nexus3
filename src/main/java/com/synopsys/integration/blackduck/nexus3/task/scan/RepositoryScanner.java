@@ -33,6 +33,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTas
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.util.NameVersion;
 
 public class RepositoryScanner {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -132,6 +133,7 @@ public class RepositoryScanner {
     private void processScannedAsset(AssetWrapper assetWrapper, Optional<CodeLocationCreationData<ScanBatchOutput>> scanDataOptional) {
         String projectName = assetWrapper.getName();
         String version = assetWrapper.getVersion();
+        NameVersion projectNameVersion = new NameVersion(projectName, version);
         int timeout = scanConfiguration.getBlackDuckServerConfig().getTimeout() * 5;
         try {
             if (scanDataOptional.isPresent()) {
@@ -140,7 +142,7 @@ public class RepositoryScanner {
                     ProjectVersionView projectVersionView = scanMetaDataProcessor.getOrCreateProjectVersion(scanConfiguration.getBlackDuckService(), scanConfiguration.getProjectService(), projectName, version);
                     Set<String> successfulCodeLocationNames = scanData.getOutput().getSuccessfulCodeLocationNames();
                     CodeLocationWaitResult codeLocationWaitResult = scanConfiguration.getCodeLocationCreationService()
-                                                                        .waitForCodeLocations(scanData.getNotificationTaskRange(), successfulCodeLocationNames, successfulCodeLocationNames.size(), timeout);
+                                                                        .waitForCodeLocations(scanData.getNotificationTaskRange(), projectNameVersion, successfulCodeLocationNames, successfulCodeLocationNames.size(), timeout);
                     if (CodeLocationWaitResult.Status.COMPLETE == codeLocationWaitResult.getStatus()) {
                         scanMetaDataProcessor
                             .updateRepositoryMetaData(scanConfiguration.getBlackDuckService(), assetWrapper, projectVersionView.getHref().orElse(scanConfiguration.getBlackDuckServerConfig().getBlackDuckUrl().toString()),

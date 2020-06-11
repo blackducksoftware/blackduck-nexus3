@@ -1,9 +1,9 @@
 package com.synopsys.integration.blackduck.nexus3.task.metadata;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
@@ -28,6 +28,7 @@ import com.synopsys.integration.blackduck.nexus3.task.scan.ScanMetaDataProcessor
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.model.NotificationTaskRange;
 import com.synopsys.integration.exception.IntegrationException;
+import com.synopsys.integration.util.NameVersion;
 
 public class MetadataRepositoryScanner {
     private static final String BLACK_DUCK_COMMUNICATION_FORMAT = "Problem communicating with Black Duck: {}.";
@@ -146,41 +147,42 @@ public class MetadataRepositoryScanner {
     }
 
     private void updatePendingScanAssets(Map<String, AssetWrapper> assetWrapperToWaitFor) {
-        NotificationTaskRange notificationTaskRange = null;
-        CodeLocationWaitResult codeLocationWaitResult = null;
-        String errorMessage = null;
-        int timeout = -1;
-        try {
-            timeout = commonRepositoryTaskHelper.getBlackDuckServerConfig().getTimeout() * 5;
-            notificationTaskRange = metaDataScanConfiguration.getCodeLocationCreationService().calculateCodeLocationRange();
-            Set<String> codeLocationNames = assetWrapperToWaitFor.keySet();
-            codeLocationWaitResult = metaDataScanConfiguration.getCodeLocationCreationService().waitForCodeLocations(notificationTaskRange, codeLocationNames, codeLocationNames.size(), timeout);
-        } catch (InterruptedException e) {
-            errorMessage = "Waiting for the scan to complete was interrupted: " + e.getMessage();
-            logger.error(errorMessage);
-            logger.debug(e.getMessage(), e);
-            Thread.currentThread().interrupt();
-        } catch (BlackDuckApiException e) {
-            errorMessage = e.getMessage();
-            logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, errorMessage);
-            logger.debug(e.getMessage(), e);
-        } catch (IntegrationException e) {
-            errorMessage = e.getMessage();
-            throw new TaskInterruptedException(METADATA_CHECK_ERROR + errorMessage, true);
-        }
         for (Map.Entry<String, AssetWrapper> entry : assetWrapperToWaitFor.entrySet()) {
             String codeLocationName = entry.getKey();
             AssetWrapper assetWrapper = entry.getValue();
+            String name = assetWrapper.getName();
+            String version = assetWrapper.getVersion();
+            NameVersion projectNameVersion = new NameVersion(name, version);
+
+            CodeLocationWaitResult codeLocationWaitResult = null;
+            String errorMessage = null;
+            int timeout = -1;
+            try {
+                timeout = commonRepositoryTaskHelper.getBlackDuckServerConfig().getTimeout() * 5;
+                NotificationTaskRange notificationTaskRange = metaDataScanConfiguration.getCodeLocationCreationService().calculateCodeLocationRange();
+                codeLocationWaitResult = metaDataScanConfiguration.getCodeLocationCreationService().waitForCodeLocations(notificationTaskRange, projectNameVersion, Collections.singleton(codeLocationName), 1, timeout);
+            } catch (InterruptedException e) {
+                errorMessage = String.format("Waiting for the scan '%s', to complete was interrupted: %s", codeLocationName, e.getMessage());
+                logger.error(errorMessage);
+                logger.debug(e.getMessage(), e);
+                Thread.currentThread().interrupt();
+            } catch (BlackDuckApiException e) {
+                errorMessage = e.getMessage();
+                logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, errorMessage);
+                logger.debug(e.getMessage(), e);
+            } catch (IntegrationException e) {
+                errorMessage = e.getMessage();
+                throw new TaskInterruptedException(METADATA_CHECK_ERROR + errorMessage, true);
+            }
 
             if (StringUtils.isBlank(errorMessage) && null != codeLocationWaitResult && !codeLocationWaitResult.getCodeLocationNames().contains(codeLocationName)) {
-                errorMessage = String.format("The Black Duck server did not update this project within %s seconds", timeout);
+                errorMessage = String.format("The Black Duck server did not update this project '%s' within %s seconds", name, timeout);
             }
             if (StringUtils.isNotBlank(errorMessage)) {
                 updateAssetWrapperWithError(assetWrapper, errorMessage);
                 continue;
             }
-            String name = assetWrapper.getName();
-            String version = assetWrapper.getVersion();
+
             String assetBlackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
             try {
                 ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(metaDataScanConfiguration.getBlackDuckService(), metaDataScanConfiguration.getProjectService(), name, version);
