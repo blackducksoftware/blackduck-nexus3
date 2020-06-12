@@ -90,16 +90,19 @@ public class CommonMetaDataProcessor {
     private int getCountTypePriority(ComponentVersionRiskProfileRiskDataCountsCountTypeType countType) {
         if (null == countType) {
             return 0;
-        } else if (ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.equals(countType)) {
-            return 10;
-        } else if (ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.equals(countType)) {
-            return 8;
-        } else if (ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.equals(countType)) {
-            return 6;
-        } else if (ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.equals(countType)) {
-            return 4;
         }
-        return 0;
+        switch (countType) {
+            case CRITICAL:
+                return 10;
+            case HIGH:
+                return 8;
+            case MEDIUM:
+                return 6;
+            case LOW:
+                return 4;
+            default:
+                return 0;
+        }
     }
 
     private boolean hasVulnerabilities(ComponentVersionRiskProfileRiskDataCountsView riskCountView) {
