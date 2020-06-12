@@ -15,41 +15,41 @@ public class DependencyGeneratorTest {
 
     @Test
     public void findDependencyTest() {
-        final DependencyGenerator dependencyGenerator = new DependencyGenerator();
+        DependencyGenerator dependencyGenerator = new DependencyGenerator();
 
         final String maven = "maven2";
-        final Optional<DependencyType> mavenDependency = dependencyGenerator.findDependency(maven);
+        Optional<DependencyType> mavenDependency = dependencyGenerator.findDependency(maven);
 
         Assert.assertTrue(mavenDependency.isPresent());
         Assert.assertEquals(Forge.MAVEN, mavenDependency.get().getForge());
 
         final String nuget = "nuget";
-        final Optional<DependencyType> nugetDependency = dependencyGenerator.findDependency(nuget);
+        Optional<DependencyType> nugetDependency = dependencyGenerator.findDependency(nuget);
 
         Assert.assertTrue(nugetDependency.isPresent());
         Assert.assertEquals(Forge.NUGET, nugetDependency.get().getForge());
 
         final String badName = "badName";
-        final Optional<DependencyType> emptyDependency = dependencyGenerator.findDependency(badName);
+        Optional<DependencyType> emptyDependency = dependencyGenerator.findDependency(badName);
 
         Assert.assertFalse(emptyDependency.isPresent());
     }
 
     @Test
     public void createDependencyTest() {
-        final DependencyGenerator dependencyGenerator = new DependencyGenerator();
+        DependencyGenerator dependencyGenerator = new DependencyGenerator();
 
-        final NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
+        NestedAttributesMap defaultAttributesMap = new NestedAttributesMap(MetadataNodeEntityAdapter.P_ATTRIBUTES, new HashMap<>());
 
         defaultAttributesMap.child("maven2").set("groupId", "testGroup");
-        final Dependency mavenDependency = dependencyGenerator.createDependency(DependencyType.MAVEN, "maven", "Test", defaultAttributesMap);
+        Dependency mavenDependency = dependencyGenerator.createDependency(DependencyType.MAVEN, "maven", "Test", defaultAttributesMap);
 
         final String originId = "testGroup:maven:Test";
-        Assert.assertEquals(originId, mavenDependency.externalId.createExternalId());
+        Assert.assertEquals(originId, mavenDependency.getExternalId().createExternalId());
 
-        final Dependency nugetDependency = dependencyGenerator.createDependency(DependencyType.NUGET, "nugetTest", "test1", defaultAttributesMap);
+        Dependency nugetDependency = dependencyGenerator.createDependency(DependencyType.NUGET, "nugetTest", "test1", defaultAttributesMap);
 
         final String nugetOriginId = "nugetTest/test1";
-        Assert.assertEquals(nugetOriginId, nugetDependency.externalId.createExternalId());
+        Assert.assertEquals(nugetOriginId, nugetDependency.getExternalId().createExternalId());
     }
 }
