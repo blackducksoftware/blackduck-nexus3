@@ -25,7 +25,7 @@ import com.synopsys.integration.bdio.model.Forge;
 import com.synopsys.integration.bdio.model.SimpleBdioDocument;
 import com.synopsys.integration.bdio.model.dependency.Dependency;
 import com.synopsys.integration.bdio.model.externalid.ExternalId;
-import com.synopsys.integration.blackduck.api.generated.view.ComponentSearchResultView;
+import com.synopsys.integration.blackduck.api.generated.response.ComponentsView;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.codelocation.CodeLocationCreationData;
 import com.synopsys.integration.blackduck.codelocation.CodeLocationWaitResult;
@@ -48,6 +48,7 @@ import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.ComponentService;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.util.IntegrationEscapeUtil;
+import com.synopsys.integration.util.NameVersion;
 
 public class InspectorScanner {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -132,7 +133,7 @@ public class InspectorScanner {
         ExternalId externalId = dependencyGenerator.createExternalId(dependencyType, name, version, assetWrapper.getAsset().attributes());
         String originId = null;
         try {
-            Optional<ComponentSearchResultView> firstOrEmptyResult = componentService.getFirstOrEmptyResult(externalId);
+            Optional<ComponentsView> firstOrEmptyResult = componentService.getFirstOrEmptyResult(externalId);
             if (firstOrEmptyResult.isPresent()) {
                 originId = firstOrEmptyResult.get().getOriginId();
                 Dependency dependency = dependencyGenerator.createDependency(name, version, externalId);
@@ -168,16 +169,17 @@ public class InspectorScanner {
 
             logger.debug("Creating project in Black Duck if needed: {}", repositoryName);
             projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(inspectorConfiguration.getBlackDuckService(), inspectorConfiguration.getProjectService(), repositoryName);
+            NameVersion projectNameVersion = new NameVersion(repositoryName, projectVersionView.getVersionName());
 
             ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, repositoryName, INSPECTOR_VERSION_NAME);
             SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, repositoryName, INSPECTOR_VERSION_NAME, projectRoot, mutableDependencyGraph);
 
-            CodeLocationCreationData<UploadBatchOutput> uploadData = sendInspectorData(inspectorConfiguration.getBdioUploadService(), simpleBdioDocument, simpleBdioFactory, codeLocationName);
+            CodeLocationCreationData<UploadBatchOutput> uploadData = sendInspectorData(inspectorConfiguration.getBdioUploadService(), simpleBdioDocument, simpleBdioFactory, projectNameVersion, codeLocationName);
 
             Set<String> successfulCodeLocationNames = uploadData.getOutput().getSuccessfulCodeLocationNames();
             CodeLocationWaitResult.Status status = CodeLocationWaitResult.Status.PARTIAL;
             if (successfulCodeLocationNames.contains(codeLocationName)) {
-                CodeLocationWaitResult codeLocationWaitResult = inspectorConfiguration.getCodeLocationCreationService().waitForCodeLocations(uploadData.getNotificationTaskRange(), successfulCodeLocationNames,
+                CodeLocationWaitResult codeLocationWaitResult = inspectorConfiguration.getCodeLocationCreationService().waitForCodeLocations(uploadData.getNotificationTaskRange(), projectNameVersion, successfulCodeLocationNames,
                     successfulCodeLocationNames.size(), timeOutInSeconds * 5L);
                 status = codeLocationWaitResult.getStatus();
             }
@@ -218,7 +220,7 @@ public class InspectorScanner {
         }
     }
 
-    private CodeLocationCreationData<UploadBatchOutput> sendInspectorData(BdioUploadService bdioUploadService, SimpleBdioDocument bdioDocument, SimpleBdioFactory simpleBdioFactory, String codeLocationName)
+    private CodeLocationCreationData<UploadBatchOutput> sendInspectorData(BdioUploadService bdioUploadService, SimpleBdioDocument bdioDocument, SimpleBdioFactory simpleBdioFactory, NameVersion projectNameVersion, String codeLocationName)
         throws IntegrationException, IOException {
 
         IntegrationEscapeUtil integrationEscapeUtil = new IntegrationEscapeUtil();
@@ -230,7 +232,7 @@ public class InspectorScanner {
             logger.debug("Directories {} already exists", blackDuckWorkingDirectory.getAbsolutePath());
         }
 
-        File bdioFile = new File(blackDuckWorkingDirectory, integrationEscapeUtil.escapeForUri(codeLocationName));
+        File bdioFile = new File(blackDuckWorkingDirectory, integrationEscapeUtil.replaceWithUnderscore(codeLocationName));
         if (bdioFile.exists()) {
             Files.delete(bdioFile.toPath());
         }
@@ -244,7 +246,7 @@ public class InspectorScanner {
         simpleBdioFactory.writeSimpleBdioDocumentToFile(bdioFile, bdioDocument);
 
         UploadBatch uploadBatch = new UploadBatch();
-        uploadBatch.addUploadTarget(UploadTarget.createDefault(codeLocationName, bdioFile));
+        uploadBatch.addUploadTarget(UploadTarget.createDefault(projectNameVersion, codeLocationName, bdioFile));
 
         BdioUploadCodeLocationCreationRequest uploadRequest = bdioUploadService.createUploadRequest(uploadBatch);
         CodeLocationCreationData<UploadBatchOutput> uploadBatchOutputCodeLocationCreationData = bdioUploadService.uploadBdio(uploadRequest);

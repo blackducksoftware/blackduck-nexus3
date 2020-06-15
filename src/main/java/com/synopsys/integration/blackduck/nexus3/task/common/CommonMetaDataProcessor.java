@@ -23,23 +23,25 @@
  */
 package com.synopsys.integration.blackduck.nexus3.task.common;
 
+import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.synopsys.integration.blackduck.api.generated.component.RiskCountView;
-import com.synopsys.integration.blackduck.api.generated.enumeration.RiskCountType;
+import com.synopsys.integration.blackduck.api.generated.component.ComponentVersionRiskProfileRiskDataCountsView;
+import com.synopsys.integration.blackduck.api.generated.enumeration.ComponentVersionRiskProfileRiskDataCountsCountTypeType;
+import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionComponentView;
+import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionPolicyStatusView;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectView;
 import com.synopsys.integration.blackduck.api.generated.view.TagView;
-import com.synopsys.integration.blackduck.api.generated.view.VersionBomComponentView;
-import com.synopsys.integration.blackduck.api.generated.view.VersionBomPolicyStatusView;
 import com.synopsys.integration.blackduck.nexus3.TagService;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
@@ -61,35 +63,53 @@ public class CommonMetaDataProcessor {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
     }
 
-    public List<VersionBomComponentView> checkAssetVulnerabilities(BlackDuckService blackDuckService, ProjectVersionView projectVersionView) throws IntegrationException {
-        return blackDuckService.getResponses(projectVersionView, ProjectVersionView.COMPONENTS_LINK_RESPONSE, true);
+    public List<ProjectVersionComponentView> checkAssetVulnerabilities(BlackDuckService blackDuckService, ProjectVersionView projectVersionView) throws IntegrationException {
+        return blackDuckService.getAllResponses(projectVersionView, ProjectVersionView.COMPONENTS_LINK_RESPONSE);
     }
 
-    public void addAllAssetVulnerabilityCounts(List<RiskCountView> vulnerabilities, VulnerabilityLevels vulnerabilityLevels) {
-        for (RiskCountView riskCountView : vulnerabilities) {
-            String riskCountType = riskCountView.getCountType().name();
-            int riskCount = riskCountView.getCount();
+    public void addAllAssetVulnerabilityCounts(List<ComponentVersionRiskProfileRiskDataCountsView> vulnerabilities, VulnerabilityLevels vulnerabilityLevels) {
+        for (ComponentVersionRiskProfileRiskDataCountsView riskCountView : vulnerabilities) {
+            ComponentVersionRiskProfileRiskDataCountsCountTypeType riskCountType = riskCountView.getCountType();
+            BigDecimal riskCount = riskCountView.getCount();
             vulnerabilityLevels.addXVulnerabilities(riskCountType, riskCount);
         }
     }
 
-    public void addMaxAssetVulnerabilityCounts(List<RiskCountView> vulnerabilities, VulnerabilityLevels vulnerabilityLevels) {
-        String highestSeverity = "";
-        for (RiskCountView vulnerability : vulnerabilities) {
-            RiskCountType severity = vulnerability.getCountType();
-            int severityCount = vulnerability.getCount();
-            if (RiskCountType.HIGH.equals(severity) && severityCount > 0) {
-                highestSeverity = VulnerabilityLevels.HIGH_VULNERABILITY;
-                break;
-            } else if (RiskCountType.MEDIUM.equals(severity) && severityCount > 0) {
-                highestSeverity = VulnerabilityLevels.MEDIUM_VULNERABILITY;
-            } else if (RiskCountType.LOW.equals(severity) && severityCount > 0) {
-                highestSeverity = VulnerabilityLevels.LOW_VULNERABILITY;
-            }
+    public void addMaxAssetVulnerabilityCounts(List<ComponentVersionRiskProfileRiskDataCountsView> vulnerabilities, VulnerabilityLevels vulnerabilityLevels) {
+        Optional<ComponentVersionRiskProfileRiskDataCountsCountTypeType> highestSeverity = vulnerabilities.stream()
+                                                                                               .filter(Objects::nonNull)
+                                                                                               .filter(this::hasVulnerabilities)
+                                                                                               .map(ComponentVersionRiskProfileRiskDataCountsView::getCountType)
+                                                                                               .max(Comparator.comparingInt(this::getCountTypePriority));
+
+        if (highestSeverity.isPresent()) {
+            vulnerabilityLevels.addVulnerability(highestSeverity.get());
         }
-        if (StringUtils.isNotBlank(highestSeverity)) {
-            vulnerabilityLevels.addVulnerability(highestSeverity);
+    }
+
+    private int getCountTypePriority(ComponentVersionRiskProfileRiskDataCountsCountTypeType countType) {
+        if (null == countType) {
+            return 0;
         }
+        switch (countType) {
+            case CRITICAL:
+                return 10;
+            case HIGH:
+                return 8;
+            case MEDIUM:
+                return 6;
+            case LOW:
+                return 4;
+            default:
+                return 0;
+        }
+    }
+
+    private boolean hasVulnerabilities(ComponentVersionRiskProfileRiskDataCountsView riskCountView) {
+        int vulnerabilityCount = Optional.ofNullable(riskCountView.getCount())
+                                     .map(BigDecimal::intValue)
+                                     .orElse(0);
+        return vulnerabilityCount > 0;
     }
 
     public void removeAssetVulnerabilityData(AssetWrapper assetWrapper) {
@@ -97,7 +117,7 @@ public class CommonMetaDataProcessor {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.VULNERABLE_COMPONENTS);
     }
 
-    public void setAssetPolicyData(VersionBomPolicyStatusView policyStatusView, AssetWrapper assetWrapper) {
+    public void setAssetPolicyData(ProjectVersionPolicyStatusView policyStatusView, AssetWrapper assetWrapper) {
         PolicyStatusDescription policyStatusDescription = new PolicyStatusDescription(policyStatusView);
         String policyStatus = policyStatusDescription.getPolicyStatusMessage();
         String overallStatus = policyStatusView.getOverallStatus().prettyPrint();
@@ -111,7 +131,7 @@ public class CommonMetaDataProcessor {
         assetWrapper.removeFromBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS);
     }
 
-    public Optional<VersionBomPolicyStatusView> checkAssetPolicy(BlackDuckService blackDuckService, ProjectVersionView projectVersionView) throws IntegrationException {
+    public Optional<ProjectVersionPolicyStatusView> checkAssetPolicy(BlackDuckService blackDuckService, ProjectVersionView projectVersionView) throws IntegrationException {
         logger.info("Checking metadata of {}", projectVersionView.getVersionName());
         return blackDuckService.getResponse(projectVersionView, ProjectVersionView.POLICY_STATUS_LINK_RESPONSE);
     }
