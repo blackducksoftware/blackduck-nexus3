@@ -82,9 +82,7 @@ public class CommonMetaDataProcessor {
                                                                                                .map(ComponentVersionRiskProfileRiskDataCountsView::getCountType)
                                                                                                .max(Comparator.comparingInt(this::getCountTypePriority));
 
-        if (highestSeverity.isPresent()) {
-            vulnerabilityLevels.addVulnerability(highestSeverity.get());
-        }
+        highestSeverity.ifPresent(vulnerabilityLevels::addVulnerability);
     }
 
     private int getCountTypePriority(ComponentVersionRiskProfileRiskDataCountsCountTypeType countType) {
