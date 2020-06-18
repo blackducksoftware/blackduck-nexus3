@@ -37,7 +37,7 @@ import com.synopsys.integration.util.NameVersion;
 
 public class RepositoryScanner {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private static final String BLACK_DUCK_COMMUNICATION_FORMAT = "Problem communicating with Black Duck: {}.";
+    private static final String BLACK_DUCK_COMMUNICATION_FORMAT = "Problem communicating with Black Duck: %s.";
 
     private final QueryManager queryManager;
     private final DateTimeParser dateTimeParser;
@@ -154,7 +154,7 @@ public class RepositoryScanner {
             }
         } catch (IntegrationException e) {
             updateAssetWrapperWithError(assetWrapper, e.getMessage());
-            logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+            logger.error(String.format(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage()));
             logger.debug(e.getMessage(), e);
         } catch (InterruptedException e) {
             String errorMessage = "Waiting for the scan to complete was interrupted: " + e.getMessage();
@@ -183,16 +183,16 @@ public class RepositoryScanner {
     }
 
     private Optional<CodeLocationCreationData<ScanBatchOutput>> performScan(String codeLocationName, AssetWrapper assetWrapper) {
-        String name = assetWrapper.getFullPath();
+        String fullPath = assetWrapper.getFullPath();
         String projectName = assetWrapper.getName();
         String version = assetWrapper.getVersion();
 
-        logger.info("Scanning item: {}", name);
+        logger.info("Scanning item: {}, version: {}, path: {}", projectName, version, fullPath);
         File binaryFile;
         try {
             binaryFile = assetWrapper.getBinaryBlobFile(scanConfiguration.getTempFileStorage());
         } catch (IntegrationException e) {
-            String errorMessage = String.format("Could not scan item: %s. %s.", name, e.getMessage());
+            String errorMessage = String.format("Could not scan item: %s. %s.", fullPath, e.getMessage());
             logger.warn(errorMessage);
             logger.debug(e.getMessage(), e);
             updateAssetWrapperWithError(assetWrapper, errorMessage);
@@ -210,19 +210,22 @@ public class RepositoryScanner {
                 assetWrapper.addPendingToBlackDuckPanel("Scan uploaded to Black Duck, waiting for update.");
             }
         } catch (BlackDuckApiException e) {
-            logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
-            logger.debug(e.getMessage(), e);
-            assetWrapper.removeAllBlackDuckData();
-            assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
-        } catch (IntegrationException e) {
-            logger.error("Error scanning asset: {}. Reason: {}", name, e.getMessage());
-            logger.debug(e.getMessage(), e);
-            assetWrapper.removeAllBlackDuckData();
-            assetWrapper.addFailureToBlackDuckPanel(e.getMessage());
+            String errorMessage = String.format(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
+            handleScanException(assetWrapper, errorMessage, e);
+        } catch (IntegrationException | IllegalArgumentException e) {
+            String errorMessage = String.format("Error scanning asset: %s, version: %s, path: %s. Reason: %s", projectName, version, fullPath, e.getMessage());
+            handleScanException(assetWrapper, errorMessage, e);
         } finally {
             assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
         }
         return Optional.ofNullable(scanData);
+    }
+
+    private void handleScanException(AssetWrapper assetWrapper, String errorMessage, Exception exception) {
+        logger.error(errorMessage);
+        logger.debug(exception.getMessage(), exception);
+        assetWrapper.removeAllBlackDuckData();
+        assetWrapper.addFailureToBlackDuckPanel(errorMessage);
     }
 
     private ScanBatch createScanBatch(String projectName, String projectVersion, String pathToScan, String codeLocationName) {

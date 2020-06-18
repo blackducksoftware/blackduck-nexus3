@@ -96,6 +96,9 @@ public class CommonTaskFilters {
     }
 
     public boolean doesExtensionMatch(String filename, String allowedExtensions) {
+        if (StringUtils.isBlank(filename)) {
+            return false;
+        }
         Set<String> extensions = Arrays.stream(allowedExtensions.split(",")).map(String::trim).collect(Collectors.toSet());
         for (String extensionPattern : extensions) {
             if (FilenameUtils.wildcardMatch(filename, extensionPattern)) {
