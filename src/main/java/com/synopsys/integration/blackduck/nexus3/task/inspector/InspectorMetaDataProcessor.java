@@ -76,9 +76,9 @@ public class InspectorMetaDataProcessor {
             logger.debug("Found '{}' components in Project Version: '{}'.", versionComponentViews.size(), projectVersionHref);
             processAssetMapAndBlackDuckComponents(versionComponentViews, blackDuckServerUrl, projectVersionView, assetWrapperMap, status);
         }
-        logger.debug("Currently have the following items in asset map: {}", assetWrapperMap);
+        logger.debug("The following items are in asset map: {}", assetWrapperMap);
         for (AssetWrapper assetWrapper : assetWrapperMap.values()) {
-            logger.warn("Asset was not found in Black Duck, {}", assetWrapper.getName());
+            logger.warn("This asset was not found in Black Duck, {}", assetWrapper.getName());
             assetWrapper.addComponentNotFoundToBlackDuckPanel("Black Duck was not able to find this component.");
             assetWrapper.updateAsset();
         }
