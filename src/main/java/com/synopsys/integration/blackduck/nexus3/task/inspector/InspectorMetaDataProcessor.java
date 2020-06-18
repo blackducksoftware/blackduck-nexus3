@@ -67,7 +67,29 @@ public class InspectorMetaDataProcessor {
 
     public void updateRepositoryMetaData(BlackDuckService blackDuckService, String blackDuckServerUrl, ProjectVersionView projectVersionView, Map<String, AssetWrapper> assetWrapperMap,
         TaskStatus status) throws IntegrationException {
+        String projectVersionHref = projectVersionView.getHref().orElse("MISSING HREF");
+        logger.debug("Checking for components in Project Version: '{}'.", projectVersionHref);
         List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(blackDuckService, projectVersionView);
+        if (versionComponentViews.isEmpty()) {
+            logger.error("Could not find components in Project Version: '{}'. Check to see if the Code Locations and scans have finished.", projectVersionHref);
+        } else {
+            logger.debug("Found '{}' components in Project Version: '{}'.", versionComponentViews.size(), projectVersionHref);
+            processAssetMapAndBlackDuckComponents(versionComponentViews, blackDuckServerUrl, projectVersionView, assetWrapperMap, status);
+        }
+        logger.debug("Currently have the following items in asset map: {}", assetWrapperMap);
+        for (AssetWrapper assetWrapper : assetWrapperMap.values()) {
+            logger.warn("Asset was not found in Black Duck, {}", assetWrapper.getName());
+            assetWrapper.addComponentNotFoundToBlackDuckPanel("Black Duck was not able to find this component.");
+            assetWrapper.updateAsset();
+        }
+    }
+
+    public ProjectVersionView getOrCreateProjectVersion(BlackDuckService blackDuckService, ProjectService projectService, String repoName) throws IntegrationException {
+        return commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName, INSPECTOR_VERSION_NAME);
+    }
+
+    private void processAssetMapAndBlackDuckComponents(List<ProjectVersionComponentView> versionComponentViews, String blackDuckServerUrl, ProjectVersionView projectVersionView, Map<String, AssetWrapper> assetWrapperMap,
+        TaskStatus status) {
         for (ProjectVersionComponentView versionComponentView : versionComponentViews) {
             Set<String> externalIds = versionComponentView.getOrigins().stream()
                                           .map(VersionBomOriginView::getExternalId)
@@ -97,17 +119,6 @@ public class InspectorMetaDataProcessor {
                 assetWrapperMap.remove(externalId);
             }
         }
-
-        logger.debug("Currently have following items in asset map: {}", assetWrapperMap);
-        for (AssetWrapper assetWrapper : assetWrapperMap.values()) {
-            logger.warn("Asset was not found in Black Duck, {}", assetWrapper.getName());
-            assetWrapper.addComponentNotFoundToBlackDuckPanel("Black Duck was not able to find this component.");
-            assetWrapper.updateAsset();
-        }
-    }
-
-    public ProjectVersionView getOrCreateProjectVersion(BlackDuckService blackDuckService, ProjectService projectService, String repoName) throws IntegrationException {
-        return commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName, INSPECTOR_VERSION_NAME);
     }
 
     private void addVulnerabilityStatus(AssetWrapper assetWrapper, ProjectVersionComponentView versionComponentView) {
