@@ -62,7 +62,7 @@ public class ScanMetaDataProcessor {
     public void updateRepositoryMetaData(BlackDuckService blackDuckService, AssetWrapper assetWrapper, String blackDuckUrl, ProjectVersionView projectVersionView)
         throws IntegrationException {
         logger.info("Checking vulnerabilities.");
-        List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(blackDuckService, projectVersionView);
+        List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.getBomComponents(blackDuckService, projectVersionView);
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
         for (ProjectVersionComponentView versionComponentView : versionComponentViews) {
             List<ComponentVersionRiskProfileRiskDataCountsView> riskCounts = versionComponentView.getSecurityRiskProfile().getCounts();

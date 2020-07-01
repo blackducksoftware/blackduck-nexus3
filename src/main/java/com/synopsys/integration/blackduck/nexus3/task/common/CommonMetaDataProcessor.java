@@ -63,7 +63,10 @@ public class CommonMetaDataProcessor {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
     }
 
-    public List<ProjectVersionComponentView> checkAssetVulnerabilities(BlackDuckService blackDuckService, ProjectVersionView projectVersionView) throws IntegrationException {
+    public List<ProjectVersionComponentView> getBomComponents(BlackDuckService blackDuckService, ProjectVersionView projectVersionView) throws IntegrationException {
+        if (!projectVersionView.hasLink(ProjectVersionView.COMPONENTS_LINK)) {
+            logger.error(String.format("The '%s' link is missing from the Project Version: '%s'.", ProjectVersionView.COMPONENTS_LINK, projectVersionView.getHref().orElse("MISSING HREF")));
+        }
         return blackDuckService.getAllResponses(projectVersionView, ProjectVersionView.COMPONENTS_LINK_RESPONSE);
     }
 

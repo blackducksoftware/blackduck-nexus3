@@ -69,7 +69,7 @@ public class InspectorMetaDataProcessor {
         TaskStatus status) throws IntegrationException {
         String projectVersionHref = projectVersionView.getHref().orElse("MISSING HREF");
         logger.debug("Checking for components in Project Version: '{}'.", projectVersionHref);
-        List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.checkAssetVulnerabilities(blackDuckService, projectVersionView);
+        List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.getBomComponents(blackDuckService, projectVersionView);
         if (versionComponentViews.isEmpty()) {
             logger.error("Could not find components in Project Version: '{}'. Check to see if the Code Locations and scans have finished.", projectVersionHref);
         } else {
