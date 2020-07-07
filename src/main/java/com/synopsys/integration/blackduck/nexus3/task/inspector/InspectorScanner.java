@@ -130,6 +130,7 @@ public class InspectorScanner {
             logger.debug("Binary file did not meet requirements for inspection: {}", name);
             return false;
         }
+        logger.debug("Inspecting item: {}, version: {}, path: {}", name, version, fullPathName);
         ExternalId externalId = dependencyGenerator.createExternalId(dependencyType, name, version, assetWrapper.getAsset().attributes());
         String originId = null;
         try {
