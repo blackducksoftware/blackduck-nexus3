@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -185,7 +186,8 @@ public class RepositoryScanner {
     private Optional<CodeLocationCreationData<ScanBatchOutput>> performScan(String codeLocationName, AssetWrapper assetWrapper) {
         String fullPath = assetWrapper.getFullPath();
         String projectName = assetWrapper.getName();
-        String version = assetWrapper.getVersion();
+        // A raw type repository does not require version information to store artifacts. So the version should have a default value.
+        String version = Optional.ofNullable(StringUtils.trimToNull(assetWrapper.getVersion())).orElse("Unknown");
 
         logger.info("Scanning item: {}, version: {}, path: {}", projectName, version, fullPath);
         File binaryFile;
