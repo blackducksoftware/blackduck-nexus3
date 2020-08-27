@@ -119,8 +119,8 @@ public class AssetWrapper {
     }
 
     public String getVersion() {
-        String version = StringUtils.trimToNull(getComponent().version());
-        return Optional.ofNullable(version).orElse("Unknown");
+        // A raw type repository does not require version information to store artifacts. So the version should have a default value.
+        return StringUtils.defaultIfBlank(getComponent().version(), "bd-nexus3-unknown");
     }
 
     public String getFilename() throws IntegrationException {
