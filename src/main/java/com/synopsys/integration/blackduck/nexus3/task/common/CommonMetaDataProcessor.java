@@ -30,7 +30,7 @@ import static com.synopsys.integration.blackduck.api.generated.enumeration.Compo
 
 import java.math.BigDecimal;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,7 +65,7 @@ import com.synopsys.integration.log.Slf4jIntLogger;
 public class CommonMetaDataProcessor {
     public static final String NEXUS_PROJECT_TAG = "blackduck_nexus3";
 
-    private Map<ComponentVersionRiskProfileRiskDataCountsCountTypeType, Integer> countsToPriorty = new HashMap<>();
+    private Map<ComponentVersionRiskProfileRiskDataCountsCountTypeType, Integer> countsToPriorty = new EnumMap<>(ComponentVersionRiskProfileRiskDataCountsCountTypeType.class);
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public CommonMetaDataProcessor() {
