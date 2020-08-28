@@ -23,9 +23,16 @@
  */
 package com.synopsys.integration.blackduck.nexus3.task.common;
 
+import static com.synopsys.integration.blackduck.api.generated.enumeration.ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL;
+import static com.synopsys.integration.blackduck.api.generated.enumeration.ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH;
+import static com.synopsys.integration.blackduck.api.generated.enumeration.ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW;
+import static com.synopsys.integration.blackduck.api.generated.enumeration.ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM;
+
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -57,7 +64,16 @@ import com.synopsys.integration.log.Slf4jIntLogger;
 @Singleton
 public class CommonMetaDataProcessor {
     public static final String NEXUS_PROJECT_TAG = "blackduck_nexus3";
+
+    private Map<ComponentVersionRiskProfileRiskDataCountsCountTypeType, Integer> countsToPriorty = new EnumMap<>(ComponentVersionRiskProfileRiskDataCountsCountTypeType.class);
     private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    public CommonMetaDataProcessor() {
+        countsToPriorty.put(CRITICAL, 10);
+        countsToPriorty.put(HIGH, 8);
+        countsToPriorty.put(MEDIUM, 6);
+        countsToPriorty.put(LOW, 4);
+    }
 
     public void setAssetVulnerabilityData(VulnerabilityLevels vulnerabilityLevels, AssetWrapper assetWrapper) {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
@@ -79,38 +95,25 @@ public class CommonMetaDataProcessor {
     }
 
     public void addMaxAssetVulnerabilityCounts(List<ComponentVersionRiskProfileRiskDataCountsView> vulnerabilities, VulnerabilityLevels vulnerabilityLevels) {
-        Optional<ComponentVersionRiskProfileRiskDataCountsCountTypeType> highestSeverity = vulnerabilities.stream()
-                                                                                               .filter(Objects::nonNull)
-                                                                                               .filter(this::hasVulnerabilities)
-                                                                                               .map(ComponentVersionRiskProfileRiskDataCountsView::getCountType)
-                                                                                               .max(Comparator.comparingInt(this::getCountTypePriority));
+        Optional<ComponentVersionRiskProfileRiskDataCountsCountTypeType> highestSeverity =
+            vulnerabilities.stream()
+                .filter(Objects::nonNull)
+                .filter(this::hasVulnerabilities)
+                .map(ComponentVersionRiskProfileRiskDataCountsView::getCountType)
+                .max(Comparator.comparingInt(this::getCountTypePriority));
 
         highestSeverity.ifPresent(vulnerabilityLevels::addVulnerability);
     }
 
     private int getCountTypePriority(ComponentVersionRiskProfileRiskDataCountsCountTypeType countType) {
-        if (null == countType) {
-            return 0;
-        }
-        switch (countType) {
-            case CRITICAL:
-                return 10;
-            case HIGH:
-                return 8;
-            case MEDIUM:
-                return 6;
-            case LOW:
-                return 4;
-            default:
-                return 0;
-        }
+        return countsToPriorty.getOrDefault(countType, 0);
     }
 
     private boolean hasVulnerabilities(ComponentVersionRiskProfileRiskDataCountsView riskCountView) {
-        int vulnerabilityCount = Optional.ofNullable(riskCountView.getCount())
-                                     .map(BigDecimal::intValue)
-                                     .orElse(0);
-        return vulnerabilityCount > 0;
+        return Optional
+                   .ofNullable(riskCountView.getCount())
+                   .filter(bigDecimal -> bigDecimal.compareTo(BigDecimal.ZERO) > 0)
+                   .isPresent();
     }
 
     public void removeAssetVulnerabilityData(AssetWrapper assetWrapper) {

@@ -70,9 +70,9 @@ public class CommonMetaDataProcessorTest {
 
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
 
-        int emptyHigh = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int emptyMedium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int emptyLow = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int emptyHigh = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int emptyMedium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int emptyLow = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, emptyHigh);
         Assert.assertEquals(0, emptyMedium);
@@ -80,9 +80,9 @@ public class CommonMetaDataProcessorTest {
 
         commonMetaDataProcessor.addAllAssetVulnerabilityCounts(riskCountViewList, vulnerabilityLevels);
 
-        int high = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int medium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int low = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int high = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int medium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int low = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(expectedHigh.intValue(), high);
         Assert.assertEquals(expectedMedium.intValue(), medium);
@@ -112,10 +112,10 @@ public class CommonMetaDataProcessorTest {
 
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
 
-        int emptyCritical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int emptyHigh = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int emptyMedium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int emptyLow = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int emptyCritical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int emptyHigh = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int emptyMedium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int emptyLow = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, emptyCritical);
         Assert.assertEquals(0, emptyHigh);
@@ -124,10 +124,10 @@ public class CommonMetaDataProcessorTest {
 
         commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(riskCountViewList, vulnerabilityLevels);
 
-        int critical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int high = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int medium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int low = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int critical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int high = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int medium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int low = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(1, critical);
         Assert.assertEquals(0, high);
@@ -154,9 +154,9 @@ public class CommonMetaDataProcessorTest {
 
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
 
-        int emptyHigh = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int emptyMedium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int emptyLow = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int emptyHigh = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int emptyMedium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int emptyLow = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, emptyHigh);
         Assert.assertEquals(0, emptyMedium);
@@ -164,9 +164,9 @@ public class CommonMetaDataProcessorTest {
 
         commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(riskCountViewList, vulnerabilityLevels);
 
-        int high = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int medium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int low = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int high = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int medium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int low = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(1, high);
         Assert.assertEquals(0, medium);
@@ -196,10 +196,10 @@ public class CommonMetaDataProcessorTest {
 
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
 
-        int emptyCritical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int emptyHigh = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int emptyMedium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int emptyLow = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int emptyCritical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int emptyHigh = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int emptyMedium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int emptyLow = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, emptyCritical);
         Assert.assertEquals(0, emptyHigh);
@@ -208,10 +208,10 @@ public class CommonMetaDataProcessorTest {
 
         commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(riskCountViewList, vulnerabilityLevels);
 
-        int critical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int high = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int medium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int low = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int critical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int high = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int medium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int low = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, critical);
         Assert.assertEquals(0, high);
@@ -242,10 +242,10 @@ public class CommonMetaDataProcessorTest {
 
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
 
-        int emptyCritical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int emptyHigh = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int emptyMedium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int emptyLow = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int emptyCritical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int emptyHigh = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int emptyMedium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int emptyLow = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, emptyCritical);
         Assert.assertEquals(0, emptyHigh);
@@ -254,10 +254,10 @@ public class CommonMetaDataProcessorTest {
 
         commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(riskCountViewList, vulnerabilityLevels);
 
-        int critical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int high = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int medium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int low = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int critical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int high = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int medium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int low = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, critical);
         Assert.assertEquals(0, high);
@@ -273,10 +273,10 @@ public class CommonMetaDataProcessorTest {
 
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
 
-        int emptyCritical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int emptyHigh = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int emptyMedium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int emptyLow = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int emptyCritical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int emptyHigh = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int emptyMedium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int emptyLow = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, emptyCritical);
         Assert.assertEquals(0, emptyHigh);
@@ -285,10 +285,10 @@ public class CommonMetaDataProcessorTest {
 
         commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(riskCountViewList, vulnerabilityLevels);
 
-        int critical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int high = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int medium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int low = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int critical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int high = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int medium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int low = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, critical);
         Assert.assertEquals(0, high);
@@ -304,10 +304,10 @@ public class CommonMetaDataProcessorTest {
 
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
 
-        int emptyCritical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int emptyHigh = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int emptyMedium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int emptyLow = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int emptyCritical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int emptyHigh = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int emptyMedium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int emptyLow = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, emptyCritical);
         Assert.assertEquals(0, emptyHigh);
@@ -316,10 +316,10 @@ public class CommonMetaDataProcessorTest {
 
         commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(riskCountViewList, vulnerabilityLevels);
 
-        int critical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int high = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int medium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int low = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int critical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int high = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int medium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int low = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, critical);
         Assert.assertEquals(0, high);
@@ -343,10 +343,10 @@ public class CommonMetaDataProcessorTest {
 
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
 
-        int emptyCritical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int emptyHigh = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int emptyMedium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int emptyLow = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int emptyCritical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int emptyHigh = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int emptyMedium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int emptyLow = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, emptyCritical);
         Assert.assertEquals(0, emptyHigh);
@@ -355,10 +355,10 @@ public class CommonMetaDataProcessorTest {
 
         commonMetaDataProcessor.addMaxAssetVulnerabilityCounts(riskCountViewList, vulnerabilityLevels);
 
-        int critical = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.CRITICAL.name(), 0);
-        int high = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.HIGH.name(), 0);
-        int medium = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.MEDIUM.name(), 0);
-        int low = vulnerabilityLevels.getVulnerabilityCount(ComponentVersionRiskProfileRiskDataCountsCountTypeType.LOW.name(), 0);
+        int critical = vulnerabilityLevels.getCriticalVulnerabilityCount().intValue();
+        int high = vulnerabilityLevels.getHighVulnerabilityCount().intValue();
+        int medium = vulnerabilityLevels.getMediumVulnerabilityCount().intValue();
+        int low = vulnerabilityLevels.getLowVulnerabilityCount().intValue();
 
         Assert.assertEquals(0, critical);
         Assert.assertEquals(0, high);

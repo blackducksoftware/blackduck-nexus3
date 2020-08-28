@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
-import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -119,8 +118,8 @@ public class AssetWrapper {
     }
 
     public String getVersion() {
-        String version = StringUtils.trimToNull(getComponent().version());
-        return Optional.ofNullable(version).orElse("Unknown");
+        // A raw type repository does not require version information to store artifacts. So the version should have a default value.
+        return StringUtils.defaultIfBlank(getComponent().version(), "bd-nexus3-unknown");
     }
 
     public String getFilename() throws IntegrationException {

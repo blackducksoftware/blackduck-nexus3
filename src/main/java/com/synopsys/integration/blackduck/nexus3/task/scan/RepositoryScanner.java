@@ -185,7 +185,6 @@ public class RepositoryScanner {
     private Optional<CodeLocationCreationData<ScanBatchOutput>> performScan(String codeLocationName, AssetWrapper assetWrapper) {
         String fullPath = assetWrapper.getFullPath();
         String projectName = assetWrapper.getName();
-        // A raw type repository does not require version information to store artifacts. So the version should have a default value.
         String version = assetWrapper.getVersion();
 
         logger.info("Scanning item: {}, version: {}, path: {}", projectName, version, fullPath);
