@@ -88,6 +88,24 @@ public class InspectorMetaDataProcessor {
         return commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName, INSPECTOR_VERSION_NAME);
     }
 
+    public void processAssetComponent(ProjectVersionComponentView versionComponentView, String blackDuckServerUrl, ProjectVersionView projectVersionView, AssetWrapper assetWrapper,
+        TaskStatus status) {
+        String blackDuckUrl = projectVersionView.getHref().orElse(blackDuckServerUrl);
+        PolicyStatusType policyStatus = versionComponentView.getPolicyStatus();
+
+        logger.info("Found component and updating Asset: {}", assetWrapper.getName());
+        if (TaskStatus.FAILURE.equals(status)) {
+            assetWrapper.addFailureToBlackDuckPanel("Was not able to retrieve data from Black Duck.");
+        } else {
+            assetWrapper.addSuccessToBlackDuckPanel("Successfully pulled inspection data from Black Duck.");
+            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, blackDuckUrl);
+            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, policyStatus.prettyPrint());
+            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+            addVulnerabilityStatus(assetWrapper, versionComponentView);
+        }
+        assetWrapper.updateAsset();
+    }
+
     private void processAssetMapAndBlackDuckComponents(List<ProjectVersionComponentView> versionComponentViews, String blackDuckServerUrl, ProjectVersionView projectVersionView, Map<String, AssetWrapper> assetWrapperMap,
         TaskStatus status) {
         for (ProjectVersionComponentView versionComponentView : versionComponentViews) {
@@ -102,21 +120,7 @@ public class InspectorMetaDataProcessor {
                     logger.warn("{} uploaded to Black Duck, but has not been processed in nexus.", externalId);
                     continue;
                 }
-                String blackDuckUrl = projectVersionView.getHref().orElse(blackDuckServerUrl);
-                PolicyStatusType policyStatus = versionComponentView.getPolicyStatus();
-
-                logger.info("Found component and updating Asset: {}", assetWrapper.getName());
-                if (TaskStatus.FAILURE.equals(status)) {
-                    assetWrapper.addFailureToBlackDuckPanel("Was not able to retrieve data from Black Duck.");
-                } else {
-                    assetWrapper.addSuccessToBlackDuckPanel("Successfully pulled inspection data from Black Duck.");
-                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, blackDuckUrl);
-                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, policyStatus.prettyPrint());
-                    assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
-                    addVulnerabilityStatus(assetWrapper, versionComponentView);
-                }
-                assetWrapper.updateAsset();
-                assetWrapperMap.remove(externalId);
+                processAssetComponent(versionComponentView, blackDuckServerUrl, projectVersionView, assetWrapper, status);
             }
         }
     }

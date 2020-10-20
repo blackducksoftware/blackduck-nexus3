@@ -80,19 +80,26 @@ public class CommonTaskFilters {
         return dateTimeParser.convertFromStringToDate(assetCutoffString);
     }
 
-    public boolean skipAssetProcessing(DateTime lastModified, String fullPathName, String fileName, TaskConfiguration taskConfiguration) {
+    public boolean isAssetTooOldForTask(DateTime lastModified, TaskConfiguration taskConfiguration) {
+        DateTime assetCutoffDate = getAssetCutoffDateTime(taskConfiguration);
+
+        boolean isAssetTooOld = isAssetTooOld(assetCutoffDate, lastModified);
+        logger.debug("Is asset to old, {}", isAssetTooOld);
+        return isAssetTooOld;
+    }
+
+    public boolean doesAssetPathAndExtensionMatch(String fullPathName, String fileName, TaskConfiguration taskConfiguration) {
         String repositoryRegexPath = getRepositoryPath(taskConfiguration);
         String fileExtensionPatterns = getFileExtensionPatterns(taskConfiguration);
-        DateTime assetCutoffDate = getAssetCutoffDateTime(taskConfiguration);
+
         boolean doesRepositoryPathMatch = doesRepositoryPathMatch(fullPathName, repositoryRegexPath);
-        boolean isAssetTooOld = isAssetTooOld(assetCutoffDate, lastModified);
         boolean doesExtensionMatch = doesExtensionMatch(fileName, fileExtensionPatterns);
 
         logger.debug("Checking if processing of {} should be skipped", fullPathName);
-        logger.debug("Is asset to old, {}", isAssetTooOld);
         logger.debug("Does repository match, {}", doesRepositoryPathMatch);
         logger.debug("Does extension match, {}", doesExtensionMatch);
-        return isAssetTooOld || !doesRepositoryPathMatch || !doesExtensionMatch;
+
+        return doesRepositoryPathMatch && doesExtensionMatch;
     }
 
     public boolean doesExtensionMatch(String filename, String allowedExtensions) {

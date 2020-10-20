@@ -146,7 +146,7 @@ public class CommonMetaDataProcessor {
     }
 
     public ProjectVersionView getOrCreateProjectVersion(BlackDuckService blackDuckService, ProjectService projectService, String name, String versionName) throws IntegrationException {
-        ProjectVersionWrapper projectVersionWrapper = handleGetOrProjectVersion(projectService, name, versionName);
+        ProjectVersionWrapper projectVersionWrapper = handleGetOrCreateProjectVersion(projectService, name, versionName);
 
         TagService tagService = new TagService(blackDuckService, new Slf4jIntLogger(logger));
         ProjectView projectView = projectVersionWrapper.getProjectView();
@@ -161,7 +161,7 @@ public class CommonMetaDataProcessor {
         return projectVersionWrapper.getProjectVersionView();
     }
 
-    private ProjectVersionWrapper handleGetOrProjectVersion(ProjectService projectService, String name, String versionName) throws IntegrationException {
+    private ProjectVersionWrapper handleGetOrCreateProjectVersion(ProjectService projectService, String name, String versionName) throws IntegrationException {
         logger.debug("Getting project in Black Duck : {}. Version: {}", name, versionName);
 
         ProjectVersionWrapper projectVersionWrapper = null;

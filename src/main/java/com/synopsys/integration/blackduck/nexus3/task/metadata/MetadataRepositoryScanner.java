@@ -105,9 +105,9 @@ public class MetadataRepositoryScanner {
             for (Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
                 logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
                 logger.debug(e.getMessage(), e);
-                updateAssetWrapperWithError(entry.getValue(), String.format("Problem retrieving the project %s from Hub: %s", repoName, e.getMessage()));
+                updateAssetWrapperWithError(entry.getValue(), String.format("Problem retrieving the project %s from Black Duck: %s", repoName, e.getMessage()));
             }
-            throw new TaskInterruptedException("Problem retrieving project from Hub: " + e.getMessage(), true);
+            throw new TaskInterruptedException("Problem retrieving project from Black Duck: " + e.getMessage(), true);
         }
     }
 

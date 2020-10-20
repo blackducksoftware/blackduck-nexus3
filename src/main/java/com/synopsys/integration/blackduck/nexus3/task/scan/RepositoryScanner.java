@@ -100,11 +100,12 @@ public class RepositoryScanner {
         String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
 
         TaskStatus status = assetWrapper.getBlackDuckStatus();
-        boolean shouldScan = shouldScan(status);
+        logger.debug("Asset status, {}", status.name());
+        boolean shouldScan = shouldScanBasedOnStatus(status);
         logger.debug("Status matches, {}", shouldScan);
-        boolean shouldScanAgain = commonTaskFilters.hasAssetBeenModified(assetWrapper);
-        logger.debug("Process again, {}", shouldScanAgain);
-        boolean scan = shouldScan || shouldScanAgain;
+        boolean assetHasBeenModified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
+        logger.debug("Should scan again because it has been modified, {}", assetHasBeenModified);
+        boolean scan = shouldScan || assetHasBeenModified;
         logger.debug("Scan without filter check, {}", scan);
 
         DateTime lastModified = assetWrapper.getAssetLastUpdated();
@@ -115,7 +116,8 @@ public class RepositoryScanner {
         } catch (IntegrationException e) {
             logger.debug(String.format("Skipping asset: %s. %s", name, e.getMessage()), e);
         }
-        if (commonTaskFilters.skipAssetProcessing(lastModified, fullPathName, fileName, taskConfiguration) || !scan) {
+        //TODO need to add check for bd metadata, if missing and extension matches, we should re-process
+        if (commonTaskFilters.isAssetTooOldForTask(lastModified, taskConfiguration) || !commonTaskFilters.doesAssetPathAndExtensionMatch(fullPathName, fileName, taskConfiguration) || !scan) {
             logger.debug("Binary file did not meet requirements for scan: {}", name);
             return;
         }
@@ -172,7 +174,7 @@ public class RepositoryScanner {
         assetWrapper.updateAsset();
     }
 
-    private boolean shouldScan(TaskStatus status) {
+    private boolean shouldScanBasedOnStatus(TaskStatus status) {
         if (TaskStatus.PENDING.equals(status) || TaskStatus.SUCCESS.equals(status)) {
             return scanConfiguration.isAlwaysScan();
         }
