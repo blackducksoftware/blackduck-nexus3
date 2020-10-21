@@ -103,8 +103,12 @@ public class InspectorScanner {
             logger.debug(String.format("Skipping asset: %s. %s", name, e.getMessage()), e);
         }
 
-        if (commonTaskFilters.isAssetTooOldForTask(lastModified, taskConfiguration) || !commonTaskFilters.doesAssetPathAndExtensionMatch(fullPathName, fileName, taskConfiguration)) {
-            logger.debug("Binary file did not meet requirements for inspection: {}", name);
+        if (commonTaskFilters.isAssetTooOldForTask(lastModified, taskConfiguration)) {
+            logger.debug("The asset is older than the task cutoff date: {}", name);
+            return;
+        } else if (!commonTaskFilters.doesAssetPathAndExtensionMatch(fullPathName, fileName, taskConfiguration)) {
+            logger.debug("The asset path or extension does not match the task configuration: {}", name);
+            return;
         }
         logger.debug("Inspecting item: {}, version: {}, path: {}", name, version, fullPathName);
         ExternalId externalId = dependencyGenerator.createExternalId(dependencyType, name, version, assetWrapper.getAsset().attributes());

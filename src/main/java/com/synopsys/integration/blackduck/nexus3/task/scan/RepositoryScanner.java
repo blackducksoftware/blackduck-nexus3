@@ -102,11 +102,11 @@ public class RepositoryScanner {
         TaskStatus status = assetWrapper.getBlackDuckStatus();
         logger.debug("Asset status, {}", status.name());
         boolean shouldScan = shouldScanBasedOnStatus(status);
-        logger.debug("Status matches, {}", shouldScan);
+        logger.debug("Asset should be rescanned because the status matches, {}", shouldScan);
         boolean assetHasBeenModified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
-        logger.debug("Should scan again because it has been modified, {}", assetHasBeenModified);
+        logger.debug("Should scan again because the asset has been modified, {}", assetHasBeenModified);
         boolean scan = shouldScan || assetHasBeenModified;
-        logger.debug("Scan without filter check, {}", scan);
+        logger.debug("Scan again because asset was modified or based on status, {}", scan);
 
         DateTime lastModified = assetWrapper.getAssetLastUpdated();
         String fullPathName = assetWrapper.getFullPath();
@@ -116,9 +116,14 @@ public class RepositoryScanner {
         } catch (IntegrationException e) {
             logger.debug(String.format("Skipping asset: %s. %s", name, e.getMessage()), e);
         }
-        //TODO need to add check for bd metadata, if missing and extension matches, we should re-process
-        if (commonTaskFilters.isAssetTooOldForTask(lastModified, taskConfiguration) || !commonTaskFilters.doesAssetPathAndExtensionMatch(fullPathName, fileName, taskConfiguration) || !scan) {
-            logger.debug("Binary file did not meet requirements for scan: {}", name);
+        if (commonTaskFilters.isAssetTooOldForTask(lastModified, taskConfiguration)) {
+            logger.debug("The asset is older than the task cutoff date: {}", name);
+            return;
+        } else if (!commonTaskFilters.doesAssetPathAndExtensionMatch(fullPathName, fileName, taskConfiguration)) {
+            logger.debug("The asset path or extension does not match the task configuration: {}", name);
+            return;
+        } else if (!scan) {
+            logger.debug("The asset hasn't been modified and will not be rescanned based on the status and task configuration: {}", name);
             return;
         }
 
