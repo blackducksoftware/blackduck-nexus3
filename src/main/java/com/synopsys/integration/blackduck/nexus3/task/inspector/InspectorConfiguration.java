@@ -7,6 +7,7 @@ import com.synopsys.integration.blackduck.codelocation.CodeLocationCreationServi
 import com.synopsys.integration.blackduck.codelocation.bdioupload.BdioUploadService;
 import com.synopsys.integration.blackduck.nexus3.task.inspector.dependency.DependencyType;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
+import com.synopsys.integration.blackduck.service.ComponentService;
 import com.synopsys.integration.blackduck.service.ProjectBomService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 
@@ -17,26 +18,28 @@ public class InspectorConfiguration {
     private final DependencyType dependencyType;
 
     private final BlackDuckService blackDuckService;
+    private final ComponentService componentService;
     private final ProjectService projectService;
     private final CodeLocationCreationService codeLocationCreationService;
     private final BdioUploadService bdioUploadService;
     private final ProjectBomService projectBomService;
 
     public static InspectorConfiguration createConfigurationWithError(String exceptionMessage, Repository repository, DependencyType dependencyType) {
-        return new InspectorConfiguration(exceptionMessage, repository, dependencyType, null, null, null, null, null);
+        return new InspectorConfiguration(exceptionMessage, repository, dependencyType, null, null, null, null, null, null);
     }
 
-    public static InspectorConfiguration createConfiguration(Repository repository, DependencyType dependencyType, BlackDuckService blackDuckService, ProjectService projectService,
-        CodeLocationCreationService codeLocationCreationService, BdioUploadService bdioUploadService, ProjectBomService projectBomService) {
-        return new InspectorConfiguration(null, repository, dependencyType, blackDuckService, projectService, codeLocationCreationService, bdioUploadService, projectBomService);
+    public static InspectorConfiguration createConfiguration(Repository repository, DependencyType dependencyType, BlackDuckService blackDuckService, ComponentService componentService,
+        ProjectService projectService, CodeLocationCreationService codeLocationCreationService, BdioUploadService bdioUploadService, ProjectBomService projectBomService) {
+        return new InspectorConfiguration(null, repository, dependencyType, blackDuckService, componentService, projectService, codeLocationCreationService, bdioUploadService, projectBomService);
     }
 
-    public InspectorConfiguration(String exceptionMessage, Repository repository, DependencyType dependencyType, BlackDuckService blackDuckService, ProjectService projectService,
-        CodeLocationCreationService codeLocationCreationService, BdioUploadService bdioUploadService, ProjectBomService projectBomService) {
+    public InspectorConfiguration(String exceptionMessage, Repository repository, DependencyType dependencyType, BlackDuckService blackDuckService, ComponentService componentService,
+        ProjectService projectService, CodeLocationCreationService codeLocationCreationService, BdioUploadService bdioUploadService, ProjectBomService projectBomService) {
         this.exceptionMessage = exceptionMessage;
         this.repository = repository;
         this.dependencyType = dependencyType;
         this.blackDuckService = blackDuckService;
+        this.componentService = componentService;
         this.projectService = projectService;
         this.codeLocationCreationService = codeLocationCreationService;
         this.bdioUploadService = bdioUploadService;
@@ -61,6 +64,10 @@ public class InspectorConfiguration {
 
     public BlackDuckService getBlackDuckService() {
         return blackDuckService;
+    }
+
+    public ComponentService getComponentService() {
+        return componentService;
     }
 
     public ProjectService getProjectService() {

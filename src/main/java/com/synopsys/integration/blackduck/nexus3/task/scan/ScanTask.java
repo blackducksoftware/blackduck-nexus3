@@ -49,6 +49,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.rest.BlackDuckHttpClient;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
+import com.synopsys.integration.blackduck.service.ProjectBomService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.phonehome.PhoneHomeResponse;
@@ -96,6 +97,7 @@ public class ScanTask extends RepositoryTaskSupport {
         CodeLocationCreationService codeLocationCreationService = null;
         BlackDuckService blackDuckService = null;
         ProjectService projectService = null;
+        ProjectBomService projectBomService = null;
         try {
             blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
             BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
@@ -107,6 +109,7 @@ public class ScanTask extends RepositoryTaskSupport {
             codeLocationCreationService = blackDuckServicesFactory.createCodeLocationCreationService();
             blackDuckService = blackDuckServicesFactory.createBlackDuckService();
             projectService = blackDuckServicesFactory.createProjectService();
+            projectBomService = blackDuckServicesFactory.createProjectBomService();
         } catch (IntegrationException | IllegalStateException e) {
             logger.error(String.format("Black Duck hub server config invalid. %s", e.getMessage()), e);
             exceptionMessage = e.getMessage();
@@ -133,7 +136,7 @@ public class ScanTask extends RepositoryTaskSupport {
                     scanConfiguration = ScanConfiguration.createConfigurationWithError(exceptionMessage, repository, alwaysScan, redoFailures);
                 } else {
                     scanConfiguration = ScanConfiguration.createConfiguration(repository, alwaysScan, redoFailures, blackDuckServerConfig, signatureScannerService, codeLocationCreationService, blackDuckService, projectService,
-                        workingBlackDuckDirectory, tempFileStorage, outputDirectory);
+                        projectBomService, workingBlackDuckDirectory, tempFileStorage, outputDirectory);
                 }
                 RepositoryScanner repositoryScanner = new RepositoryScanner(queryManager, dateTimeParser, scanMetaDataProcessor, taskConfiguration(), commonRepositoryTaskHelper, commonTaskFilters, scanConfiguration);
                 repositoryScanner.scanRepository();

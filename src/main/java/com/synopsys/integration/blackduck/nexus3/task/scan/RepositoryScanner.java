@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -66,7 +67,9 @@ public class RepositoryScanner {
         PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(scanConfiguration.getRepository(), filteredQuery);
 
         while (foundAssets.hasResults()) {
-            logger.debug("Found results from DB");
+            Iterable<Asset> assetsTypeList = foundAssets.getTypeList();
+            int assetCount = IterableUtils.size(assetsTypeList);
+            logger.info("Found {} assets to possibly scan.", assetCount);
             Map<AssetWrapper, Optional<CodeLocationCreationData<ScanBatchOutput>>> scannedAssets = new HashMap<>();
             for (Asset asset : foundAssets.getTypeList()) {
                 scanAsset(asset, repoName, scannedAssets);
@@ -100,7 +103,7 @@ public class RepositoryScanner {
         String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
 
         TaskStatus status = assetWrapper.getBlackDuckStatus();
-        logger.debug("Asset status, {}", status.name());
+        logger.debug("Asset status, {}", status);
         boolean shouldScan = shouldScanBasedOnStatus(status);
         logger.debug("Asset should be rescanned because the status matches, {}", shouldScan);
         boolean assetHasBeenModified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
@@ -152,7 +155,8 @@ public class RepositoryScanner {
                                                                         .waitForCodeLocations(scanData.getNotificationTaskRange(), projectNameVersion, successfulCodeLocationNames, successfulCodeLocationNames.size(), timeout);
                     if (CodeLocationWaitResult.Status.COMPLETE == codeLocationWaitResult.getStatus()) {
                         scanMetaDataProcessor
-                            .updateRepositoryMetaData(scanConfiguration.getBlackDuckService(), assetWrapper, projectVersionView.getHref().orElse(scanConfiguration.getBlackDuckServerConfig().getBlackDuckUrl().toString()),
+                            .updateRepositoryMetaData(scanConfiguration.getBlackDuckService(), scanConfiguration.getProjectBomService(), assetWrapper,
+                                projectVersionView.getHref().orElse(scanConfiguration.getBlackDuckServerConfig().getBlackDuckUrl().toString()),
                                 projectVersionView);
                     } else {
                         updateAssetWrapperWithError(assetWrapper, String.format("The Black Duck server did not update this project within %s seconds", timeout));

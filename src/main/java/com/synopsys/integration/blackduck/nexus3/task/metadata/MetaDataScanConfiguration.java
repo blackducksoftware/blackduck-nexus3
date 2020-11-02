@@ -6,6 +6,7 @@ import org.sonatype.nexus.repository.Repository;
 import com.synopsys.integration.blackduck.codelocation.CodeLocationCreationService;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
+import com.synopsys.integration.blackduck.service.ProjectBomService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 
 public class MetaDataScanConfiguration {
@@ -18,18 +19,19 @@ public class MetaDataScanConfiguration {
     private final CodeLocationCreationService codeLocationCreationService;
     private final BlackDuckService blackDuckService;
     private final ProjectService projectService;
+    private final ProjectBomService projectBomService;
 
     public static MetaDataScanConfiguration createConfigurationWithError(String exceptionMessage, Repository repository, boolean isProxyRepo, AssetPanelLabel assetStatusLabel) {
-        return new MetaDataScanConfiguration(exceptionMessage, repository, isProxyRepo, assetStatusLabel, null, null, null);
+        return new MetaDataScanConfiguration(exceptionMessage, repository, isProxyRepo, assetStatusLabel, null, null, null, null);
     }
 
     public static MetaDataScanConfiguration createConfiguration(Repository repository, boolean isProxyRepo, AssetPanelLabel assetStatusLabel, CodeLocationCreationService codeLocationCreationService, BlackDuckService blackDuckService,
-        ProjectService projectService) {
-        return new MetaDataScanConfiguration(null, repository, isProxyRepo, assetStatusLabel, codeLocationCreationService, blackDuckService, projectService);
+        ProjectService projectService, ProjectBomService projectBomService) {
+        return new MetaDataScanConfiguration(null, repository, isProxyRepo, assetStatusLabel, codeLocationCreationService, blackDuckService, projectService, projectBomService);
     }
 
     private MetaDataScanConfiguration(String exceptionMessage, Repository repository, boolean isProxyRepo, AssetPanelLabel assetStatusLabel, CodeLocationCreationService codeLocationCreationService, BlackDuckService blackDuckService,
-        ProjectService projectService) {
+        ProjectService projectService, ProjectBomService projectBomService) {
         this.exceptionMessage = exceptionMessage;
         this.repository = repository;
         this.isProxyRepo = isProxyRepo;
@@ -37,6 +39,7 @@ public class MetaDataScanConfiguration {
         this.codeLocationCreationService = codeLocationCreationService;
         this.blackDuckService = blackDuckService;
         this.projectService = projectService;
+        this.projectBomService = projectBomService;
     }
 
     public boolean hasErrors() {
@@ -69,5 +72,9 @@ public class MetaDataScanConfiguration {
 
     public ProjectService getProjectService() {
         return projectService;
+    }
+
+    public ProjectBomService getProjectBomService() {
+        return projectBomService;
     }
 }

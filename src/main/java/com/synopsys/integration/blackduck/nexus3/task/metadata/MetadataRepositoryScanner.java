@@ -94,7 +94,7 @@ public class MetadataRepositoryScanner {
         try {
             String blackDuckUrl = commonRepositoryTaskHelper.getBlackDuckServerConfig().getBlackDuckUrl().toString();
             ProjectVersionView projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(metaDataScanConfiguration.getBlackDuckService(), metaDataScanConfiguration.getProjectService(), repoName);
-            inspectorMetaDataProcessor.updateRepositoryMetaData(metaDataScanConfiguration.getBlackDuckService(), blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
+            inspectorMetaDataProcessor.updateRepositoryMetaData(metaDataScanConfiguration.getProjectBomService(), blackDuckUrl, projectVersionView, assetWrapperMap);
         } catch (BlackDuckApiException e) {
             for (Map.Entry<String, AssetWrapper> entry : assetWrapperMap.entrySet()) {
                 logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
@@ -129,7 +129,8 @@ public class MetadataRepositoryScanner {
                 } else if (!metaDataScanConfiguration.hasErrors()) {
                     ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(metaDataScanConfiguration.getBlackDuckService(), metaDataScanConfiguration.getProjectService(), assetName, version);
                     logger.info("Updating data of hosted repository.");
-                    scanMetaDataProcessor.updateRepositoryMetaData(metaDataScanConfiguration.getBlackDuckService(), assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
+                    scanMetaDataProcessor
+                        .updateRepositoryMetaData(metaDataScanConfiguration.getBlackDuckService(), metaDataScanConfiguration.getProjectBomService(), assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
 
                 }
             } else {
@@ -162,7 +163,8 @@ public class MetadataRepositoryScanner {
             String assetBlackDuckUrl = assetWrapper.getFromBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL);
             try {
                 ProjectVersionView projectVersionView = commonMetaDataProcessor.getOrCreateProjectVersion(metaDataScanConfiguration.getBlackDuckService(), metaDataScanConfiguration.getProjectService(), projectName, version);
-                scanMetaDataProcessor.updateRepositoryMetaData(metaDataScanConfiguration.getBlackDuckService(), assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
+                scanMetaDataProcessor.updateRepositoryMetaData(metaDataScanConfiguration.getBlackDuckService(), metaDataScanConfiguration.getProjectBomService(),
+                    assetWrapper, projectVersionView.getHref().orElse(assetBlackDuckUrl), projectVersionView);
             } catch (BlackDuckApiException e) {
                 logger.error(BLACK_DUCK_COMMUNICATION_FORMAT, e.getMessage());
                 logger.debug(e.getMessage(), e);

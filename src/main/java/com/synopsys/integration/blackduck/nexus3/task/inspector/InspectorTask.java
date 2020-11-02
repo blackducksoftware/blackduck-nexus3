@@ -44,6 +44,7 @@ import com.synopsys.integration.blackduck.nexus3.task.inspector.dependency.Depen
 import com.synopsys.integration.blackduck.nexus3.task.inspector.dependency.DependencyType;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
+import com.synopsys.integration.blackduck.service.ComponentService;
 import com.synopsys.integration.blackduck.service.ProjectBomService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.exception.IntegrationException;
@@ -74,6 +75,7 @@ public class InspectorTask extends RepositoryTaskSupport {
     protected void execute(Repository repository) {
         String exceptionMessage = null;
         BlackDuckService blackDuckService = null;
+        ComponentService componentService = null;
         ProjectService projectService = null;
         CodeLocationCreationService codeLocationCreationService = null;
         BdioUploadService bdioUploadService = null;
@@ -82,6 +84,7 @@ public class InspectorTask extends RepositoryTaskSupport {
         try {
             BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
             blackDuckService = blackDuckServicesFactory.createBlackDuckService();
+            componentService = blackDuckServicesFactory.createComponentService();
             projectService = blackDuckServicesFactory.createProjectService();
             codeLocationCreationService = blackDuckServicesFactory.createCodeLocationCreationService();
             bdioUploadService = blackDuckServicesFactory.createBdioUploadService();
@@ -102,7 +105,7 @@ public class InspectorTask extends RepositoryTaskSupport {
                 if (StringUtils.isNotBlank(exceptionMessage)) {
                     inspectorConfiguration = InspectorConfiguration.createConfigurationWithError(exceptionMessage, repository, dependencyType);
                 } else {
-                    inspectorConfiguration = InspectorConfiguration.createConfiguration(repository, dependencyType, blackDuckService, projectService, codeLocationCreationService, bdioUploadService, projectBomService);
+                    inspectorConfiguration = InspectorConfiguration.createConfiguration(repository, dependencyType, blackDuckService, componentService, projectService, codeLocationCreationService, bdioUploadService, projectBomService);
                 }
                 InspectorScanner inspectorScanner = new InspectorScanner(commonRepositoryTaskHelper, dateTimeParser, dependencyGenerator, inspectorMetaDataProcessor, commonTaskFilters, taskConfiguration(), inspectorConfiguration);
                 inspectorScanner.inspectRepository();

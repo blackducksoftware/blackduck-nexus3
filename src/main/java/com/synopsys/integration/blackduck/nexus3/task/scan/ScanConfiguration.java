@@ -9,6 +9,7 @@ import com.synopsys.integration.blackduck.codelocation.CodeLocationCreationServi
 import com.synopsys.integration.blackduck.codelocation.signaturescanner.SignatureScannerService;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
+import com.synopsys.integration.blackduck.service.ProjectBomService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 
 public class ScanConfiguration {
@@ -23,25 +24,26 @@ public class ScanConfiguration {
     private final CodeLocationCreationService codeLocationCreationService;
     private final BlackDuckService blackDuckService;
     private final ProjectService projectService;
+    private final ProjectBomService projectBomService;
 
     private final File workingBlackDuckDirectory;
     private final File tempFileStorage;
     private final File outputDirectory;
 
     public static ScanConfiguration createConfigurationWithError(String exceptionMessage, Repository repository, boolean alwaysScan, boolean redoFailures) {
-        return new ScanConfiguration(exceptionMessage, repository, alwaysScan, redoFailures, null, null, null,
+        return new ScanConfiguration(exceptionMessage, repository, alwaysScan, redoFailures, null, null, null, null,
             null, null, null, null, null);
     }
 
     public static ScanConfiguration createConfiguration(Repository repository, boolean alwaysScan, boolean redoFailures, BlackDuckServerConfig blackDuckServerConfig,
-        SignatureScannerService signatureScannerService, CodeLocationCreationService codeLocationCreationService, BlackDuckService blackDuckService, ProjectService projectService,
+        SignatureScannerService signatureScannerService, CodeLocationCreationService codeLocationCreationService, BlackDuckService blackDuckService, ProjectService projectService, ProjectBomService projectBomService,
         File workingBlackDuckDirectory, File tempFileStorage, File outputDirectory) {
         return new ScanConfiguration(null, repository, alwaysScan, redoFailures, blackDuckServerConfig, signatureScannerService, codeLocationCreationService,
-            blackDuckService, projectService, workingBlackDuckDirectory, tempFileStorage, outputDirectory);
+            blackDuckService, projectService, projectBomService, workingBlackDuckDirectory, tempFileStorage, outputDirectory);
     }
 
     private ScanConfiguration(String exceptionMessage, Repository repository, boolean alwaysScan, boolean redoFailures, BlackDuckServerConfig blackDuckServerConfig,
-        SignatureScannerService signatureScannerService, CodeLocationCreationService codeLocationCreationService, BlackDuckService blackDuckService, ProjectService projectService,
+        SignatureScannerService signatureScannerService, CodeLocationCreationService codeLocationCreationService, BlackDuckService blackDuckService, ProjectService projectService, ProjectBomService projectBomService,
         File workingBlackDuckDirectory, File tempFileStorage, File outputDirectory) {
         this.exceptionMessage = exceptionMessage;
         this.repository = repository;
@@ -52,6 +54,7 @@ public class ScanConfiguration {
         this.codeLocationCreationService = codeLocationCreationService;
         this.blackDuckService = blackDuckService;
         this.projectService = projectService;
+        this.projectBomService = projectBomService;
         this.workingBlackDuckDirectory = workingBlackDuckDirectory;
         this.tempFileStorage = tempFileStorage;
         this.outputDirectory = outputDirectory;
@@ -95,6 +98,10 @@ public class ScanConfiguration {
 
     public ProjectService getProjectService() {
         return projectService;
+    }
+
+    public ProjectBomService getProjectBomService() {
+        return projectBomService;
     }
 
     public File getWorkingBlackDuckDirectory() {

@@ -43,6 +43,7 @@ import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProce
 import com.synopsys.integration.blackduck.nexus3.task.common.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
+import com.synopsys.integration.blackduck.service.ProjectBomService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.exception.IntegrationException;
 
@@ -59,10 +60,10 @@ public class ScanMetaDataProcessor {
         this.dateTimeParser = dateTimeParser;
     }
 
-    public void updateRepositoryMetaData(BlackDuckService blackDuckService, AssetWrapper assetWrapper, String blackDuckUrl, ProjectVersionView projectVersionView)
+    public void updateRepositoryMetaData(BlackDuckService blackDuckService, ProjectBomService projectBomService, AssetWrapper assetWrapper, String blackDuckUrl, ProjectVersionView projectVersionView)
         throws IntegrationException {
         logger.info("Checking vulnerabilities.");
-        List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.getBomComponents(blackDuckService, projectVersionView);
+        List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.getBomComponents(projectBomService, projectVersionView);
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
         for (ProjectVersionComponentView versionComponentView : versionComponentViews) {
             List<ComponentVersionRiskProfileRiskDataCountsView> riskCounts = versionComponentView.getSecurityRiskProfile().getCounts();

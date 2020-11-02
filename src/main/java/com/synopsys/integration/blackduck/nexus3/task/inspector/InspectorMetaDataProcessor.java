@@ -25,10 +25,9 @@ package com.synopsys.integration.blackduck.nexus3.task.inspector;
 
 import static com.synopsys.integration.blackduck.nexus3.task.inspector.InspectorTask.INSPECTOR_VERSION_NAME;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -44,11 +43,11 @@ import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
 import com.synopsys.integration.blackduck.api.manual.throwaway.generated.component.VersionBomOriginView;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
-import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonMetaDataProcessor;
 import com.synopsys.integration.blackduck.nexus3.task.common.VulnerabilityLevels;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
+import com.synopsys.integration.blackduck.service.ProjectBomService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.exception.IntegrationException;
 
@@ -65,19 +64,19 @@ public class InspectorMetaDataProcessor {
         this.dateTimeParser = dateTimeParser;
     }
 
-    public void updateRepositoryMetaData(BlackDuckService blackDuckService, String blackDuckServerUrl, ProjectVersionView projectVersionView, Map<String, AssetWrapper> assetWrapperMap,
-        TaskStatus status) throws IntegrationException {
+    public void updateRepositoryMetaData(ProjectBomService projectBomService, String blackDuckServerUrl, ProjectVersionView projectVersionView, Map<String, AssetWrapper> assetWrapperMap) throws IntegrationException {
         String projectVersionHref = projectVersionView.getHref().orElse("MISSING HREF");
         logger.debug("Checking for components in Project Version: '{}'.", projectVersionHref);
-        List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.getBomComponents(blackDuckService, projectVersionView);
+        List<ProjectVersionComponentView> versionComponentViews = commonMetaDataProcessor.getBomComponents(projectBomService, projectVersionView);
+        Map<String, AssetWrapper> remainingAssets = new HashMap<>();
         if (versionComponentViews.isEmpty()) {
             logger.error("Could not find components in Project Version: '{}'. Check to see if the Code Locations and scans have finished.", projectVersionHref);
         } else {
             logger.debug("Found '{}' components in Project Version: '{}'.", versionComponentViews.size(), projectVersionHref);
-            processAssetMapAndBlackDuckComponents(versionComponentViews, blackDuckServerUrl, projectVersionView, assetWrapperMap, status);
+            remainingAssets = processAssetMapAndBlackDuckComponents(versionComponentViews, blackDuckServerUrl, projectVersionView, assetWrapperMap);
         }
-        logger.debug("The following items are in asset map: {}", assetWrapperMap);
-        for (AssetWrapper assetWrapper : assetWrapperMap.values()) {
+        logger.debug("The following assets did not have a matching component: {}", remainingAssets);
+        for (AssetWrapper assetWrapper : remainingAssets.values()) {
             logger.warn("This asset was not found in Black Duck, {}", assetWrapper.getName());
             assetWrapper.addComponentNotFoundToBlackDuckPanel("Black Duck was not able to find this component.");
             assetWrapper.updateAsset();
@@ -88,48 +87,59 @@ public class InspectorMetaDataProcessor {
         return commonMetaDataProcessor.getOrCreateProjectVersion(blackDuckService, projectService, repoName, INSPECTOR_VERSION_NAME);
     }
 
-    public void processAssetComponent(ProjectVersionComponentView versionComponentView, String blackDuckServerUrl, ProjectVersionView projectVersionView, AssetWrapper assetWrapper,
-        TaskStatus status) {
-        String blackDuckUrl = projectVersionView.getHref().orElse(blackDuckServerUrl);
-        PolicyStatusType policyStatus = versionComponentView.getPolicyStatus();
-
-        logger.info("Found component and updating Asset: {}", assetWrapper.getName());
-        if (TaskStatus.FAILURE.equals(status)) {
-            assetWrapper.addFailureToBlackDuckPanel("Was not able to retrieve data from Black Duck.");
-        } else {
-            assetWrapper.addSuccessToBlackDuckPanel("Successfully pulled inspection data from Black Duck.");
-            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, blackDuckUrl);
-            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, policyStatus.prettyPrint());
-            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
-            addVulnerabilityStatus(assetWrapper, versionComponentView);
-        }
+    public void updateComponentNotFoundStatus(AssetWrapper assetWrapper, String componentMissingMessage) {
+        assetWrapper.removeAllBlackDuckData();
+        assetWrapper.addComponentNotFoundToBlackDuckPanel(componentMissingMessage);
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
         assetWrapper.updateAsset();
     }
 
-    private void processAssetMapAndBlackDuckComponents(List<ProjectVersionComponentView> versionComponentViews, String blackDuckServerUrl, ProjectVersionView projectVersionView, Map<String, AssetWrapper> assetWrapperMap,
-        TaskStatus status) {
+    private Map<String, AssetWrapper> processAssetMapAndBlackDuckComponents(List<ProjectVersionComponentView> versionComponentViews, String blackDuckServerUrl,
+        ProjectVersionView projectVersionView, Map<String, AssetWrapper> assetWrapperMap) {
+        Map<String, ProjectVersionComponentView> externalIdToComponent = new HashMap<>();
         for (ProjectVersionComponentView versionComponentView : versionComponentViews) {
-            Set<String> externalIds = versionComponentView.getOrigins().stream()
-                                          .map(VersionBomOriginView::getExternalId)
-                                          .collect(Collectors.toSet());
-            logger.debug("Found all externalIds ({}) for component: {}", externalIds, versionComponentView.getComponentName());
-            for (String externalId : externalIds) {
-                AssetWrapper assetWrapper = assetWrapperMap.get(externalId);
-
-                if (null == assetWrapper) {
-                    logger.warn("{} uploaded to Black Duck, but has not been processed in nexus.", externalId);
-                    continue;
-                }
-                processAssetComponent(versionComponentView, blackDuckServerUrl, projectVersionView, assetWrapper, status);
-            }
+            versionComponentView.getOrigins().stream()
+                .map(VersionBomOriginView::getExternalId)
+                .forEach(externalId -> externalIdToComponent.put(externalId, versionComponentView));
         }
+        Map<String, AssetWrapper> remainingAssets = new HashMap<>(assetWrapperMap);
+        for (Map.Entry<String, AssetWrapper> assetWrapperEntry : assetWrapperMap.entrySet()) {
+            String externalId = assetWrapperEntry.getKey();
+            AssetWrapper assetWrapper = assetWrapperEntry.getValue();
+
+            ProjectVersionComponentView versionComponentView = externalIdToComponent.get(externalId);
+            if (null == versionComponentView) {
+                String componentNotFoundMessage = String.format("The component %s could not be found in Black Duck.", externalId);
+                logger.warn(componentNotFoundMessage);
+                updateComponentNotFoundStatus(assetWrapper, componentNotFoundMessage);
+                continue;
+            }
+
+            processAssetComponent(versionComponentView, blackDuckServerUrl, projectVersionView, assetWrapper);
+            remainingAssets.remove(externalId);
+        }
+        return remainingAssets;
+    }
+
+    private void processAssetComponent(ProjectVersionComponentView versionComponentView, String blackDuckServerUrl, ProjectVersionView projectVersionView, AssetWrapper assetWrapper) {
+        String blackDuckUrl = projectVersionView.getHref().orElse(blackDuckServerUrl);
+        PolicyStatusType policyStatus = versionComponentView.getPolicyStatus();
+
+        logger.debug("Found component and updating Asset: {}:{}", assetWrapper.getName(), assetWrapper.getVersion());
+        assetWrapper.addSuccessToBlackDuckPanel("Successfully pulled inspection data from Black Duck.");
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.BLACKDUCK_URL, blackDuckUrl);
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.OVERALL_POLICY_STATUS, policyStatus.prettyPrint());
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+        addVulnerabilityStatus(assetWrapper, versionComponentView);
+        assetWrapper.updateAsset();
     }
 
     private void addVulnerabilityStatus(AssetWrapper assetWrapper, ProjectVersionComponentView versionComponentView) {
         VulnerabilityLevels vulnerabilityLevels = new VulnerabilityLevels();
         List<ComponentVersionRiskProfileRiskDataCountsView> riskCountViews = versionComponentView.getSecurityRiskProfile().getCounts();
-        logger.info("Counting vulnerabilities");
+        logger.trace("Counting vulnerabilities");
         commonMetaDataProcessor.addAllAssetVulnerabilityCounts(riskCountViews, vulnerabilityLevels);
         commonMetaDataProcessor.setAssetVulnerabilityData(vulnerabilityLevels, assetWrapper);
     }
+
 }
