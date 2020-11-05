@@ -86,13 +86,16 @@ public class InspectorScanner {
             // wait for Black Duck to process the Project Version creation so that the components link will be available
             String projectVersionViewHref = projectVersionView.getHref().orElseThrow(() -> new IntegrationException("Could not get the Href for the Black Duck Project Version."));
 
-            logger.info("Waiting for the components link to be available for the Black Duck Project Version: {}:{}", repositoryName, projectVersionView.getVersionName());
-            ComponentLinkWaitJob componentLinkWaitJob = new ComponentLinkWaitJob(projectVersionViewHref, inspectorConfiguration.getBlackDuckService());
-            Long startTime = LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-            WaitJob waitForNotificationToBeProcessed = WaitJob.create(new Slf4jIntLogger(logger), 600, startTime, 30, componentLinkWaitJob);
-            boolean isComplete = waitForNotificationToBeProcessed.waitFor();
-            if (!isComplete) {
-                throw new IntegrationException("Could not find the Components link for the Black Duck Project Version.");
+            boolean projectVersionHasComponentsLink = projectVersionView.hasLink(ProjectVersionView.COMPONENTS_LINK);
+            if (!projectVersionHasComponentsLink) {
+                logger.info("Waiting for the components link to be available for the Black Duck Project Version: {}:{}", repositoryName, projectVersionView.getVersionName());
+                ComponentLinkWaitJob componentLinkWaitJob = new ComponentLinkWaitJob(projectVersionViewHref, inspectorConfiguration.getBlackDuckService());
+                Long startTime = LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                WaitJob waitForNotificationToBeProcessed = WaitJob.create(new Slf4jIntLogger(logger), 600, startTime, 30, componentLinkWaitJob);
+                boolean isComplete = waitForNotificationToBeProcessed.waitFor();
+                if (!isComplete) {
+                    throw new IntegrationException("Could not find the Components link for the Black Duck Project Version.");
+                }
             }
         } catch (IntegrationException e) {
             String message = "Could not get or create the Black Duck Project Version";
@@ -173,7 +176,7 @@ public class InspectorScanner {
                 inspectorMetaDataProcessor.updateComponentNotFoundStatus(assetWrapper, String.format("The component %s:%s could not be found in Black Duck.", assetName, assetVersion));
             } else {
                 String componentURL = componentURLOptional.get();
-                // the response should be com.synopsys.integration.blackduck.api.generated.view.OriginView but the API of OriginView is correctly incorrect so Gson can not convert the response to this class
+                // the response should be com.synopsys.integration.blackduck.api.generated.view.OriginView but the API of OriginView is incorrect so Gson can not convert the response to this class
                 TemporaryOriginView originView = blackDuckService.getResponse(componentURL, TemporaryOriginView.class);
                 String originId = originView.getOriginId();
                 assetWrapper.addPendingToBlackDuckPanel("Asset waiting to be uploaded to Black Duck.");
@@ -207,10 +210,11 @@ public class InspectorScanner {
         Optional<ComponentsView> componentSearchResultView = componentService.getFirstOrEmptyResult(externalId);
         String componentVersionUrl = null;
         if (componentSearchResultView.isPresent()) {
-            if (StringUtils.isNotBlank(componentSearchResultView.get().getVariant())) {
-                componentVersionUrl = componentSearchResultView.get().getVariant();
+            ComponentsView componentsView = componentSearchResultView.get();
+            if (StringUtils.isNotBlank(componentsView.getVariant())) {
+                componentVersionUrl = componentsView.getVariant();
             } else {
-                componentVersionUrl = componentSearchResultView.get().getVersion();
+                componentVersionUrl = componentsView.getVersion();
             }
         }
         return componentVersionUrl;

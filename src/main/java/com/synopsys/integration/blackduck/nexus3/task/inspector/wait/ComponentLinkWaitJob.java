@@ -17,15 +17,11 @@ public class ComponentLinkWaitJob implements WaitJobTask {
     @Override
     public boolean isComplete() throws IntegrationException {
         ProjectVersionView projectVersionView = getProjectVersionView(projectVersionViewHref);
-        return projectVersionHasComponentLink(projectVersionView);
+        return projectVersionView.hasLink(ProjectVersionView.COMPONENTS_LINK);
     }
 
     private ProjectVersionView getProjectVersionView(String projectVersionViewHref) throws IntegrationException {
         return blackDuckService.getResponse(projectVersionViewHref, ProjectVersionView.class);
-    }
-
-    private boolean projectVersionHasComponentLink(ProjectVersionView projectVersionView) {
-        return projectVersionView.hasLink(ProjectVersionView.COMPONENTS_LINK);
     }
 
 }

@@ -112,11 +112,10 @@ public class InspectorMetaDataProcessor {
                 String componentNotFoundMessage = String.format("The component %s could not be found in Black Duck.", externalId);
                 logger.warn(componentNotFoundMessage);
                 updateComponentNotFoundStatus(assetWrapper, componentNotFoundMessage);
-                continue;
+            } else {
+                processAssetComponent(versionComponentView, blackDuckServerUrl, projectVersionView, assetWrapper);
+                remainingAssets.remove(externalId);
             }
-
-            processAssetComponent(versionComponentView, blackDuckServerUrl, projectVersionView, assetWrapper);
-            remainingAssets.remove(externalId);
         }
         return remainingAssets;
     }
