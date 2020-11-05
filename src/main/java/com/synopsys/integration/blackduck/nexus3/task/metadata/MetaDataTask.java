@@ -45,6 +45,7 @@ import com.synopsys.integration.blackduck.nexus3.task.scan.ScanMetaDataProcessor
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.BlackDuckServicesFactory;
+import com.synopsys.integration.blackduck.service.ProjectBomService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.exception.IntegrationException;
 import com.synopsys.integration.phonehome.PhoneHomeResponse;
@@ -80,11 +81,13 @@ public class MetaDataTask extends RepositoryTaskSupport {
         CodeLocationCreationService codeLocationCreationService = null;
         BlackDuckService blackDuckService = null;
         ProjectService projectService = null;
+        ProjectBomService projectBomService = null;
         try {
             BlackDuckServicesFactory blackDuckServicesFactory = commonRepositoryTaskHelper.getBlackDuckServicesFactory();
             codeLocationCreationService = blackDuckServicesFactory.createCodeLocationCreationService();
             blackDuckService = blackDuckServicesFactory.createBlackDuckService();
             projectService = blackDuckServicesFactory.createProjectService();
+            projectBomService = blackDuckServicesFactory.createProjectBomService();
         } catch (IntegrationException | IllegalStateException e) {
             logger.error(String.format("Black Duck hub server config invalid. %s", e.getMessage()), e);
             exceptionMessage = e.getMessage();
@@ -105,7 +108,7 @@ public class MetaDataTask extends RepositoryTaskSupport {
             if (StringUtils.isNotBlank(exceptionMessage)) {
                 metaDataScanConfiguration = MetaDataScanConfiguration.createConfigurationWithError(exceptionMessage, repository, isProxyRepo, assetStatusLabel);
             } else {
-                metaDataScanConfiguration = MetaDataScanConfiguration.createConfiguration(repository, isProxyRepo, assetStatusLabel, codeLocationCreationService, blackDuckService, projectService);
+                metaDataScanConfiguration = MetaDataScanConfiguration.createConfiguration(repository, isProxyRepo, assetStatusLabel, codeLocationCreationService, blackDuckService, projectService, projectBomService);
             }
             MetadataRepositoryScanner metadataRepositoryScanner = new MetadataRepositoryScanner(commonRepositoryTaskHelper, queryManager, commonMetaDataProcessor, inspectorMetaDataProcessor,
                 scanMetaDataProcessor, dateTimeParser, metaDataScanConfiguration);

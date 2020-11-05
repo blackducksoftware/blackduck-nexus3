@@ -1,16 +1,14 @@
 package com.synopsys.integration.blackduck.nexus3.task.inspector;
 
-import static com.synopsys.integration.blackduck.nexus3.task.inspector.InspectorTask.INSPECTOR_VERSION_NAME;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,36 +17,29 @@ import org.sonatype.nexus.repository.storage.Query;
 import org.sonatype.nexus.scheduling.TaskConfiguration;
 import org.sonatype.nexus.scheduling.TaskInterruptedException;
 
-import com.synopsys.integration.bdio.SimpleBdioFactory;
-import com.synopsys.integration.bdio.graph.MutableDependencyGraph;
-import com.synopsys.integration.bdio.model.Forge;
-import com.synopsys.integration.bdio.model.SimpleBdioDocument;
-import com.synopsys.integration.bdio.model.dependency.Dependency;
 import com.synopsys.integration.bdio.model.externalid.ExternalId;
 import com.synopsys.integration.blackduck.api.generated.response.ComponentsView;
 import com.synopsys.integration.blackduck.api.generated.view.ProjectVersionView;
-import com.synopsys.integration.blackduck.codelocation.CodeLocationCreationData;
-import com.synopsys.integration.blackduck.codelocation.CodeLocationWaitResult;
-import com.synopsys.integration.blackduck.codelocation.bdioupload.BdioUploadCodeLocationCreationRequest;
-import com.synopsys.integration.blackduck.codelocation.bdioupload.BdioUploadService;
-import com.synopsys.integration.blackduck.codelocation.bdioupload.UploadBatch;
-import com.synopsys.integration.blackduck.codelocation.bdioupload.UploadBatchOutput;
-import com.synopsys.integration.blackduck.codelocation.bdioupload.UploadTarget;
 import com.synopsys.integration.blackduck.configuration.BlackDuckServerConfig;
 import com.synopsys.integration.blackduck.exception.BlackDuckApiException;
 import com.synopsys.integration.blackduck.nexus3.database.PagedResult;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.task.DateTimeParser;
-import com.synopsys.integration.blackduck.nexus3.task.TaskStatus;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonRepositoryTaskHelper;
 import com.synopsys.integration.blackduck.nexus3.task.common.CommonTaskFilters;
 import com.synopsys.integration.blackduck.nexus3.task.inspector.dependency.DependencyGenerator;
 import com.synopsys.integration.blackduck.nexus3.task.inspector.dependency.DependencyType;
+import com.synopsys.integration.blackduck.nexus3.task.inspector.model.TemporaryOriginView;
+import com.synopsys.integration.blackduck.nexus3.task.inspector.wait.ComponentLinkWaitJob;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
+import com.synopsys.integration.blackduck.service.BlackDuckService;
 import com.synopsys.integration.blackduck.service.ComponentService;
+import com.synopsys.integration.blackduck.service.ProjectBomService;
 import com.synopsys.integration.exception.IntegrationException;
-import com.synopsys.integration.util.IntegrationEscapeUtil;
-import com.synopsys.integration.util.NameVersion;
+import com.synopsys.integration.log.Slf4jIntLogger;
+import com.synopsys.integration.rest.RestConstants;
+import com.synopsys.integration.rest.exception.IntegrationRestException;
+import com.synopsys.integration.wait.WaitJob;
 
 public class InspectorScanner {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -73,47 +64,83 @@ public class InspectorScanner {
     }
 
     public void inspectRepository() {
-        SimpleBdioFactory simpleBdioFactory = new SimpleBdioFactory();
-        MutableDependencyGraph mutableDependencyGraph = simpleBdioFactory.createMutableDependencyGraph();
-        Map<String, AssetWrapper> assetWrapperMap = new HashMap<>();
+        BlackDuckServerConfig blackDuckServerConfig;
+        try {
+            blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
+        } catch (IntegrationException e) {
+            String message = "Could not get the Black Duck Capability.";
+            logger.error(message + ": {}.", e.getMessage());
+            logger.debug(e.getMessage(), e);
+            throw new TaskInterruptedException(message, true);
+        }
+        String blackDuckUrl = blackDuckServerConfig.getBlackDuckUrl().toString();
 
-        String repoName = inspectorConfiguration.getRepository().getName();
-        logger.info("Checking repository for assets: {}", repoName);
+        String repositoryName = inspectorConfiguration.getRepository().getName();
+        logger.info("Checking repository for assets: {}", repositoryName);
         Query pagedQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
         PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(inspectorConfiguration.getRepository(), pagedQuery);
-        boolean uploadToBlackDuck = false;
+        ProjectVersionView projectVersionView;
+        try {
+            logger.debug("Creating Project Version in Black Duck: {}", repositoryName);
+            projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(inspectorConfiguration.getBlackDuckService(), inspectorConfiguration.getProjectService(), repositoryName);
+            // wait for Black Duck to process the Project Version creation so that the components link will be available
+            String projectVersionViewHref = projectVersionView.getHref().orElseThrow(() -> new IntegrationException("Could not get the Href for the Black Duck Project Version."));
+
+            boolean projectVersionHasComponentsLink = projectVersionView.hasLink(ProjectVersionView.COMPONENTS_LINK);
+            if (!projectVersionHasComponentsLink) {
+                logger.info("Waiting for the components link to be available for the Black Duck Project Version: {}:{}", repositoryName, projectVersionView.getVersionName());
+                ComponentLinkWaitJob componentLinkWaitJob = new ComponentLinkWaitJob(projectVersionViewHref, inspectorConfiguration.getBlackDuckService());
+                Long startTime = LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                WaitJob waitForNotificationToBeProcessed = WaitJob.create(new Slf4jIntLogger(logger), 600, startTime, 30, componentLinkWaitJob);
+                boolean isComplete = waitForNotificationToBeProcessed.waitFor();
+                if (!isComplete) {
+                    throw new IntegrationException("Could not find the Components link for the Black Duck Project Version.");
+                }
+            }
+        } catch (IntegrationException e) {
+            String message = "Could not get or create the Black Duck Project Version";
+            logger.error(message + ": {}.", e.getMessage());
+            logger.debug(e.getMessage(), e);
+            throw new TaskInterruptedException(message, true);
+        } catch (InterruptedException e) {
+            String errorMessage = String.format("Waiting for the Project Version to be created was interrupted: %s", e.getMessage());
+            logger.error(errorMessage);
+            logger.debug(e.getMessage(), e);
+            Thread.currentThread().interrupt();
+            throw new TaskInterruptedException(errorMessage, true);
+        }
+
         while (filteredAssets.hasResults()) {
-            logger.info("Found some items from the DB");
-            for (Asset asset : filteredAssets.getTypeList()) {
+            Map<String, AssetWrapper> originIdToAsset = new HashMap<>();
+            Iterable<Asset> assetsTypeList = filteredAssets.getTypeList();
+            int assetCount = IterableUtils.size(assetsTypeList);
+            logger.info("Found {} assets to inspect.", assetCount);
+            for (Asset asset : assetsTypeList) {
                 AssetWrapper assetWrapper = AssetWrapper.createInspectionAssetWrapper(asset, inspectorConfiguration.getRepository(), commonRepositoryTaskHelper.getQueryManager());
 
                 if (inspectorConfiguration.hasErrors()) {
                     commonRepositoryTaskHelper.failedConnection(assetWrapper, inspectorConfiguration.getExceptionMessage());
                     assetWrapper.updateAsset();
                 } else {
-                    boolean shouldProcessAsset = processAsset(inspectorConfiguration.getComponentService(), assetWrapper, inspectorConfiguration.getDependencyType(), mutableDependencyGraph, assetWrapperMap);
-                    if (shouldProcessAsset) {
-                        // Only set uploadToBlackDuck to true, if you set it to false you risk falsely reporting that there are no new assets
-                        // I believe this can be improved upon... -BM
-                        uploadToBlackDuck = true;
-                    }
+                    processAsset(inspectorConfiguration.getProjectBomService(), inspectorConfiguration.getComponentService(), inspectorConfiguration.getBlackDuckService(), projectVersionView, assetWrapper,
+                        inspectorConfiguration.getDependencyType(), originIdToAsset);
                 }
             }
 
+            try {
+                inspectorMetaDataProcessor.updateRepositoryMetaData(inspectorConfiguration.getProjectBomService(), blackDuckUrl, projectVersionView, originIdToAsset);
+            } catch (IntegrationException e) {
+                logger.error("Problem updating the assets with the Black Duck information: {}.", e.getMessage());
+                logger.debug(e.getMessage(), e);
+                updateErrorStatus(originIdToAsset.values(), e.getMessage());
+            }
             Query nextPage = commonRepositoryTaskHelper.createPagedQuery(filteredAssets.getLastName()).build();
             filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(inspectorConfiguration.getRepository(), nextPage);
         }
-
-        if (uploadToBlackDuck && !inspectorConfiguration.hasErrors()) {
-            logger.info("Creating Black Duck project.");
-            uploadToBlackDuck(repoName, mutableDependencyGraph, simpleBdioFactory, inspectorConfiguration.getDependencyType(), assetWrapperMap);
-        } else {
-            logger.warn("Won't upload to Black Duck as no items were processed.");
-        }
     }
 
-    private boolean processAsset(ComponentService componentService, AssetWrapper assetWrapper, DependencyType dependencyType, MutableDependencyGraph mutableDependencyGraph,
-        Map<String, AssetWrapper> assetWrapperMap) {
+    private void processAsset(ProjectBomService projectBomService, ComponentService componentService, BlackDuckService blackDuckService, ProjectVersionView projectVersionView,
+        AssetWrapper assetWrapper, DependencyType dependencyType, Map<String, AssetWrapper> originIdToAsset) {
         String name = assetWrapper.getName();
         String version = assetWrapper.getVersion();
 
@@ -126,133 +153,84 @@ public class InspectorScanner {
             logger.debug(String.format("Skipping asset: %s. %s", name, e.getMessage()), e);
         }
 
-        if (commonTaskFilters.skipAssetProcessing(lastModified, fullPathName, fileName, taskConfiguration)) {
-            logger.debug("Binary file did not meet requirements for inspection: {}", name);
-            return false;
+        if (commonTaskFilters.isAssetTooOldForTask(lastModified, taskConfiguration)) {
+            logger.debug("The asset is older than the task cutoff date: {}", name);
+            return;
+        } else if (!commonTaskFilters.doesAssetPathAndExtensionMatch(fullPathName, fileName, taskConfiguration)) {
+            logger.debug("The asset path or extension does not match the task configuration: {}", name);
+            return;
         }
         logger.debug("Inspecting item: {}, version: {}, path: {}", name, version, fullPathName);
         ExternalId externalId = dependencyGenerator.createExternalId(dependencyType, name, version, assetWrapper.getAsset().attributes());
-        String originId = null;
-        try {
-            Optional<ComponentsView> firstOrEmptyResult = componentService.getFirstOrEmptyResult(externalId);
-            if (firstOrEmptyResult.isPresent()) {
-                originId = firstOrEmptyResult.get().getOriginId();
-                Dependency dependency = dependencyGenerator.createDependency(name, version, externalId);
-                logger.info("Created new dependency: {}", dependency);
-                mutableDependencyGraph.addChildToRoot(dependency);
+        addAssetToBlackDuckProjectVersion(projectBomService, componentService, blackDuckService, projectVersionView, externalId, assetWrapper, originIdToAsset);
+        assetWrapper.updateAsset();
+    }
 
+    private void addAssetToBlackDuckProjectVersion(ProjectBomService projectBomService, ComponentService componentService, BlackDuckService blackDuckService, ProjectVersionView projectVersionView, ExternalId externalId,
+        AssetWrapper assetWrapper, Map<String, AssetWrapper> originIdToAsset) {
+        String assetName = assetWrapper.getName();
+        String assetVersion = assetWrapper.getVersion();
+        try {
+            Optional<String> componentURLOptional = addComponentToBom(projectBomService, componentService, externalId, projectVersionView);
+            if (!componentURLOptional.isPresent()) {
+                inspectorMetaDataProcessor.updateComponentNotFoundStatus(assetWrapper, String.format("The component %s:%s could not be found in Black Duck.", assetName, assetVersion));
+            } else {
+                String componentURL = componentURLOptional.get();
+                // the response should be com.synopsys.integration.blackduck.api.generated.view.OriginView but the API of OriginView is incorrect so Gson can not convert the response to this class
+                TemporaryOriginView originView = blackDuckService.getResponse(componentURL, TemporaryOriginView.class);
+                String originId = originView.getOriginId();
                 assetWrapper.addPendingToBlackDuckPanel("Asset waiting to be uploaded to Black Duck.");
                 assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.ASSET_ORIGIN_ID, originId);
                 assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
 
                 logger.debug("Adding asset to map with originId as key: {}", originId);
-                assetWrapperMap.put(originId, assetWrapper);
-            } else {
-                assetWrapper.addComponentNotFoundToBlackDuckPanel(String.format("Could not find this component %s in Black Duck.", externalId.createExternalId()));
+                originIdToAsset.put(originId, assetWrapper);
             }
         } catch (IntegrationException e) {
+            logger.error("Problem uploading asset {}:{} to Black Duck: {}.", assetWrapper.getName(), assetWrapper.getVersion(), e.getMessage());
             logger.debug(e.getMessage(), e);
-            assetWrapper.addFailureToBlackDuckPanel(String.format("Something went wrong communicating with Black Duck: %s", e.getMessage()));
+            updateErrorStatus(assetWrapper, e.getMessage());
         }
-        assetWrapper.updateAsset();
-        return true;
     }
 
-    private void uploadToBlackDuck(String repositoryName, MutableDependencyGraph mutableDependencyGraph, SimpleBdioFactory simpleBdioFactory, DependencyType dependencyType,
-        Map<String, AssetWrapper> assetWrapperMap) {
-        Forge nexusForge = new Forge("/", "nexus");
-        ProjectVersionView projectVersionView;
-        String codeLocationName = String.join("/", INSPECTOR_VERSION_NAME, repositoryName, dependencyType.getRepositoryType());
+    private Optional<String> addComponentToBom(ProjectBomService projectBomService, ComponentService componentService, ExternalId externalId, ProjectVersionView projectVersionView) throws IntegrationException {
         try {
-            BlackDuckServerConfig blackDuckServerConfig = commonRepositoryTaskHelper.getBlackDuckServerConfig();
-            String blackDuckUrl = blackDuckServerConfig.getBlackDuckUrl().toString();
-            int timeOutInSeconds = blackDuckServerConfig.getTimeout();
-
-            logger.debug("Creating project in Black Duck if needed: {}", repositoryName);
-            projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(inspectorConfiguration.getBlackDuckService(), inspectorConfiguration.getProjectService(), repositoryName);
-            NameVersion projectNameVersion = new NameVersion(repositoryName, projectVersionView.getVersionName());
-
-            ExternalId projectRoot = simpleBdioFactory.createNameVersionExternalId(nexusForge, repositoryName, INSPECTOR_VERSION_NAME);
-            SimpleBdioDocument simpleBdioDocument = simpleBdioFactory.createSimpleBdioDocument(codeLocationName, repositoryName, INSPECTOR_VERSION_NAME, projectRoot, mutableDependencyGraph);
-
-            CodeLocationCreationData<UploadBatchOutput> uploadData = sendInspectorData(inspectorConfiguration.getBdioUploadService(), simpleBdioDocument, simpleBdioFactory, projectNameVersion, codeLocationName);
-
-            Set<String> successfulCodeLocationNames = uploadData.getOutput().getSuccessfulCodeLocationNames();
-            CodeLocationWaitResult.Status status = CodeLocationWaitResult.Status.PARTIAL;
-            if (successfulCodeLocationNames.contains(codeLocationName)) {
-                CodeLocationWaitResult codeLocationWaitResult = inspectorConfiguration.getCodeLocationCreationService().waitForCodeLocations(uploadData.getNotificationTaskRange(), projectNameVersion, successfulCodeLocationNames,
-                    successfulCodeLocationNames.size(), timeOutInSeconds * 5L);
-                status = codeLocationWaitResult.getStatus();
-            }
-            if (CodeLocationWaitResult.Status.COMPLETE == status) {
-                inspectorMetaDataProcessor.updateRepositoryMetaData(inspectorConfiguration.getBlackDuckService(), blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.SUCCESS);
-            } else {
-                inspectorMetaDataProcessor.updateRepositoryMetaData(inspectorConfiguration.getBlackDuckService(), blackDuckUrl, projectVersionView, assetWrapperMap, TaskStatus.FAILURE);
-            }
+            return projectBomService.addComponentToProjectVersion(externalId, projectVersionView);
         } catch (BlackDuckApiException e) {
-            logger.error("Problem communicating with Black Duck: {}.", e.getMessage());
-            logger.debug(e.getMessage(), e);
-            updateErrorStatus(assetWrapperMap.values(), e.getMessage());
-            throw new TaskInterruptedException("Problem communicating with Black Duck", true);
-        } catch (IntegrationException e) {
-            logger.error(String.format("Issue communicating with Black Duck: %s", e.getMessage()), e);
-            updateErrorStatus(assetWrapperMap.values(), e.getMessage());
-            throw new TaskInterruptedException("Issue communicating with Black Duck", true);
-        } catch (IOException e) {
-            logger.error("Error writing to file: {}", e.getMessage());
-            logger.debug(e.getMessage(), e);
-            updateErrorStatus(assetWrapperMap.values(), e.getMessage());
-            throw new TaskInterruptedException("Couldn't save inspection data", true);
-        } catch (InterruptedException e) {
-            logger.error("Waiting for the results from Black Duck was interrupted: {}", e.getMessage());
-            logger.debug(e.getMessage(), e);
-            updateErrorStatus(assetWrapperMap.values(), e.getMessage());
-            Thread.currentThread().interrupt();
-            throw new TaskInterruptedException("Waiting for Black Duck results interrupted", true);
+            IntegrationRestException integrationRestException = e.getOriginalIntegrationRestException();
+            if (RestConstants.PRECON_FAILED_412 == integrationRestException.getHttpStatusCode()) {
+                // component is already part of the BOM, there is no quick way to determine this ahead of time short of retrieving the whole BOM and searching through the components
+                return Optional.ofNullable(getComponentVersionUrl(componentService, externalId));
+            }
+            throw e;
         }
+    }
+
+    private String getComponentVersionUrl(ComponentService componentService, ExternalId externalId) throws IntegrationException {
+        Optional<ComponentsView> componentSearchResultView = componentService.getFirstOrEmptyResult(externalId);
+        String componentVersionUrl = null;
+        if (componentSearchResultView.isPresent()) {
+            ComponentsView componentsView = componentSearchResultView.get();
+            if (StringUtils.isNotBlank(componentsView.getVariant())) {
+                componentVersionUrl = componentsView.getVariant();
+            } else {
+                componentVersionUrl = componentsView.getVersion();
+            }
+        }
+        return componentVersionUrl;
     }
 
     private void updateErrorStatus(Collection<AssetWrapper> assetWrappers, String error) {
         for (AssetWrapper assetWrapper : assetWrappers) {
-            assetWrapper.removeAllBlackDuckData();
-            assetWrapper.addFailureToBlackDuckPanel(error);
-            assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
-            assetWrapper.updateAsset();
+            updateErrorStatus(assetWrapper, error);
         }
     }
 
-    private CodeLocationCreationData<UploadBatchOutput> sendInspectorData(BdioUploadService bdioUploadService, SimpleBdioDocument bdioDocument, SimpleBdioFactory simpleBdioFactory, NameVersion projectNameVersion, String codeLocationName)
-        throws IntegrationException, IOException {
-
-        IntegrationEscapeUtil integrationEscapeUtil = new IntegrationEscapeUtil();
-        File workingDirectory = commonRepositoryTaskHelper.getWorkingDirectory(taskConfiguration);
-        File blackDuckWorkingDirectory = new File(workingDirectory, "inspector");
-        if (blackDuckWorkingDirectory.mkdirs()) {
-            logger.debug("Created directories for {}", blackDuckWorkingDirectory.getAbsolutePath());
-        } else {
-            logger.debug("Directories {} already exists", blackDuckWorkingDirectory.getAbsolutePath());
-        }
-
-        File bdioFile = new File(blackDuckWorkingDirectory, integrationEscapeUtil.replaceWithUnderscore(codeLocationName));
-        if (bdioFile.exists()) {
-            Files.delete(bdioFile.toPath());
-        }
-        if (bdioFile.createNewFile()) {
-            logger.debug("Created file {}", bdioFile.getAbsolutePath());
-        } else {
-            logger.debug("File {} already exists", bdioFile.getAbsolutePath());
-        }
-
-        logger.debug("Sending data to Black Duck.");
-        simpleBdioFactory.writeSimpleBdioDocumentToFile(bdioFile, bdioDocument);
-
-        UploadBatch uploadBatch = new UploadBatch();
-        uploadBatch.addUploadTarget(UploadTarget.createDefault(projectNameVersion, codeLocationName, bdioFile));
-
-        BdioUploadCodeLocationCreationRequest uploadRequest = bdioUploadService.createUploadRequest(uploadBatch);
-        CodeLocationCreationData<UploadBatchOutput> uploadBatchOutputCodeLocationCreationData = bdioUploadService.uploadBdio(uploadRequest);
-
-        Files.delete(bdioFile.toPath());
-        return uploadBatchOutputCodeLocationCreationData;
+    private void updateErrorStatus(AssetWrapper assetWrapper, String error) {
+        assetWrapper.removeAllBlackDuckData();
+        assetWrapper.addFailureToBlackDuckPanel(error);
+        assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.TASK_FINISHED_TIME, dateTimeParser.getCurrentDateTime());
+        assetWrapper.updateAsset();
     }
+
 }

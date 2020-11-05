@@ -223,7 +223,7 @@ public class CommonTaskFiltersTest extends TestSupport {
     }
 
     @Test
-    public void skipAssetProcessingRepositoryPathTest() throws IntegrationException {
+    public void doesAssetPathAndExtensionMatchRepositoryPathTest() throws IntegrationException {
         TaskConfiguration taskConfiguration = Mockito.mock(TaskConfiguration.class);
         Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.REPOSITORY_PATH.getParameterKey()))).thenReturn("\\/badpath");
         Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.FILE_PATTERNS.getParameterKey()))).thenReturn("*.jar");
@@ -233,17 +233,17 @@ public class CommonTaskFiltersTest extends TestSupport {
 
         CommonTaskFilters commonTaskFilters = new CommonTaskFilters(dateTimeParser, null, null, null);
 
-        boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff.plusDays(1), "path/to/object.jar", "object.jar", taskConfiguration);
-        Assert.assertTrue(skipProcessing);
+        boolean badPathMatch = commonTaskFilters.doesAssetPathAndExtensionMatch("path/to/object.jar", "object.jar", taskConfiguration);
+        Assert.assertFalse(badPathMatch);
 
         Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.REPOSITORY_PATH.getParameterKey()))).thenReturn("path\\/to\\/.*");
 
-        boolean matchingPath = commonTaskFilters.skipAssetProcessing(assetCutoff.plusDays(1), "path/to/object.jar", "object.jar", taskConfiguration);
-        Assert.assertFalse(matchingPath);
+        boolean matchingPath = commonTaskFilters.doesAssetPathAndExtensionMatch("path/to/object.jar", "object.jar", taskConfiguration);
+        Assert.assertTrue(matchingPath);
     }
 
     @Test
-    public void skipAssetProcessingAssetCutoffTest() {
+    public void isAssetTooOldForTaskAssetCutoffTest() {
         TaskConfiguration taskConfiguration = Mockito.mock(TaskConfiguration.class);
         Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.REPOSITORY_PATH.getParameterKey()))).thenReturn("");
         Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.FILE_PATTERNS.getParameterKey()))).thenReturn("*.jar");
@@ -253,15 +253,15 @@ public class CommonTaskFiltersTest extends TestSupport {
 
         CommonTaskFilters commonTaskFilters = new CommonTaskFilters(dateTimeParser, null, null, null);
 
-        boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff.minusDays(4), "path/to/object.jar", "object.jar", taskConfiguration);
+        boolean skipProcessing = commonTaskFilters.isAssetTooOldForTask(assetCutoff.minusDays(4), taskConfiguration);
         Assert.assertTrue(skipProcessing);
 
-        boolean notCutoff = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", taskConfiguration);
+        boolean notCutoff = commonTaskFilters.isAssetTooOldForTask(assetCutoff, taskConfiguration);
         Assert.assertFalse(notCutoff);
     }
 
     @Test
-    public void skipAssetProcessingFileExtensionsTest() {
+    public void doesAssetPathAndExtensionMatchFileExtensionsTest() {
         TaskConfiguration taskConfiguration = Mockito.mock(TaskConfiguration.class);
         Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.REPOSITORY_PATH.getParameterKey()))).thenReturn("");
         Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.FILE_PATTERNS.getParameterKey()))).thenReturn("*.bad");
@@ -271,12 +271,12 @@ public class CommonTaskFiltersTest extends TestSupport {
 
         CommonTaskFilters commonTaskFilters = new CommonTaskFilters(dateTimeParser, null, null, null);
 
-        boolean skipProcessing = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", taskConfiguration);
-        Assert.assertTrue(skipProcessing);
+        boolean badExtensionMatch = commonTaskFilters.doesAssetPathAndExtensionMatch("path/to/object.jar", "object.jar", taskConfiguration);
+        Assert.assertFalse(badExtensionMatch);
 
         Mockito.when(taskConfiguration.getString(Mockito.eq(CommonTaskKeys.FILE_PATTERNS.getParameterKey()))).thenReturn("*.bad,     *.jar");
 
-        boolean matchingFileExtensions = commonTaskFilters.skipAssetProcessing(assetCutoff, "path/to/object.jar", "object.jar", taskConfiguration);
-        Assert.assertFalse(matchingFileExtensions);
+        boolean matchingFileExtensions = commonTaskFilters.doesAssetPathAndExtensionMatch("path/to/object.jar", "object.jar", taskConfiguration);
+        Assert.assertTrue(matchingFileExtensions);
     }
 }

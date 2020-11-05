@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -66,7 +67,9 @@ public class RepositoryScanner {
         PagedResult<Asset> foundAssets = commonRepositoryTaskHelper.retrievePagedAssets(scanConfiguration.getRepository(), filteredQuery);
 
         while (foundAssets.hasResults()) {
-            logger.debug("Found results from DB");
+            Iterable<Asset> assetsTypeList = foundAssets.getTypeList();
+            int assetCount = IterableUtils.size(assetsTypeList);
+            logger.info("Found {} assets to possibly scan.", assetCount);
             Map<AssetWrapper, Optional<CodeLocationCreationData<ScanBatchOutput>>> scannedAssets = new HashMap<>();
             for (Asset asset : foundAssets.getTypeList()) {
                 scanAsset(asset, repoName, scannedAssets);
@@ -100,12 +103,13 @@ public class RepositoryScanner {
         String codeLocationName = scanMetaDataProcessor.createCodeLocationName(repoName, name, version);
 
         TaskStatus status = assetWrapper.getBlackDuckStatus();
-        boolean shouldScan = shouldScan(status);
-        logger.debug("Status matches, {}", shouldScan);
-        boolean shouldScanAgain = commonTaskFilters.hasAssetBeenModified(assetWrapper);
-        logger.debug("Process again, {}", shouldScanAgain);
-        boolean scan = shouldScan || shouldScanAgain;
-        logger.debug("Scan without filter check, {}", scan);
+        logger.debug("Asset status, {}", status);
+        boolean shouldScan = shouldScanBasedOnStatus(status);
+        logger.debug("Asset should be rescanned because the status matches, {}", shouldScan);
+        boolean assetHasBeenModified = commonTaskFilters.hasAssetBeenModified(assetWrapper);
+        logger.debug("Should scan again because the asset has been modified, {}", assetHasBeenModified);
+        boolean scan = shouldScan || assetHasBeenModified;
+        logger.debug("Scan again because asset was modified or based on status, {}", scan);
 
         DateTime lastModified = assetWrapper.getAssetLastUpdated();
         String fullPathName = assetWrapper.getFullPath();
@@ -115,8 +119,14 @@ public class RepositoryScanner {
         } catch (IntegrationException e) {
             logger.debug(String.format("Skipping asset: %s. %s", name, e.getMessage()), e);
         }
-        if (commonTaskFilters.skipAssetProcessing(lastModified, fullPathName, fileName, taskConfiguration) || !scan) {
-            logger.debug("Binary file did not meet requirements for scan: {}", name);
+        if (commonTaskFilters.isAssetTooOldForTask(lastModified, taskConfiguration)) {
+            logger.debug("The asset is older than the task cutoff date: {}", name);
+            return;
+        } else if (!commonTaskFilters.doesAssetPathAndExtensionMatch(fullPathName, fileName, taskConfiguration)) {
+            logger.debug("The asset path or extension does not match the task configuration: {}", name);
+            return;
+        } else if (!scan) {
+            logger.debug("The asset hasn't been modified and will not be rescanned based on the status and task configuration: {}", name);
             return;
         }
 
@@ -145,7 +155,8 @@ public class RepositoryScanner {
                                                                         .waitForCodeLocations(scanData.getNotificationTaskRange(), projectNameVersion, successfulCodeLocationNames, successfulCodeLocationNames.size(), timeout);
                     if (CodeLocationWaitResult.Status.COMPLETE == codeLocationWaitResult.getStatus()) {
                         scanMetaDataProcessor
-                            .updateRepositoryMetaData(scanConfiguration.getBlackDuckService(), assetWrapper, projectVersionView.getHref().orElse(scanConfiguration.getBlackDuckServerConfig().getBlackDuckUrl().toString()),
+                            .updateRepositoryMetaData(scanConfiguration.getBlackDuckService(), scanConfiguration.getProjectBomService(), assetWrapper,
+                                projectVersionView.getHref().orElse(scanConfiguration.getBlackDuckServerConfig().getBlackDuckUrl().toString()),
                                 projectVersionView);
                     } else {
                         updateAssetWrapperWithError(assetWrapper, String.format("The Black Duck server did not update this project within %s seconds", timeout));
@@ -172,7 +183,7 @@ public class RepositoryScanner {
         assetWrapper.updateAsset();
     }
 
-    private boolean shouldScan(TaskStatus status) {
+    private boolean shouldScanBasedOnStatus(TaskStatus status) {
         if (TaskStatus.PENDING.equals(status) || TaskStatus.SUCCESS.equals(status)) {
             return scanConfiguration.isAlwaysScan();
         }

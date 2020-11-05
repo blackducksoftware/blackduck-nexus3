@@ -53,6 +53,7 @@ import com.synopsys.integration.blackduck.nexus3.TagService;
 import com.synopsys.integration.blackduck.nexus3.task.AssetWrapper;
 import com.synopsys.integration.blackduck.nexus3.ui.AssetPanelLabel;
 import com.synopsys.integration.blackduck.service.BlackDuckService;
+import com.synopsys.integration.blackduck.service.ProjectBomService;
 import com.synopsys.integration.blackduck.service.ProjectService;
 import com.synopsys.integration.blackduck.service.model.PolicyStatusDescription;
 import com.synopsys.integration.blackduck.service.model.ProjectSyncModel;
@@ -79,11 +80,11 @@ public class CommonMetaDataProcessor {
         assetWrapper.addToBlackDuckAssetPanel(AssetPanelLabel.VULNERABILITIES, vulnerabilityLevels.getAllCounts());
     }
 
-    public List<ProjectVersionComponentView> getBomComponents(BlackDuckService blackDuckService, ProjectVersionView projectVersionView) throws IntegrationException {
+    public List<ProjectVersionComponentView> getBomComponents(ProjectBomService projectBomService, ProjectVersionView projectVersionView) throws IntegrationException {
         if (!projectVersionView.hasLink(ProjectVersionView.COMPONENTS_LINK)) {
             logger.error(String.format("The '%s' link is missing from the Project Version: '%s'.", ProjectVersionView.COMPONENTS_LINK, projectVersionView.getHref().orElse("MISSING HREF")));
         }
-        return blackDuckService.getAllResponses(projectVersionView, ProjectVersionView.COMPONENTS_LINK_RESPONSE);
+        return projectBomService.getComponentsForProjectVersion(projectVersionView);
     }
 
     public void addAllAssetVulnerabilityCounts(List<ComponentVersionRiskProfileRiskDataCountsView> vulnerabilities, VulnerabilityLevels vulnerabilityLevels) {
@@ -146,7 +147,7 @@ public class CommonMetaDataProcessor {
     }
 
     public ProjectVersionView getOrCreateProjectVersion(BlackDuckService blackDuckService, ProjectService projectService, String name, String versionName) throws IntegrationException {
-        ProjectVersionWrapper projectVersionWrapper = handleGetOrProjectVersion(projectService, name, versionName);
+        ProjectVersionWrapper projectVersionWrapper = handleGetOrCreateProjectVersion(projectService, name, versionName);
 
         TagService tagService = new TagService(blackDuckService, new Slf4jIntLogger(logger));
         ProjectView projectView = projectVersionWrapper.getProjectView();
@@ -161,7 +162,7 @@ public class CommonMetaDataProcessor {
         return projectVersionWrapper.getProjectVersionView();
     }
 
-    private ProjectVersionWrapper handleGetOrProjectVersion(ProjectService projectService, String name, String versionName) throws IntegrationException {
+    private ProjectVersionWrapper handleGetOrCreateProjectVersion(ProjectService projectService, String name, String versionName) throws IntegrationException {
         logger.debug("Getting project in Black Duck : {}. Version: {}", name, versionName);
 
         ProjectVersionWrapper projectVersionWrapper = null;
