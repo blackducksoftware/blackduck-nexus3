@@ -79,36 +79,7 @@ public class InspectorScanner {
         logger.info("Checking repository for assets: {}", repositoryName);
         Query pagedQuery = commonRepositoryTaskHelper.createPagedQuery(Optional.empty()).build();
         PagedResult<Asset> filteredAssets = commonRepositoryTaskHelper.retrievePagedAssets(inspectorConfiguration.getRepository(), pagedQuery);
-        ProjectVersionView projectVersionView;
-        try {
-            logger.debug("Creating Project Version in Black Duck: {}", repositoryName);
-            projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(inspectorConfiguration.getBlackDuckService(), inspectorConfiguration.getProjectService(), repositoryName);
-            // wait for Black Duck to process the Project Version creation so that the components link will be available
-            String projectVersionViewHref = projectVersionView.getHref().orElseThrow(() -> new IntegrationException("Could not get the Href for the Black Duck Project Version."));
-
-            boolean projectVersionHasComponentsLink = projectVersionView.hasLink(ProjectVersionView.COMPONENTS_LINK);
-            if (!projectVersionHasComponentsLink) {
-                logger.info("Waiting for the components link to be available for the Black Duck Project Version: {}:{}", repositoryName, projectVersionView.getVersionName());
-                ComponentLinkWaitJob componentLinkWaitJob = new ComponentLinkWaitJob(projectVersionViewHref, inspectorConfiguration.getBlackDuckService());
-                Long startTime = LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-                WaitJob waitForNotificationToBeProcessed = WaitJob.create(new Slf4jIntLogger(logger), 600, startTime, 30, componentLinkWaitJob);
-                boolean isComplete = waitForNotificationToBeProcessed.waitFor();
-                if (!isComplete) {
-                    throw new IntegrationException("Could not find the Components link for the Black Duck Project Version.");
-                }
-            }
-        } catch (IntegrationException e) {
-            String message = "Could not get or create the Black Duck Project Version";
-            logger.error(message + ": {}.", e.getMessage());
-            logger.debug(e.getMessage(), e);
-            throw new TaskInterruptedException(message, true);
-        } catch (InterruptedException e) {
-            String errorMessage = String.format("Waiting for the Project Version to be created was interrupted: %s", e.getMessage());
-            logger.error(errorMessage);
-            logger.debug(e.getMessage(), e);
-            Thread.currentThread().interrupt();
-            throw new TaskInterruptedException(errorMessage, true);
-        }
+        ProjectVersionView projectVersionView = getProjectVersion(repositoryName);
 
         while (filteredAssets.hasResults()) {
             Map<String, AssetWrapper> originIdToAsset = new HashMap<>();
@@ -218,6 +189,40 @@ public class InspectorScanner {
             }
         }
         return componentVersionUrl;
+    }
+
+    private ProjectVersionView getProjectVersion(String repositoryName) {
+        ProjectVersionView projectVersionView;
+        try {
+            logger.debug("Creating Project Version in Black Duck: {}", repositoryName);
+            projectVersionView = inspectorMetaDataProcessor.getOrCreateProjectVersion(inspectorConfiguration.getBlackDuckService(), inspectorConfiguration.getProjectService(), repositoryName);
+            // wait for Black Duck to process the Project Version creation so that the components link will be available
+            String projectVersionViewHref = projectVersionView.getHref().orElseThrow(() -> new IntegrationException("Could not get the Href for the Black Duck Project Version."));
+
+            boolean projectVersionHasComponentsLink = projectVersionView.hasLink(ProjectVersionView.COMPONENTS_LINK);
+            if (!projectVersionHasComponentsLink) {
+                logger.info("Waiting for the components link to be available for the Black Duck Project Version: {}:{}", repositoryName, projectVersionView.getVersionName());
+                ComponentLinkWaitJob componentLinkWaitJob = new ComponentLinkWaitJob(projectVersionViewHref, inspectorConfiguration.getBlackDuckService());
+                Long startTime = LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                WaitJob waitForNotificationToBeProcessed = WaitJob.create(new Slf4jIntLogger(logger), 600, startTime, 30, componentLinkWaitJob);
+                boolean isComplete = waitForNotificationToBeProcessed.waitFor();
+                if (!isComplete) {
+                    throw new IntegrationException("Could not find the Components link for the Black Duck Project Version.");
+                }
+            }
+        } catch (IntegrationException e) {
+            String message = "Could not get or create the Black Duck Project Version";
+            logger.error(message + ": {}.", e.getMessage());
+            logger.debug(e.getMessage(), e);
+            throw new TaskInterruptedException(message, true);
+        } catch (InterruptedException e) {
+            String errorMessage = String.format("Waiting for the Project Version to be created was interrupted: %s", e.getMessage());
+            logger.error(errorMessage);
+            logger.debug(e.getMessage(), e);
+            Thread.currentThread().interrupt();
+            throw new TaskInterruptedException(errorMessage, true);
+        }
+        return projectVersionView;
     }
 
     private void updateErrorStatus(Collection<AssetWrapper> assetWrappers, String error) {
