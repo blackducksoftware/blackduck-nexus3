@@ -14,6 +14,7 @@ public class TemporaryOriginView extends BlackDuckView {
     private Date releasedOn;
 
     public TemporaryOriginView() {
+        // This class is used for de-serialization, so we should keep this empty constructor
     }
 
     public String getOriginId() {
